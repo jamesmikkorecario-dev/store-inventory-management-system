@@ -118,7 +118,21 @@ new #[Title('Product Management')] class extends Component {
             'status' => 'required|in:active,inactive,discontinued',
         ];
 
-        $validated = $this->validate($rules);
+        $messages = [
+            'sku.required' => 'SKU is required.',
+            'sku.unique' => 'SKU has already been taken.',
+            'name.required' => 'Product name is required.',
+            'categoryId.required' => 'Category is required.',
+            'categoryId.exists' => 'Selected category is invalid.',
+            'supplierId.required' => 'Supplier is required.',
+            'supplierId.exists' => 'Selected supplier is invalid.',
+            'costPrice.required' => 'Cost price is required.',
+            'sellingPrice.required' => 'Selling price is required.',
+            'minimumStock.required' => 'Minimum stock is required.',
+            'status.required' => 'Status is required.',
+        ];
+
+        $validated = $this->validate($rules, $messages);
 
         if ($this->productId) {
             $product = Product::findOrFail($this->productId);
@@ -308,16 +322,16 @@ new #[Title('Product Management')] class extends Component {
                 <table class="w-full text-left text-sm text-zinc-600 dark:text-zinc-400">
                     <thead>
                         <tr class="border-b border-zinc-200 bg-zinc-50 text-xs font-semibold text-zinc-400 dark:border-zinc-800 dark:bg-zinc-950">
-                            <th class="px-6 py-4">SKU / Product Name</th>
-                            <th class="px-6 py-4">Category</th>
+                            <th class="px-6 py-4" style="width: 25%;">SKU / Product Name</th>
+                            <th class="px-6 py-4" style="width: 17%;">Category</th>
                             @if(!$isSupplier)
-                                <th class="px-6 py-4">Supplier</th>
+                                <th class="px-6 py-4" style="width: 16%;">Supplier</th>
                             @endif
-                            <th class="px-6 py-4">Prices (Cost / Selling)</th>
-                            <th class="px-6 py-4">Stock Level</th>
-                            <th class="px-6 py-4">Status</th>
+                            <th class="px-6 py-4" style="width: 16%;">Prices (Cost / Selling)</th>
+                            <th class="px-6 py-4" style="width: 14%;">Stock Level</th>
+                            <th class="px-6 py-4" style="width: 7%;">Status</th>
                             @if(!$isReadOnly)
-                                <th class="px-6 py-4 text-right">Actions</th>
+                                <th class="px-6 py-4 text-right" style="width: 5%;">Actions</th>
                             @endif
                         </tr>
                     </thead>
@@ -330,37 +344,46 @@ new #[Title('Product Management')] class extends Component {
                                     <flux:text class="block text-xs text-zinc-400 max-w-[250px] truncate" title="{{ $product->description }}">{{ $product->description ?: 'No description' }}</flux:text>
                                 </td>
                                 <td class="px-6 py-4">
-                                    <span class="rounded bg-indigo-50 px-2.5 py-0.5 text-xs font-semibold text-indigo-700 dark:bg-indigo-950/30 dark:text-indigo-400">
+                                    <span class="rounded bg-indigo-50 px-2 py-0.5 text-xs font-semibold text-indigo-700 dark:bg-indigo-950/30 dark:text-indigo-400 whitespace-nowrap">
                                         {{ $product->category->name ?? 'Uncategorized' }}
                                     </span>
                                 </td>
                                 @if(!$isSupplier)
-                                    <td class="px-6 py-4 text-zinc-700 dark:text-zinc-300">
+                                    <td class="px-6 py-4 text-zinc-700 dark:text-zinc-300 whitespace-nowrap">
                                         {{ $product->supplier->name ?? 'No Supplier' }}
                                     </td>
                                 @endif
                                 <td class="px-6 py-4 text-zinc-700 dark:text-zinc-300 font-medium">
-                                    @if(!$isSupplier)
-                                        <span class="text-xs text-zinc-400">C:</span> ${{ number_format($product->cost_price, 2) }}
-                                        <span class="mx-1 text-zinc-300 dark:text-zinc-700">|</span>
-                                    @endif
-                                    <span class="text-xs text-zinc-400">S:</span> ${{ number_format($product->selling_price, 2) }}
+                                    <div class="flex flex-col space-y-0.5 whitespace-nowrap">
+                                        @if(!$isSupplier)
+                                            <div class="flex items-center gap-1.5 text-xs">
+                                                <span class="text-[10px] uppercase font-bold text-zinc-400 tracking-wider w-8">Cost:</span>
+                                                <span>${{ number_format($product->cost_price, 2) }}</span>
+                                            </div>
+                                        @endif
+                                        <div class="flex items-center gap-1.5 text-xs">
+                                            <span class="text-[10px] uppercase font-bold text-zinc-400 tracking-wider w-8">Sell:</span>
+                                            <span class="text-zinc-900 dark:text-white font-semibold">${{ number_format($product->selling_price, 2) }}</span>
+                                        </div>
+                                    </div>
                                 </td>
                                 <td class="px-6 py-4">
-                                    @if($product->current_stock <= 0)
-                                        <span class="inline-flex items-center gap-1.5 rounded-full bg-rose-50 px-2.5 py-1 text-xs font-semibold text-rose-700 dark:bg-rose-950/30 dark:text-rose-400">
-                                            <span class="size-1.5 rounded-full bg-rose-600 dark:bg-rose-400"></span> Out of Stock
-                                        </span>
-                                    @elseif($product->isLowStock())
-                                        <span class="inline-flex items-center gap-1.5 rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-950/30 dark:text-amber-400">
-                                            <span class="size-1.5 rounded-full bg-amber-600 dark:bg-amber-400"></span> Low Stock ({{ $product->current_stock }})
-                                        </span>
-                                    @else
-                                        <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400">
-                                            <span class="size-1.5 rounded-full bg-emerald-600 dark:bg-emerald-400"></span> In Stock ({{ $product->current_stock }})
-                                        </span>
-                                    @endif
-                                    <flux:text class="block text-[10px] text-zinc-400 mt-1">Min. Alert Threshold: {{ $product->minimum_stock }}</flux:text>
+                                    <div class="flex flex-col items-start space-y-0.5">
+                                        @if($product->current_stock <= 0)
+                                            <span class="inline-flex items-center gap-1 rounded bg-rose-50 px-2 py-0.5 text-xs font-semibold text-rose-700 dark:bg-rose-950/30 dark:text-rose-400">
+                                                <span class="size-1 rounded-full bg-rose-600 dark:bg-rose-400"></span> Out of Stock
+                                            </span>
+                                        @elseif($product->isLowStock())
+                                            <span class="inline-flex items-center gap-1 rounded bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700 dark:bg-amber-950/30 dark:text-amber-400">
+                                                <span class="size-1 rounded-full bg-amber-600 dark:bg-amber-400"></span> Low ({{ $product->current_stock }})
+                                            </span>
+                                        @else
+                                            <span class="inline-flex items-center gap-1 rounded bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400">
+                                                <span class="size-1 rounded-full bg-emerald-600 dark:bg-emerald-400"></span> {{ $product->current_stock }} In Stock
+                                            </span>
+                                        @endif
+                                        <span class="text-[10px] text-zinc-400">Min Stock: {{ $product->minimum_stock }}</span>
+                                    </div>
                                 </td>
                                 <td class="px-6 py-4">
                                     @if($product->status === 'active')
@@ -397,48 +420,89 @@ new #[Title('Product Management')] class extends Component {
 
         <!-- Add/Edit Modal -->
         @if($showFormModal)
-            <flux:modal wire:model="showFormModal" class="min-w-[500px]">
-                <div class="space-y-6">
+            <flux:modal wire:model="showFormModal" class="w-full max-w-lg">
+                <div class="space-y-4">
                     <div>
                         <flux:heading size="lg">{{ $productId ? 'Edit Product details' : 'Add new Product' }}</flux:heading>
                         <flux:subheading>Update product specifications, categorization, prices, and alerting guidelines.</flux:subheading>
                     </div>
 
-                    <form wire:submit.prevent="saveProduct" class="space-y-4">
-                        <div class="grid grid-cols-2 gap-4">
-                            <flux:input wire:model="sku" label="Unique SKU" required placeholder="SKU-PRO-NAME" />
-                            <flux:input wire:model="name" label="Product Name" required placeholder="Mechanical Keyboard" />
+                    <form wire:submit.prevent="saveProduct" class="space-y-0" novalidate>
+                        <div class="grid grid-cols-2 gap-x-4">
+                            <flux:field class="mb-4">
+                                <flux:label class="mb-1">Unique SKU <span class="text-rose-500">*</span></flux:label>
+                                <flux:input wire:model="sku" required placeholder="SKU-PRO-NAME" />
+                                <flux:error name="sku" class="!mt-0.5 text-xs font-medium" />
+                            </flux:field>
+
+                            <flux:field class="mb-4">
+                                <flux:label class="mb-1">Product Name <span class="text-rose-500">*</span></flux:label>
+                                <flux:input wire:model="name" required placeholder="Mechanical Keyboard" />
+                                <flux:error name="name" class="!mt-0.5 text-xs font-medium" />
+                            </flux:field>
                         </div>
-                        <flux:textarea wire:model="description" label="Description" placeholder="Optional specifications, dimensions, features" rows="3" />
+
+                        <flux:field class="mb-4">
+                            <flux:label class="mb-1">Description</flux:label>
+                            <flux:textarea wire:model="description" placeholder="Optional specifications, dimensions, features" rows="3" />
+                            <flux:error name="description" class="!mt-0.5 text-xs font-medium" />
+                        </flux:field>
                         
-                        <div class="grid grid-cols-2 gap-4">
-                            <flux:select wire:model="categoryId" label="Category" required>
-                                <option value="">Select Category</option>
-                                @foreach($categories as $category)
-                                    <option value="{{ $category->id }}">{{ $category->name }}</option>
-                                @endforeach
-                            </flux:select>
-                            <flux:select wire:model="supplierId" label="Supplier Partner" required>
-                                <option value="">Select Supplier</option>
-                                @foreach($suppliers as $supplier)
-                                    <option value="{{ $supplier->id }}">{{ $supplier->name }}</option>
-                                @endforeach
-                            </flux:select>
+                        <div class="grid grid-cols-2 gap-x-4">
+                            <flux:field class="mb-4">
+                                <flux:label class="mb-1">Category <span class="text-rose-500">*</span></flux:label>
+                                <flux:select wire:model="categoryId" required>
+                                    <option value="">Select Category</option>
+                                    @foreach($categories as $category)
+                                        <option value="{{ $category->id }}">{{ $category->name }}</option>
+                                    @endforeach
+                                </flux:select>
+                                <flux:error name="categoryId" class="!mt-0.5 text-xs font-medium" />
+                            </flux:field>
+
+                            <flux:field class="mb-4">
+                                <flux:label class="mb-1">Supplier Partner <span class="text-rose-500">*</span></flux:label>
+                                <flux:select wire:model="supplierId" required>
+                                    <option value="">Select Supplier</option>
+                                    @foreach($suppliers as $supplier)
+                                        <option value="{{ $supplier->id }}">{{ $supplier->name }}</option>
+                                    @endforeach
+                                </flux:select>
+                                <flux:error name="supplierId" class="!mt-0.5 text-xs font-medium" />
+                            </flux:field>
                         </div>
 
-                        <div class="grid grid-cols-3 gap-4">
-                            <flux:input wire:model="costPrice" label="Cost Price ($)" type="number" step="0.01" min="0" required />
-                            <flux:input wire:model="sellingPrice" label="Selling Price ($)" type="number" step="0.01" min="0" required />
-                            <flux:input wire:model="minimumStock" label="Min. Alert Stock" type="number" min="0" required />
+                        <div class="grid grid-cols-3 gap-x-4">
+                            <flux:field class="mb-4">
+                                <flux:label class="mb-1">Cost Price ($) <span class="text-rose-500">*</span></flux:label>
+                                <flux:input wire:model="costPrice" type="number" step="0.01" min="0" required />
+                                <flux:error name="costPrice" class="!mt-0.5 text-xs font-medium" />
+                            </flux:field>
+
+                            <flux:field class="mb-4">
+                                <flux:label class="mb-1">Selling Price ($) <span class="text-rose-500">*</span></flux:label>
+                                <flux:input wire:model="sellingPrice" type="number" step="0.01" min="0" required />
+                                <flux:error name="sellingPrice" class="!mt-0.5 text-xs font-medium" />
+                            </flux:field>
+
+                            <flux:field class="mb-4">
+                                <flux:label class="mb-1">Min. Alert Stock <span class="text-rose-500">*</span></flux:label>
+                                <flux:input wire:model="minimumStock" type="number" min="0" required />
+                                <flux:error name="minimumStock" class="!mt-0.5 text-xs font-medium" />
+                            </flux:field>
                         </div>
 
-                        <flux:select wire:model="status" label="Status" required>
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
-                            <option value="discontinued">Discontinued</option>
-                        </flux:select>
+                        <flux:field class="mb-5">
+                            <flux:label class="mb-1">Status <span class="text-rose-500">*</span></flux:label>
+                            <flux:select wire:model="status" required>
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                                <option value="discontinued">Discontinued</option>
+                            </flux:select>
+                            <flux:error name="status" class="!mt-0.5 text-xs font-medium" />
+                        </flux:field>
 
-                        <div class="flex justify-end gap-3 mt-6">
+                        <div class="flex justify-end gap-3">
                             <flux:button wire:click="$set('showFormModal', false)" variant="ghost">Cancel</flux:button>
                             <flux:button type="submit" variant="primary">Save Changes</flux:button>
                         </div>

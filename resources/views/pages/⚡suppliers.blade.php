@@ -276,7 +276,7 @@ new #[Title('Supplier Management')] class extends Component {
                         <flux:subheading>Manage supplier organization profiles and billing contacts.</flux:subheading>
                     </div>
 
-                    <form wire:submit.prevent="saveSupplier" class="space-y-4">
+                    <form wire:submit.prevent="saveSupplier" class="space-y-4" novalidate>
                         <flux:input wire:model="name" label="Company Name" required placeholder="Apex Logistics LLC" />
                         <flux:input wire:model="contactPerson" label="Contact Person" placeholder="John Doe" />
                         <flux:input wire:model="email" label="Contact Email" type="email" placeholder="sales@supplier.com" />

@@ -217,7 +217,7 @@ new #[Title('Category Management')] class extends Component {
                         <flux:subheading>Manage stock categories to classify system inventory items.</flux:subheading>
                     </div>
 
-                    <form wire:submit.prevent="saveCategory" class="space-y-4">
+                    <form wire:submit.prevent="saveCategory" class="space-y-4" novalidate>
                         <flux:input wire:model="name" label="Category Name" required placeholder="Electronics, Stationery" />
                         <flux:textarea wire:model="description" label="Description" placeholder="Optional description detailing what products belong to this category" rows="4" />
 

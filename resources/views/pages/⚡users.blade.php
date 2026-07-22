@@ -293,7 +293,7 @@ new #[Title('User Management')] class extends Component {
                         <flux:subheading>Provide the user profile details, credentials, and system role access.</flux:subheading>
                     </div>
 
-                    <form wire:submit.prevent="saveUser" class="space-y-4">
+                    <form wire:submit.prevent="saveUser" class="space-y-4" novalidate>
                         <flux:input wire:model="name" label="Name" required placeholder="Full Name" />
                         <flux:input wire:model="email" label="Email Address" type="email" required placeholder="email@example.com" />
                         
