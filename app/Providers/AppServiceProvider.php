@@ -3,6 +3,7 @@
 namespace App\Providers;
 
 use Carbon\CarbonImmutable;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\ServiceProvider;
@@ -45,6 +46,19 @@ class AppServiceProvider extends ServiceProvider
                 ->symbols()
                 ->uncompromised()
             : null,
+        );
+
+        $this->app->bind(
+            LengthAwarePaginator::class,
+            function ($app, $arguments) {
+                return (new LengthAwarePaginator(
+                    $arguments['items'],
+                    $arguments['total'],
+                    $arguments['perPage'],
+                    $arguments['currentPage'] ?? null,
+                    $arguments['options'] ?? []
+                ))->onEachSide(1);
+            }
         );
     }
 }
