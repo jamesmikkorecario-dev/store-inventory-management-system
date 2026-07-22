@@ -15,18 +15,21 @@
             :separator="__('Or confirm with password')"
         />
 
-        <form method="POST" action="{{ route('password.confirm.store') }}" class="flex flex-col gap-6">
+        <form method="POST" action="{{ route('password.confirm.store') }}" class="flex flex-col gap-0" novalidate>
             @csrf
 
-            <flux:input
-                name="password"
-                :label="__('Password')"
-                type="password"
-                required
-                autocomplete="current-password"
-                :placeholder="__('Password')"
-                viewable
-            />
+            <flux:field class="mb-5">
+                <flux:label class="mb-1">{{ __('Password') }} <span class="text-rose-500">*</span></flux:label>
+                <flux:input
+                    name="password"
+                    type="password"
+                    required
+                    autocomplete="current-password"
+                    :placeholder="__('Password')"
+                    viewable
+                />
+                <flux:error name="password" class="!mt-0.5 text-xs font-medium" />
+            </flux:field>
 
             <flux:button variant="primary" type="submit" class="w-full" data-test="confirm-password-button">
                 {{ __('Confirm') }}

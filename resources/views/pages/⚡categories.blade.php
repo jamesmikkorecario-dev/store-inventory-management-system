@@ -64,7 +64,12 @@ new #[Title('Category Management')] class extends Component {
             'description' => 'nullable|string|max:1000',
         ];
 
-        $validated = $this->validate($rules);
+        $messages = [
+            'name.required' => 'Category name is required.',
+            'name.unique' => 'Category name has already been taken.',
+        ];
+
+        $validated = $this->validate($rules, $messages);
 
         if ($this->categoryId) {
             $category = Category::findOrFail($this->categoryId);
@@ -210,18 +215,27 @@ new #[Title('Category Management')] class extends Component {
 
         <!-- Add/Edit Modal -->
         @if($showFormModal)
-            <flux:modal wire:model="showFormModal" class="min-w-[500px]">
-                <div class="space-y-6">
+            <flux:modal wire:model="showFormModal" class="w-full max-w-lg">
+                <div class="space-y-4">
                     <div>
                         <flux:heading size="lg">{{ $categoryId ? 'Edit Category details' : 'Add new Category' }}</flux:heading>
                         <flux:subheading>Manage stock categories to classify system inventory items.</flux:subheading>
                     </div>
 
-                    <form wire:submit.prevent="saveCategory" class="space-y-4" novalidate>
-                        <flux:input wire:model="name" label="Category Name" required placeholder="Electronics, Stationery" />
-                        <flux:textarea wire:model="description" label="Description" placeholder="Optional description detailing what products belong to this category" rows="4" />
+                    <form wire:submit.prevent="saveCategory" class="space-y-0" novalidate>
+                        <flux:field class="mb-4">
+                            <flux:label class="mb-1">Category Name <span class="text-rose-500">*</span></flux:label>
+                            <flux:input wire:model="name" required placeholder="Electronics, Stationery" />
+                            <flux:error name="name" class="!mt-0.5 text-xs font-medium" />
+                        </flux:field>
 
-                        <div class="flex justify-end gap-3 mt-6">
+                        <flux:field class="mb-5">
+                            <flux:label class="mb-1">Description</flux:label>
+                            <flux:textarea wire:model="description" placeholder="Optional description detailing what products belong to this category" rows="4" />
+                            <flux:error name="description" class="!mt-0.5 text-xs font-medium" />
+                        </flux:field>
+
+                        <div class="flex justify-end gap-3">
                             <flux:button wire:click="$set('showFormModal', false)" variant="ghost">Cancel</flux:button>
                             <flux:button type="submit" variant="primary">Save Changes</flux:button>
                         </div>
