@@ -210,18 +210,20 @@ new #[Title('User Management')] class extends Component {
         </div>
 
         <!-- Filters Bar -->
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between bg-white dark:bg-zinc-900 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700">
-            <div class="flex-1 max-w-sm">
-                <flux:input wire:model.live.debounce.300ms="search" placeholder="Search by name or email..." icon="magnifying-glass" />
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-end bg-white dark:bg-zinc-900 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700">
+            <div class="flex-1">
+                <flux:input wire:model.live.debounce.300ms="search" label="Search User" placeholder="Search by name or email..." icon="magnifying-glass" />
             </div>
-            <div class="flex flex-wrap gap-3">
-                <flux:select wire:model.live="filterRole" class="min-w-[150px]">
+            <div class="w-full sm:w-56">
+                <flux:select wire:model.live="filterRole" label="Role">
                     <option value="">All Roles</option>
                     @foreach($roles as $role)
                         <option value="{{ $role->name }}">{{ $role->name }}</option>
                     @endforeach
                 </flux:select>
-                <flux:select wire:model.live="filterStatus" class="min-w-[150px]">
+            </div>
+            <div class="w-full sm:w-48">
+                <flux:select wire:model.live="filterStatus" label="Status">
                     <option value="">All Statuses</option>
                     <option value="active">Active</option>
                     <option value="inactive">Inactive</option>

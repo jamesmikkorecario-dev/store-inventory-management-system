@@ -157,9 +157,9 @@ new #[Title('Category Management')] class extends Component {
         </div>
 
         <!-- Search Bar -->
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between bg-white dark:bg-zinc-900 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700">
-            <div class="flex-1 max-w-sm">
-                <flux:input wire:model.live.debounce.300ms="search" placeholder="Search by name, description..." icon="magnifying-glass" />
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-end bg-white dark:bg-zinc-900 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700">
+            <div class="w-full">
+                <flux:input wire:model.live.debounce.300ms="search" label="Search Category" placeholder="Search by name, description..." icon="magnifying-glass" />
             </div>
         </div>
 

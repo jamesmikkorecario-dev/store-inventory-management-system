@@ -194,12 +194,12 @@ new #[Title('Supplier Management')] class extends Component {
         </div>
 
         <!-- Filters -->
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between bg-white dark:bg-zinc-900 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700">
-            <div class="flex-1 max-w-sm">
-                <flux:input wire:model.live.debounce.300ms="search" placeholder="Search by name, contact, email..." icon="magnifying-glass" />
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-end bg-white dark:bg-zinc-900 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700">
+            <div class="flex-1">
+                <flux:input wire:model.live.debounce.300ms="search" label="Search Supplier" placeholder="Search by name, contact, email..." icon="magnifying-glass" />
             </div>
-            <div class="flex gap-3">
-                <flux:select wire:model.live="filterStatus" class="min-w-[150px]">
+            <div class="w-full sm:w-64">
+                <flux:select wire:model.live="filterStatus" label="Status">
                     <option value="">All Statuses</option>
                     <option value="active">Active</option>
                     <option value="inactive">Inactive</option>

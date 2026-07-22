@@ -123,18 +123,20 @@ new #[Title('Audit Trail')] class extends Component {
         </div>
 
         <!-- Filters -->
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between bg-white dark:bg-zinc-900 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700">
-            <div class="flex-1 max-w-sm">
-                <flux:input wire:model.live.debounce.300ms="search" placeholder="Search causer user, event description..." icon="magnifying-glass" />
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-end bg-white dark:bg-zinc-900 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700">
+            <div class="flex-1">
+                <flux:input wire:model.live.debounce.300ms="search" label="Search Audit Log" placeholder="Search causer user, event description..." icon="magnifying-glass" />
             </div>
-            <div class="flex flex-wrap gap-3">
-                <flux:select wire:model.live="filterSubject" class="min-w-[200px]">
+            <div class="w-full sm:w-64">
+                <flux:select wire:model.live="filterSubject" label="Subject">
                     <option value="">All Subjects</option>
                     @foreach($subjectTypes as $class => $label)
                         <option value="{{ $class }}">{{ $label }}</option>
                     @endforeach
                 </flux:select>
-                <flux:select wire:model.live="filterEvent" class="min-w-[150px]">
+            </div>
+            <div class="w-full sm:w-48">
+                <flux:select wire:model.live="filterEvent" label="Event">
                     <option value="">All Events</option>
                     <option value="created">Created</option>
                     <option value="updated">Updated</option>

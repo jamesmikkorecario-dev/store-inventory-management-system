@@ -274,12 +274,12 @@ new #[Title('Product Management')] class extends Component {
         </div>
 
         <!-- Filters Bar -->
-        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5 bg-white dark:bg-zinc-900 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700">
+        <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5 items-end bg-white dark:bg-zinc-900 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700">
             <div class="sm:col-span-2">
-                <flux:input wire:model.live.debounce.300ms="search" placeholder="Search SKU, name, details..." icon="magnifying-glass" />
+                <flux:input wire:model.live.debounce.300ms="search" label="Search Product" placeholder="Search SKU, name, details..." icon="magnifying-glass" />
             </div>
             <div>
-                <flux:select wire:model.live="filterCategory">
+                <flux:select wire:model.live="filterCategory" label="Category">
                     <option value="">All Categories</option>
                     @foreach($categories as $category)
                         <option value="{{ $category->id }}">{{ $category->name }}</option>
@@ -288,7 +288,7 @@ new #[Title('Product Management')] class extends Component {
             </div>
             @if(!$isSupplier)
                 <div>
-                    <flux:select wire:model.live="filterSupplier">
+                    <flux:select wire:model.live="filterSupplier" label="Supplier">
                         <option value="">All Suppliers</option>
                         @foreach($suppliers as $supplier)
                             <option value="{{ $supplier->id }}">{{ $supplier->name }}</option>
@@ -297,7 +297,7 @@ new #[Title('Product Management')] class extends Component {
                 </div>
             @endif
             <div>
-                <flux:select wire:model.live="filterStockStatus">
+                <flux:select wire:model.live="filterStockStatus" label="Stock Level">
                     <option value="">All Stock Levels</option>
                     <option value="instock">In Stock</option>
                     <option value="low">Low Stock Alert</option>
@@ -306,7 +306,7 @@ new #[Title('Product Management')] class extends Component {
             </div>
             @if($isSupplier)
                 <div>
-                    <flux:select wire:model.live="filterStatus">
+                    <flux:select wire:model.live="filterStatus" label="Status">
                         <option value="">All Statuses</option>
                         <option value="active">Active</option>
                         <option value="inactive">Inactive</option>
