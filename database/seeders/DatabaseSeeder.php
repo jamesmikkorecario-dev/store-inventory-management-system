@@ -2,14 +2,15 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
-use App\Models\Supplier;
 use App\Models\Category;
-use App\Models\Product;
 use App\Models\InventoryTransaction;
+use App\Models\Product;
+use App\Models\Supplier;
+use App\Models\User;
 use Illuminate\Database\Seeder;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
+use Spatie\Permission\PermissionRegistrar;
 
 class DatabaseSeeder extends Seeder
 {
@@ -19,7 +20,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         // Reset cached roles and permissions
-        app(\Spatie\Permission\PermissionRegistrar::class)->forgetCachedPermissions();
+        app(PermissionRegistrar::class)->forgetCachedPermissions();
 
         // 1. Create Permissions
         $permissions = [

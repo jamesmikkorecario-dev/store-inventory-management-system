@@ -17,9 +17,9 @@ use Illuminate\Support\Str;
 use Laravel\Fortify\Contracts\PasskeyUser;
 use Laravel\Fortify\PasskeyAuthenticatable;
 use Laravel\Fortify\TwoFactorAuthenticatable;
-use Spatie\Permission\Traits\HasRoles;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
+use Spatie\Permission\Traits\HasRoles;
 
 /**
  * @property int $id
@@ -42,7 +42,7 @@ use Spatie\Activitylog\Support\LogOptions;
 class User extends Authenticatable implements PasskeyUser
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable, PasskeyAuthenticatable, TwoFactorAuthenticatable, HasRoles, SoftDeletes, LogsActivity;
+    use HasFactory, HasRoles, LogsActivity, Notifiable, PasskeyAuthenticatable, SoftDeletes, TwoFactorAuthenticatable;
 
     /**
      * Get the attributes that should be cast.
@@ -71,6 +71,8 @@ class User extends Authenticatable implements PasskeyUser
 
     /**
      * Supplier relationship
+     *
+     * @return BelongsTo<Supplier, $this>
      */
     public function supplier(): BelongsTo
     {
@@ -79,6 +81,8 @@ class User extends Authenticatable implements PasskeyUser
 
     /**
      * Transactions made by the user
+     *
+     * @return HasMany<InventoryTransaction, $this>
      */
     public function inventoryTransactions(): HasMany
     {

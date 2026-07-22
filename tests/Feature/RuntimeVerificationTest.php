@@ -1,14 +1,14 @@
 <?php
 
-use App\Models\User;
-use App\Models\Supplier;
 use App\Models\Category;
-use App\Models\Product;
 use App\Models\InventoryTransaction;
+use App\Models\Product;
+use App\Models\Supplier;
+use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
-use Spatie\Permission\Models\Role;
 use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 uses(RefreshDatabase::class);
 

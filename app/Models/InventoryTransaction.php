@@ -3,9 +3,9 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Carbon;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
@@ -18,9 +18,9 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property float|null $unit_cost
  * @property float|null $unit_price
  * @property string|null $remarks
- * @property \Illuminate\Support\Carbon $transaction_date
- * @property \Illuminate\Support\Carbon|null $created_at
- * @property \Illuminate\Support\Carbon|null $updated_at
+ * @property Carbon $transaction_date
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
  */
 #[Fillable([
     'product_id',
@@ -34,7 +34,7 @@ use Spatie\Activitylog\Support\LogOptions;
 ])]
 class InventoryTransaction extends Model
 {
-    use HasFactory, LogsActivity;
+    use LogsActivity;
 
     /**
      * Get the attributes that should be cast.
@@ -53,6 +53,8 @@ class InventoryTransaction extends Model
 
     /**
      * Product of the transaction
+     *
+     * @return BelongsTo<Product, $this>
      */
     public function product(): BelongsTo
     {
@@ -61,6 +63,8 @@ class InventoryTransaction extends Model
 
     /**
      * User who logged the transaction
+     *
+     * @return BelongsTo<User, $this>
      */
     public function user(): BelongsTo
     {

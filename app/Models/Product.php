@@ -3,11 +3,11 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
-use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Carbon;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
@@ -23,9 +23,9 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property int $current_stock
  * @property int $minimum_stock
  * @property string $status
- * @property \Illuminate\Support\Carbon|null $created_at
- * @property \Illuminate\Support\Carbon|null $updated_at
- * @property \Illuminate\Support\Carbon|null $deleted_at
+ * @property Carbon|null $created_at
+ * @property Carbon|null $updated_at
+ * @property Carbon|null $deleted_at
  */
 #[Fillable([
     'supplier_id',
@@ -41,7 +41,7 @@ use Spatie\Activitylog\Support\LogOptions;
 ])]
 class Product extends Model
 {
-    use HasFactory, SoftDeletes, LogsActivity;
+    use LogsActivity, SoftDeletes;
 
     /**
      * Get the attributes that should be cast.
@@ -60,6 +60,8 @@ class Product extends Model
 
     /**
      * Supplier of the product
+     *
+     * @return BelongsTo<Supplier, $this>
      */
     public function supplier(): BelongsTo
     {
@@ -68,6 +70,8 @@ class Product extends Model
 
     /**
      * Category of the product
+     *
+     * @return BelongsTo<Category, $this>
      */
     public function category(): BelongsTo
     {
@@ -76,6 +80,8 @@ class Product extends Model
 
     /**
      * Inventory transactions for the product
+     *
+     * @return HasMany<InventoryTransaction, $this>
      */
     public function inventoryTransactions(): HasMany
     {

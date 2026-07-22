@@ -1,10 +1,10 @@
 <?php
 
-use App\Models\Product;
 use App\Models\Category;
+use App\Models\InventoryTransaction;
+use App\Models\Product;
 use App\Models\Supplier;
 use App\Models\User;
-use App\Models\InventoryTransaction;
 use App\Services\InventoryService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 
@@ -35,7 +35,7 @@ beforeEach(function () {
         'status' => 'active',
     ]);
 
-    $this->service = new InventoryService();
+    $this->service = new InventoryService;
 });
 
 test('it can process stock in transaction successfully', function () {
@@ -55,7 +55,7 @@ test('it can process stock in transaction successfully', function () {
     expect($tx->quantity)->toBe(15);
     expect($tx->unit_cost)->toEqual(50.00);
     expect($tx->unit_price)->toEqual(75.00);
-    
+
     $this->assertDatabaseHas('inventory_transactions', [
         'id' => $tx->id,
         'product_id' => $this->product->id,

@@ -2,10 +2,10 @@
 
 namespace App\Services;
 
-use App\Models\Product;
 use App\Models\InventoryTransaction;
-use Illuminate\Support\Facades\DB;
+use App\Models\Product;
 use Exception;
+use Illuminate\Support\Facades\DB;
 
 class InventoryService
 {
@@ -13,12 +13,9 @@ class InventoryService
      * Log an inventory transaction and automatically update product stock level.
      * Uses pessimistic locking to prevent concurrency issues and negative stock.
      *
-     * @param int $productId
-     * @param int $userId
-     * @param string $type (stock_in, stock_out, adjustment)
-     * @param int $quantity (positive for stock_in/out, signed for adjustment)
-     * @param string|null $remarks
-     * @return InventoryTransaction
+     * @param  string  $type  (stock_in, stock_out, adjustment)
+     * @param  int  $quantity  (positive for stock_in/out, signed for adjustment)
+     *
      * @throws Exception
      */
     public function logTransaction(int $productId, int $userId, string $type, int $quantity, ?string $remarks = null): InventoryTransaction
@@ -31,12 +28,12 @@ class InventoryService
             $stockChange = 0;
             if ($type === 'stock_in') {
                 if ($quantity <= 0) {
-                    throw new Exception("Stock in quantity must be greater than zero.");
+                    throw new Exception('Stock in quantity must be greater than zero.');
                 }
                 $stockChange = $quantity;
             } elseif ($type === 'stock_out') {
                 if ($quantity <= 0) {
-                    throw new Exception("Stock out quantity must be greater than zero.");
+                    throw new Exception('Stock out quantity must be greater than zero.');
                 }
                 $stockChange = -$quantity;
             } elseif ($type === 'adjustment') {
