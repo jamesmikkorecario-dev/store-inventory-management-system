@@ -151,21 +151,21 @@ new #[Title('Audit Trail')] class extends Component {
                 <table class="w-full text-left text-sm text-zinc-600 dark:text-zinc-400">
                     <thead>
                         <tr class="border-b border-zinc-200 bg-zinc-50 text-xs font-semibold text-zinc-400 dark:border-zinc-800 dark:bg-zinc-950">
-                            <th class="px-6 py-4" style="width: 180px;">Timestamp</th>
-                            <th class="px-6 py-4" style="width: 150px;">Causer User</th>
-                            <th class="px-6 py-4" style="width: 120px;">Event Action</th>
-                            <th class="px-6 py-4" style="width: 180px;">Subject (Entity)</th>
-                            <th class="px-6 py-4">Attribute Changes (Old &rarr; New)</th>
+                            <th class="px-6 py-4 w-px whitespace-nowrap">Timestamp</th>
+                            <th class="px-6 py-4 w-px whitespace-nowrap">Causer User</th>
+                            <th class="px-6 py-4 w-px whitespace-nowrap">Event Action</th>
+                            <th class="px-6 py-4 w-px whitespace-nowrap">Subject (Entity)</th>
+                            <th class="px-6 py-4 w-full">Attribute Changes (Old &rarr; New)</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
                         @forelse($activities as $act)
                             <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-800/30">
-                                <td class="px-6 py-4 text-zinc-700 dark:text-zinc-300 font-medium">
+                                <td class="px-6 py-4 text-zinc-700 dark:text-zinc-300 font-medium whitespace-nowrap">
                                     {{ $act->created_at->format('Y-m-d H:i:s') }}
                                     <flux:text class="block text-[10px] text-zinc-400">{{ $act->created_at->diffForHumans() }}</flux:text>
                                 </td>
-                                <td class="px-6 py-4">
+                                <td class="px-6 py-4 whitespace-nowrap">
                                     <flux:text class="font-semibold text-zinc-900 dark:text-white">
                                         {{ $act->causer->name ?? 'System Process' }}
                                     </flux:text>
@@ -173,7 +173,7 @@ new #[Title('Audit Trail')] class extends Component {
                                         {{ $act->causer->email ?? 'CRON/Automated' }}
                                     </flux:text>
                                 </td>
-                                <td class="px-6 py-4">
+                                <td class="px-6 py-4 whitespace-nowrap">
                                     @if($act->event === 'created')
                                         <span class="rounded bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400">Created</span>
                                     @elseif($act->event === 'updated')
@@ -184,7 +184,7 @@ new #[Title('Audit Trail')] class extends Component {
                                         <span class="rounded bg-zinc-100 px-2 py-0.5 text-xs font-semibold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">{{ strtoupper($act->event) }}</span>
                                     @endif
                                 </td>
-                                <td class="px-6 py-4">
+                                <td class="px-6 py-4 whitespace-nowrap">
                                     <flux:text class="font-medium text-zinc-800 dark:text-zinc-200">
                                         {{ class_basename($act->subject_type) ?: 'None' }}
                                     </flux:text>
