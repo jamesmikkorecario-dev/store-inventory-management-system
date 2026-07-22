@@ -77,7 +77,7 @@ new #[Title('Supplier Management')] class extends Component {
             'name' => 'required|string|max:255',
             'contactPerson' => 'nullable|string|max:255',
             'email' => 'nullable|email|max:255|unique:suppliers,email,' . ($this->supplierId ?: 'NULL'),
-            'phone' => 'nullable|string|max:50',
+            'phone' => ['nullable', 'string', 'max:50', 'regex:/^\+[1-9]\d{6,14}$/'],
             'address' => 'nullable|string',
             'status' => 'required|in:active,inactive',
         ];
@@ -86,6 +86,7 @@ new #[Title('Supplier Management')] class extends Component {
             'name.required' => 'Company name is required.',
             'email.email' => 'Email address is invalid.',
             'email.unique' => 'Email address has already been taken.',
+            'phone.regex' => 'The phone number format is invalid. It must be in international E.164 format (e.g. +639171234567).',
             'status.required' => 'Status is required.',
         ];
 
@@ -304,7 +305,48 @@ new #[Title('Supplier Management')] class extends Component {
 
                         <flux:field class="mb-4">
                             <flux:label class="mb-1">Phone Number</flux:label>
-                            <flux:input wire:model="phone" placeholder="+1 (555) 123-4567" />
+                            <div x-data="{
+                                phoneVal: @entangle('phone'),
+                                itiInstance: null,
+                                init() {
+                                    const input = this.$refs.phoneInput;
+                                    this.itiInstance = window.intlTelInput(input, {
+                                        initialCountry: 'ph',
+                                        countrySearch: true,
+                                        strictMode: true,
+                                        utilsScript: 'https://cdn.jsdelivr.net/npm/intl-tel-input@24.5.0/build/js/utils.js'
+                                    });
+
+                                    if (this.phoneVal) {
+                                        this.itiInstance.setNumber(this.phoneVal);
+                                    }
+
+                                    input.addEventListener('input', () => {
+                                        if (typeof intlTelInputUtils !== 'undefined') {
+                                            const current = this.itiInstance.getNumber(intlTelInputUtils.numberFormat.INTERNATIONAL);
+                                            if (current) {
+                                                this.itiInstance.setNumber(current);
+                                            }
+                                        }
+                                        this.phoneVal = this.itiInstance.getNumber() || '';
+                                    });
+
+                                    this.$watch('phoneVal', (value) => {
+                                        if (this.itiInstance && value !== this.itiInstance.getNumber()) {
+                                            this.itiInstance.setNumber(value || '');
+                                        }
+                                    });
+
+                                    this.$cleanup(() => {
+                                        if (this.itiInstance) {
+                                            this.itiInstance.destroy();
+                                            this.itiInstance = null;
+                                        }
+                                    });
+                                }
+                            }" class="w-full" wire:ignore>
+                                <input x-ref="phoneInput" type="tel" placeholder="917 123 4567" />
+                            </div>
                             <flux:error name="phone" class="!mt-0.5 text-xs font-medium" />
                         </flux:field>
 

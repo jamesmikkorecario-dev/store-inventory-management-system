@@ -208,3 +208,147 @@ nav[role="navigation"] .flex:first-child span[aria-disabled="true"] {
 .dark nav[role="navigation"] .flex:first-child span[aria-disabled="true"] {
     color: #52525b !important;
 }
+
+/*
+ * intl-tel-input theme overrides
+ * The plugin CSS loads AFTER Tailwind (see head.blade.php), so its native
+ * layout is preserved. We only customize colors and the tel input appearance
+ * to match Flux inputs.
+ */
+
+/* Full-width container */
+.iti {
+    width: 100% !important;
+}
+
+/* Override plugin CSS custom properties for dark theme */
+.dark .iti {
+    --iti-border-color: #3f3f46; /* zinc-700 */
+    --iti-hover-color: rgba(255, 255, 255, 0.05);
+    --iti-dropdown-bg: #18181b; /* zinc-900 */
+    --iti-dialcode-color: #a1a1aa; /* zinc-400 */
+    --iti-arrow-color: #a1a1aa; /* zinc-400 */
+}
+
+/* Style the tel input to match Flux inputs exactly */
+.iti input.iti__tel-input,
+.iti input.iti__tel-input[type="tel"] {
+    width: 100% !important;
+    height: 2.5rem !important; /* h-10 – same as Flux */
+    border: 1px solid #e4e4e7 !important; /* border-zinc-200 */
+    border-bottom-color: rgba(212, 212, 216, 0.8) !important; /* border-b-zinc-300/80 */
+    border-radius: 0.5rem !important; /* rounded-lg */
+    background-color: white !important;
+    color: #3f3f46 !important; /* text-zinc-700 */
+    font-size: 0.875rem !important; /* sm:text-sm */
+    line-height: 1.375rem !important; /* leading-[1.375rem] */
+    padding-top: 0.5rem !important; /* py-2 */
+    padding-bottom: 0.5rem !important;
+    padding-inline-start: 52px !important; /* leave room for the flag */
+    padding-inline-end: 0.75rem !important; /* pe-3 */
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important; /* shadow-xs */
+}
+
+.dark .iti input.iti__tel-input,
+.dark .iti input.iti__tel-input[type="tel"] {
+    border-color: rgba(255, 255, 255, 0.1) !important; /* dark:border-white/10 */
+    border-bottom-color: rgba(255, 255, 255, 0.1) !important;
+    background-color: rgba(255, 255, 255, 0.1) !important; /* dark:bg-white/10 */
+    color: #d4d4d8 !important; /* dark:text-zinc-300 */
+    box-shadow: none !important; /* dark:shadow-none */
+}
+
+.iti input.iti__tel-input::placeholder {
+    color: #a1a1aa !important; /* placeholder-zinc-400 */
+}
+
+/* Focus ring matching Flux (uses browser default outline like Flux does) */
+.iti input.iti__tel-input:focus,
+.iti input.iti__tel-input[type="tel"]:focus {
+    outline: auto !important;
+    outline-color: Highlight !important;
+    outline-color: -webkit-focus-ring-color !important;
+    border-color: #e4e4e7 !important;
+    box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+}
+.dark .iti input.iti__tel-input:focus,
+.dark .iti input.iti__tel-input[type="tel"]:focus {
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    box-shadow: none !important;
+}
+
+/* Flag button blends into the input */
+.iti__selected-flag {
+    background: transparent !important;
+}
+
+/* Dropdown content – rounded and shadowed */
+.iti--inline-dropdown .iti__dropdown-content {
+    border-radius: 0.5rem !important; /* rounded-lg */
+    overflow: hidden !important;
+    border-color: #e4e4e7 !important;
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1) !important;
+}
+.dark .iti--inline-dropdown .iti__dropdown-content {
+    border-color: #27272a !important; /* zinc-800 */
+}
+
+/* Search input inside dropdown */
+.iti__search-input {
+    background-color: white !important;
+    color: #3f3f46 !important;
+    border-bottom: 1px solid #e4e4e7 !important;
+    outline: none !important;
+    padding: 0.5rem 0.75rem !important;
+    font-size: 0.875rem !important;
+}
+.iti__search-input:focus {
+    outline: none !important;
+    box-shadow: none !important;
+}
+.dark .iti__search-input {
+    background-color: #18181b !important;
+    color: #d4d4d8 !important;
+    border-bottom-color: #27272a !important;
+}
+
+/* Country list separator */
+.iti__search-input + .iti__country-list {
+    border-top: none !important;
+}
+
+/* Country rows */
+.dark .iti__country {
+    color: #e4e4e7 !important; /* zinc-200 */
+}
+
+.iti__country:hover,
+.iti__country.iti__highlight {
+    background-color: #f4f4f5 !important; /* zinc-100 */
+}
+.dark .iti__country:hover,
+.dark .iti__country.iti__highlight {
+    background-color: #27272a !important; /* zinc-800 */
+}
+
+/* Custom scrollbar */
+.iti__country-list {
+    scrollbar-width: thin !important;
+    scrollbar-color: #d4d4d8 transparent !important;
+}
+.dark .iti__country-list {
+    scrollbar-color: #52525b transparent !important;
+}
+.iti__country-list::-webkit-scrollbar {
+    width: 6px;
+}
+.iti__country-list::-webkit-scrollbar-track {
+    background: transparent;
+}
+.iti__country-list::-webkit-scrollbar-thumb {
+    background-color: #d4d4d8;
+    border-radius: 9999px;
+}
+.dark .iti__country-list::-webkit-scrollbar-thumb {
+    background-color: #52525b;
+}
