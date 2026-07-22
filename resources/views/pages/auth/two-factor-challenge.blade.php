@@ -47,8 +47,8 @@
                 @csrf
 
                 <div class="space-y-5 text-center">
-                    <div x-show="!showRecoveryInput">
-                        <div class="flex items-center justify-center my-5" x-ref="otp">
+                    <div x-show="!showRecoveryInput" class="mb-4">
+                        <div class="flex flex-col items-center justify-center my-5" x-ref="otp">
                             <flux:otp
                                 x-model="code"
                                 length="6"
@@ -57,26 +57,24 @@
                                 label:sr-only
                                 class="mx-auto"
                              />
+                            <flux:error name="code" class="!mt-2 text-center text-xs font-medium" />
                         </div>
                     </div>
 
-                    <div x-show="showRecoveryInput">
+                    <div x-show="showRecoveryInput" class="mb-4">
                         <div class="my-5">
-                            <flux:input
-                                type="text"
-                                name="recovery_code"
-                                x-ref="recovery_code"
-                                x-bind:required="showRecoveryInput"
-                                autocomplete="one-time-code"
-                                x-model="recovery_code"
-                            />
+                            <flux:field>
+                                <flux:input
+                                    type="text"
+                                    name="recovery_code"
+                                    x-ref="recovery_code"
+                                    x-bind:required="showRecoveryInput"
+                                    autocomplete="one-time-code"
+                                    x-model="recovery_code"
+                                />
+                                <flux:error name="recovery_code" class="!mt-0.5 text-xs font-medium" />
+                            </flux:field>
                         </div>
-
-                        @error('recovery_code')
-                            <flux:text color="red">
-                                {{ $message }}
-                            </flux:text>
-                        @enderror
                     </div>
 
                     <flux:button

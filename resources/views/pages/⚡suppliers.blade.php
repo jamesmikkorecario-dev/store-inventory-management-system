@@ -82,7 +82,14 @@ new #[Title('Supplier Management')] class extends Component {
             'status' => 'required|in:active,inactive',
         ];
 
-        $validated = $this->validate($rules);
+        $messages = [
+            'name.required' => 'Company name is required.',
+            'email.email' => 'Email address is invalid.',
+            'email.unique' => 'Email address has already been taken.',
+            'status.required' => 'Status is required.',
+        ];
+
+        $validated = $this->validate($rules, $messages);
 
         if ($this->supplierId) {
             $supplier = Supplier::findOrFail($this->supplierId);
@@ -269,26 +276,54 @@ new #[Title('Supplier Management')] class extends Component {
 
         <!-- Add/Edit Modal -->
         @if($showFormModal)
-            <flux:modal wire:model="showFormModal" class="min-w-[500px]">
-                <div class="space-y-6">
+            <flux:modal wire:model="showFormModal" class="w-full max-w-lg">
+                <div class="space-y-4">
                     <div>
                         <flux:heading size="lg">{{ $supplierId ? 'Edit Supplier details' : 'Add new Supplier' }}</flux:heading>
                         <flux:subheading>Manage supplier organization profiles and billing contacts.</flux:subheading>
                     </div>
 
-                    <form wire:submit.prevent="saveSupplier" class="space-y-4" novalidate>
-                        <flux:input wire:model="name" label="Company Name" required placeholder="Apex Logistics LLC" />
-                        <flux:input wire:model="contactPerson" label="Contact Person" placeholder="John Doe" />
-                        <flux:input wire:model="email" label="Contact Email" type="email" placeholder="sales@supplier.com" />
-                        <flux:input wire:model="phone" label="Phone Number" placeholder="+1 (555) 123-4567" />
-                        <flux:textarea wire:model="address" label="Postal Address" placeholder="Street, City, Zip Code" rows="3" />
+                    <form wire:submit.prevent="saveSupplier" class="space-y-0" novalidate>
+                        <flux:field class="mb-4">
+                            <flux:label class="mb-1">Company Name <span class="text-rose-500">*</span></flux:label>
+                            <flux:input wire:model="name" required placeholder="Apex Logistics LLC" />
+                            <flux:error name="name" class="!mt-0.5 text-xs font-medium" />
+                        </flux:field>
 
-                        <flux:select wire:model="status" label="Status" required>
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
-                        </flux:select>
+                        <flux:field class="mb-4">
+                            <flux:label class="mb-1">Contact Person</flux:label>
+                            <flux:input wire:model="contactPerson" placeholder="John Doe" />
+                            <flux:error name="contactPerson" class="!mt-0.5 text-xs font-medium" />
+                        </flux:field>
 
-                        <div class="flex justify-end gap-3 mt-6">
+                        <flux:field class="mb-4">
+                            <flux:label class="mb-1">Contact Email</flux:label>
+                            <flux:input wire:model="email" type="email" placeholder="sales@supplier.com" />
+                            <flux:error name="email" class="!mt-0.5 text-xs font-medium" />
+                        </flux:field>
+
+                        <flux:field class="mb-4">
+                            <flux:label class="mb-1">Phone Number</flux:label>
+                            <flux:input wire:model="phone" placeholder="+1 (555) 123-4567" />
+                            <flux:error name="phone" class="!mt-0.5 text-xs font-medium" />
+                        </flux:field>
+
+                        <flux:field class="mb-4">
+                            <flux:label class="mb-1">Postal Address</flux:label>
+                            <flux:textarea wire:model="address" placeholder="Street, City, Zip Code" rows="3" />
+                            <flux:error name="address" class="!mt-0.5 text-xs font-medium" />
+                        </flux:field>
+
+                        <flux:field class="mb-5">
+                            <flux:label class="mb-1">Status <span class="text-rose-500">*</span></flux:label>
+                            <flux:select wire:model="status" required>
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </flux:select>
+                            <flux:error name="status" class="!mt-0.5 text-xs font-medium" />
+                        </flux:field>
+
+                        <div class="flex justify-end gap-3">
                             <flux:button wire:click="$set('showFormModal', false)" variant="ghost">Cancel</flux:button>
                             <flux:button type="submit" variant="primary">Save Changes</flux:button>
                         </div>

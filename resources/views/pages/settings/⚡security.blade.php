@@ -69,10 +69,18 @@ new #[Title('Security settings')] class extends Component {
     public function updatePassword(): void
     {
         try {
-            $validated = $this->validate([
+            $rules = [
                 'current_password' => $this->currentPasswordRules(),
                 'password' => $this->passwordRules(),
-            ]);
+            ];
+            $messages = [
+                'current_password.required' => 'Current password is required.',
+                'current_password.current_password' => 'The provided password does not match your current password.',
+                'password.required' => 'New password is required.',
+                'password.confirmed' => 'New password confirmation does not match.',
+                'password.min' => 'New password must be at least 8 characters.',
+            ];
+            $validated = $this->validate($rules, $messages);
         } catch (ValidationException $e) {
             $this->reset('current_password', 'password', 'password_confirmation');
 
@@ -172,33 +180,44 @@ new #[Title('Security settings')] class extends Component {
     <flux:heading class="sr-only">{{ __('Security settings') }}</flux:heading>
 
     <x-pages::settings.layout :heading="__('Update password')" :subheading="__('Ensure your account is using a long, random password to stay secure')">
-        <form method="POST" wire:submit="updatePassword" class="mt-6 space-y-6">
-            <flux:input
-                wire:model="current_password"
-                :label="__('Current password')"
-                type="password"
-                required
-                autocomplete="current-password"
-                viewable
-            />
-            <flux:input
-                wire:model="password"
-                :label="__('New password')"
-                type="password"
-                required
-                autocomplete="new-password"
-                passwordrules="{{ \Illuminate\Validation\Rules\Password::defaults()->toPasswordRulesString() }}"
-                viewable
-            />
-            <flux:input
-                wire:model="password_confirmation"
-                :label="__('Confirm password')"
-                type="password"
-                required
-                autocomplete="new-password"
-                passwordrules="{{ \Illuminate\Validation\Rules\Password::defaults()->toPasswordRulesString() }}"
-                viewable
-            />
+        <form method="POST" wire:submit="updatePassword" class="mt-6 space-y-0" novalidate>
+            <flux:field class="mb-4">
+                <flux:label class="mb-1">{{ __('Current password') }} <span class="text-rose-500">*</span></flux:label>
+                <flux:input
+                    wire:model="current_password"
+                    type="password"
+                    required
+                    autocomplete="current-password"
+                    viewable
+                />
+                <flux:error name="current_password" class="!mt-0.5 text-xs font-medium" />
+            </flux:field>
+
+            <flux:field class="mb-4">
+                <flux:label class="mb-1">{{ __('New password') }} <span class="text-rose-500">*</span></flux:label>
+                <flux:input
+                    wire:model="password"
+                    type="password"
+                    required
+                    autocomplete="new-password"
+                    passwordrules="{{ \Illuminate\Validation\Rules\Password::defaults()->toPasswordRulesString() }}"
+                    viewable
+                />
+                <flux:error name="password" class="!mt-0.5 text-xs font-medium" />
+            </flux:field>
+
+            <flux:field class="mb-5">
+                <flux:label class="mb-1">{{ __('Confirm password') }} <span class="text-rose-500">*</span></flux:label>
+                <flux:input
+                    wire:model="password_confirmation"
+                    type="password"
+                    required
+                    autocomplete="new-password"
+                    passwordrules="{{ \Illuminate\Validation\Rules\Password::defaults()->toPasswordRulesString() }}"
+                    viewable
+                />
+                <flux:error name="password_confirmation" class="!mt-0.5 text-xs font-medium" />
+            </flux:field>
 
             <div class="flex items-center gap-4">
                 <flux:button variant="primary" type="submit" data-test="update-password-button">

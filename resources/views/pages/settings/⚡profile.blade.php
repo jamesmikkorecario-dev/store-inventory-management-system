@@ -31,7 +31,14 @@ new #[Title('Profile settings')] class extends Component {
     {
         $user = Auth::user();
 
-        $validated = $this->validate($this->profileRules($user->id));
+        $messages = [
+            'name.required' => 'Name is required.',
+            'email.required' => 'Email address is required.',
+            'email.email' => 'Email address is invalid.',
+            'email.unique' => 'Email address has already been taken.',
+        ];
+
+        $validated = $this->validate($this->profileRules($user->id), $messages);
 
         $user->fill($validated);
 
@@ -82,11 +89,17 @@ new #[Title('Profile settings')] class extends Component {
     <flux:heading class="sr-only">{{ __('Profile settings') }}</flux:heading>
 
     <x-pages::settings.layout :heading="__('Profile')" :subheading="__('Update your name and email address')">
-        <form wire:submit="updateProfileInformation" class="my-6 w-full space-y-6">
-            <flux:input wire:model="name" :label="__('Name')" type="text" required autofocus autocomplete="name" />
+        <form wire:submit="updateProfileInformation" class="my-6 w-full space-y-0" novalidate>
+            <flux:field class="mb-4">
+                <flux:label class="mb-1">{{ __('Name') }} <span class="text-rose-500">*</span></flux:label>
+                <flux:input wire:model="name" type="text" required autofocus autocomplete="name" />
+                <flux:error name="name" class="!mt-0.5 text-xs font-medium" />
+            </flux:field>
 
-            <div>
-                <flux:input wire:model="email" :label="__('Email')" type="email" required autocomplete="email" />
+            <flux:field class="mb-5">
+                <flux:label class="mb-1">{{ __('Email') }} <span class="text-rose-500">*</span></flux:label>
+                <flux:input wire:model="email" type="email" required autocomplete="email" />
+                <flux:error name="email" class="!mt-0.5 text-xs font-medium" />
 
                 @if ($this->hasUnverifiedEmail)
                     <div>
@@ -105,15 +118,12 @@ new #[Title('Profile settings')] class extends Component {
                         @endif
                     </div>
                 @endif
-            </div>
+            </flux:field>
 
             <div class="flex items-center gap-4">
-                <div class="flex items-center justify-end">
-                    <flux:button variant="primary" type="submit" class="w-full" data-test="update-profile-button">
-                        {{ __('Save') }}
-                    </flux:button>
-                </div>
-
+                <flux:button variant="primary" type="submit" data-test="update-profile-button">
+                    {{ __('Save') }}
+                </flux:button>
             </div>
         </form>
 

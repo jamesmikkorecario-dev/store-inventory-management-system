@@ -15,9 +15,14 @@ new class extends Component {
      */
     public function deleteUser(Logout $logout): void
     {
+        $messages = [
+            'password.required' => 'Password is required.',
+            'password.current_password' => 'The password you entered is incorrect.',
+        ];
+
         $this->validate([
             'password' => $this->currentPasswordRules(),
-        ]);
+        ], $messages);
 
         tap(Auth::user(), $logout(...))->delete();
 
@@ -26,8 +31,8 @@ new class extends Component {
 }; ?>
 
 <flux:modal name="confirm-user-deletion" :show="$errors->isNotEmpty()" focusable class="max-w-lg">
-    <form method="POST" wire:submit="deleteUser" class="space-y-6">
-        <div>
+    <form method="POST" wire:submit="deleteUser" class="space-y-0" novalidate>
+        <div class="mb-5">
             <flux:heading size="lg">{{ __('Are you sure you want to delete your account?') }}</flux:heading>
 
             <flux:subheading>
@@ -35,7 +40,11 @@ new class extends Component {
             </flux:subheading>
         </div>
 
-        <flux:input wire:model="password" :label="__('Password')" type="password" viewable />
+        <flux:field class="mb-5">
+            <flux:label class="mb-1">{{ __('Password') }} <span class="text-rose-500">*</span></flux:label>
+            <flux:input wire:model="password" type="password" viewable />
+            <flux:error name="password" class="!mt-0.5 text-xs font-medium" />
+        </flux:field>
 
         <div class="flex justify-end space-x-2 rtl:space-x-reverse">
             <flux:modal.close>

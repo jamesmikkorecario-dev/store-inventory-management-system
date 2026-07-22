@@ -87,7 +87,21 @@ new #[Title('User Management')] class extends Component {
             $rules['password'] = 'nullable|string|min:8';
         }
 
-        $validated = $this->validate($rules);
+        $messages = [
+            'name.required' => 'Name is required.',
+            'email.required' => 'Email address is required.',
+            'email.email' => 'Email address is invalid.',
+            'email.unique' => 'Email address has already been taken.',
+            'roleName.required' => 'Role is required.',
+            'roleName.exists' => 'Selected role is invalid.',
+            'supplierId.required_if' => 'Supplier Partner is required for Supplier role.',
+            'supplierId.exists' => 'Selected supplier is invalid.',
+            'password.required' => 'Password is required.',
+            'password.min' => 'Password must be at least 8 characters.',
+            'status.required' => 'Status is required.',
+        ];
+
+        $validated = $this->validate($rules, $messages);
 
         if ($this->userId) {
             $user = User::findOrFail($this->userId);
@@ -286,41 +300,66 @@ new #[Title('User Management')] class extends Component {
 
         <!-- Add/Edit Modal -->
         @if($showFormModal)
-            <flux:modal wire:model="showFormModal" class="min-w-[500px]">
-                <div class="space-y-6">
+            <flux:modal wire:model="showFormModal" class="w-full max-w-lg">
+                <div class="space-y-4">
                     <div>
                         <flux:heading size="lg">{{ $userId ? 'Edit User details' : 'Create new User' }}</flux:heading>
                         <flux:subheading>Provide the user profile details, credentials, and system role access.</flux:subheading>
                     </div>
 
-                    <form wire:submit.prevent="saveUser" class="space-y-4" novalidate>
-                        <flux:input wire:model="name" label="Name" required placeholder="Full Name" />
-                        <flux:input wire:model="email" label="Email Address" type="email" required placeholder="email@example.com" />
+                    <form wire:submit.prevent="saveUser" class="space-y-0" novalidate>
+                        <flux:field class="mb-4">
+                            <flux:label class="mb-1">Name <span class="text-rose-500">*</span></flux:label>
+                            <flux:input wire:model="name" required placeholder="Full Name" />
+                            <flux:error name="name" class="!mt-0.5 text-xs font-medium" />
+                        </flux:field>
+
+                        <flux:field class="mb-4">
+                            <flux:label class="mb-1">Email Address <span class="text-rose-500">*</span></flux:label>
+                            <flux:input wire:model="email" type="email" required placeholder="email@example.com" />
+                            <flux:error name="email" class="!mt-0.5 text-xs font-medium" />
+                        </flux:field>
                         
-                        <flux:input wire:model="password" label="{{ $userId ? 'Password (Leave empty to keep current)' : 'Password' }}" type="password" placeholder="Min. 8 characters" :required="!$userId" />
+                        <flux:field class="mb-4">
+                            <flux:label class="mb-1">{{ $userId ? 'Password (Leave empty to keep current)' : 'Password' }} @if(!$userId)<span class="text-rose-500">*</span>@endif</flux:label>
+                            <flux:input wire:model="password" type="password" placeholder="Min. 8 characters" :required="!$userId" />
+                            <flux:error name="password" class="!mt-0.5 text-xs font-medium" />
+                        </flux:field>
 
-                        <flux:select wire:model.live="roleName" label="Access Role" required>
-                            <option value="">Select Role</option>
-                            @foreach($roles as $role)
-                                <option value="{{ $role->name }}">{{ $role->name }}</option>
-                            @endforeach
-                        </flux:select>
-
-                        @if($roleName === 'Supplier')
-                            <flux:select wire:model="supplierId" label="Linked Supplier Firm" required>
-                                <option value="">Select Supplier</option>
-                                @foreach($suppliers as $supplier)
-                                    <option value="{{ $supplier->id }}">{{ $supplier->name }}</option>
+                        <flux:field class="mb-4">
+                            <flux:label class="mb-1">Access Role <span class="text-rose-500">*</span></flux:label>
+                            <flux:select wire:model.live="roleName" required>
+                                <option value="">Select Role</option>
+                                @foreach($roles as $role)
+                                    <option value="{{ $role->name }}">{{ $role->name }}</option>
                                 @endforeach
                             </flux:select>
+                            <flux:error name="roleName" class="!mt-0.5 text-xs font-medium" />
+                        </flux:field>
+
+                        @if($roleName === 'Supplier')
+                            <flux:field class="mb-4">
+                                <flux:label class="mb-1">Linked Supplier Firm <span class="text-rose-500">*</span></flux:label>
+                                <flux:select wire:model="supplierId" required>
+                                    <option value="">Select Supplier</option>
+                                    @foreach($suppliers as $supplier)
+                                        <option value="{{ $supplier->id }}">{{ $supplier->name }}</option>
+                                    @endforeach
+                                </flux:select>
+                                <flux:error name="supplierId" class="!mt-0.5 text-xs font-medium" />
+                            </flux:field>
                         @endif
 
-                        <flux:select wire:model="status" label="Status" required>
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
-                        </flux:select>
+                        <flux:field class="mb-5">
+                            <flux:label class="mb-1">Status <span class="text-rose-500">*</span></flux:label>
+                            <flux:select wire:model="status" required>
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </flux:select>
+                            <flux:error name="status" class="!mt-0.5 text-xs font-medium" />
+                        </flux:field>
 
-                        <div class="flex justify-end gap-3 mt-6">
+                        <div class="flex justify-end gap-3">
                             <flux:button wire:click="$set('showFormModal', false)" variant="ghost">Cancel</flux:button>
                             <flux:button type="submit" variant="primary">Save Changes</flux:button>
                         </div>

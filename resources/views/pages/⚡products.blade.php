@@ -368,21 +368,21 @@ new #[Title('Product Management')] class extends Component {
                                     </div>
                                 </td>
                                 <td class="px-6 py-4">
-                                    <div class="flex flex-col items-start space-y-0.5">
+                                    <div class="flex flex-col items-start space-y-0.5 whitespace-nowrap">
                                         @if($product->current_stock <= 0)
-                                            <span class="inline-flex items-center gap-1 rounded bg-rose-50 px-2 py-0.5 text-xs font-semibold text-rose-700 dark:bg-rose-950/30 dark:text-rose-400">
+                                            <span class="inline-flex items-center gap-1 rounded bg-rose-50 px-2 py-0.5 text-xs font-semibold text-rose-700 dark:bg-rose-950/30 dark:text-rose-400 whitespace-nowrap">
                                                 <span class="size-1 rounded-full bg-rose-600 dark:bg-rose-400"></span> Out of Stock
                                             </span>
                                         @elseif($product->isLowStock())
-                                            <span class="inline-flex items-center gap-1 rounded bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700 dark:bg-amber-950/30 dark:text-amber-400">
+                                            <span class="inline-flex items-center gap-1 rounded bg-amber-50 px-2 py-0.5 text-xs font-semibold text-amber-700 dark:bg-amber-950/30 dark:text-amber-400 whitespace-nowrap">
                                                 <span class="size-1 rounded-full bg-amber-600 dark:bg-amber-400"></span> Low ({{ $product->current_stock }})
                                             </span>
                                         @else
-                                            <span class="inline-flex items-center gap-1 rounded bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400">
+                                            <span class="inline-flex items-center gap-1 rounded bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400 whitespace-nowrap">
                                                 <span class="size-1 rounded-full bg-emerald-600 dark:bg-emerald-400"></span> {{ $product->current_stock }} In Stock
                                             </span>
                                         @endif
-                                        <span class="text-[10px] text-zinc-400">Min Stock: {{ $product->minimum_stock }}</span>
+                                        <span class="text-[10px] text-zinc-400 whitespace-nowrap">Min Stock: {{ $product->minimum_stock }}</span>
                                     </div>
                                 </td>
                                 <td class="px-6 py-4">
