@@ -330,7 +330,7 @@ new #[Title('Inventory Reports')] class extends Component {
         </div>
 
         <!-- Configuration Bar -->
-        <div class="grid grid-cols-1 gap-4 md:grid-cols-4 bg-white dark:bg-zinc-900 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700">
+        <div class="grid gap-4 bg-white dark:bg-zinc-900 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700 {{ $reportType === 'movements' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-5' : ($reportType === 'supplier' ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1 sm:grid-cols-3') }}">
             <div>
                 <flux:select wire:model.live="reportType" label="Report Class" required>
                     <option value="summary">Inventory Valuation Summary</option>
@@ -347,9 +347,6 @@ new #[Title('Inventory Reports')] class extends Component {
                 <div>
                     <flux:input wire:model.live="endDate" type="date" label="End Date" />
                 </div>
-            @else
-                <div class="hidden md:block"></div>
-                <div class="hidden md:block"></div>
             @endif
 
             <div>
