@@ -288,7 +288,7 @@ new #[Title('Inventory Transactions')] class extends Component {
                         <flux:subheading>Record physical inventory changes inside the warehouse. All details are immutable once logged.</flux:subheading>
                     </div>
 
-                    <form wire:submit.prevent="saveTransaction" class="space-y-4">
+                    <form wire:submit.prevent="saveTransaction" class="space-y-4" novalidate>
                         <flux:select wire:model="productId" label="Select Product" required>
                             <option value="">Choose product...</option>
                             @foreach($products as $p)
