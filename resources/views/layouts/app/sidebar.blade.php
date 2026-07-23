@@ -57,6 +57,11 @@
                             {{ __('Audit Trail') }}
                         </flux:sidebar.item>
                     @endcan
+
+                    <flux:sidebar.item icon="bell" :href="route('alerts.index')" :current="request()->routeIs('alerts.index')" wire:navigate>
+                        {{ __('Alerts') }}
+                        <livewire:sidebar-alerts-badge />
+                    </flux:sidebar.item>
                 </flux:sidebar.group>
             </flux:sidebar.nav>
 
@@ -81,7 +86,8 @@
 
             <flux:spacer />
 
-            <flux:dropdown position="top" align="end">
+            <div class="flex items-center gap-2">
+                <flux:dropdown position="top" align="end">
                 <flux:profile
                     :initials="auth()->user()->initials()"
                     icon-trailing="chevron-down"
@@ -128,6 +134,7 @@
                     </form>
                 </flux:menu>
             </flux:dropdown>
+            </div>
         </flux:header>
 
         {{ $slot }}

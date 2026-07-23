@@ -4,6 +4,7 @@ use App\Models\InventoryTransaction;
 use App\Models\Product;
 use App\Services\InventoryService;
 use Livewire\Attributes\Title;
+use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\Auth;
@@ -48,6 +49,13 @@ new #[Title('Inventory Transactions')] class extends Component {
     public function updatedSearch(): void
     {
         $this->resetPage();
+    }
+
+    #[On('transactions-updated')]
+    #[On('products-updated')]
+    public function refreshData(): void
+    {
+        // Component will re-render
     }
 
     public function updatedFilterType(): void
@@ -118,6 +126,12 @@ new #[Title('Inventory Transactions')] class extends Component {
                 $finalQuantity,
                 $this->remarks
             );
+
+            $this->dispatch('transactions-updated');
+            $this->dispatch('products-updated');
+            $this->dispatch('inventory-updated');
+            $this->dispatch('alerts-updated');
+            $this->dispatch('dashboard-updated');
 
             Flux::toast(variant: 'success', text: 'Created successfully.');
             $this->showFormModal = false;

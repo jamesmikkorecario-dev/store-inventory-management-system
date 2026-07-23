@@ -4,6 +4,7 @@ use App\Models\Product;
 use App\Models\Category;
 use App\Models\Supplier;
 use Livewire\Attributes\Title;
+use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\Auth;
@@ -56,6 +57,15 @@ new #[Title('Product Management')] class extends Component {
     public function updatedSearch(): void
     {
         $this->resetPage();
+    }
+
+    #[On('products-updated')]
+    #[On('categories-updated')]
+    #[On('suppliers-updated')]
+    #[On('inventory-updated')]
+    public function refreshData(): void
+    {
+        // Component will re-render
     }
 
     public function updatedFilterCategory(): void
@@ -151,6 +161,8 @@ new #[Title('Product Management')] class extends Component {
                 'minimum_stock' => $this->minimumStock,
                 'status' => $this->status,
             ]);
+            $this->dispatch('products-updated');
+            $this->dispatch('dashboard-updated');
             Flux::toast(variant: 'success', text: 'Updated successfully.');
         } else {
             Product::create([
@@ -165,6 +177,8 @@ new #[Title('Product Management')] class extends Component {
                 'current_stock' => 0, // Enforce starting stock as 0. Stock changes are managed by transactions.
                 'status' => $this->status,
             ]);
+            $this->dispatch('products-updated');
+            $this->dispatch('dashboard-updated');
             Flux::toast(variant: 'success', text: 'Created successfully.');
         }
 
@@ -196,6 +210,8 @@ new #[Title('Product Management')] class extends Component {
         }
 
         $product->delete();
+        $this->dispatch('products-updated');
+        $this->dispatch('dashboard-updated');
 
         Flux::toast(variant: 'success', text: 'Deleted successfully.');
         $this->showDeleteModal = false;

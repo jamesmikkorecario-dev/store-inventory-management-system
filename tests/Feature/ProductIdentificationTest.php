@@ -18,6 +18,7 @@ test('generates unique identifier upon creation', function () {
         'cost_price' => 10.00,
         'selling_price' => 20.00,
         'minimum_stock' => 5,
+        'current_stock' => 10,
         'status' => 'active',
         'category_id' => $category->id,
         'supplier_id' => $supplier->id,
@@ -40,6 +41,7 @@ test('identifier is unique', function () {
         'cost_price' => 10,
         'selling_price' => 20,
         'minimum_stock' => 5,
+        'current_stock' => 10,
         'status' => 'active',
     ]);
 
@@ -51,6 +53,7 @@ test('identifier is unique', function () {
         'cost_price' => 10,
         'selling_price' => 20,
         'minimum_stock' => 5,
+        'current_stock' => 10,
         'status' => 'active',
     ]);
 
@@ -89,6 +92,7 @@ test('can search products by identifier', function () {
         'cost_price' => 10,
         'selling_price' => 20,
         'minimum_stock' => 5,
+        'current_stock' => 10,
         'status' => 'active',
     ]);
 
