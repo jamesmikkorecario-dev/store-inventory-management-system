@@ -1,5 +1,6 @@
 <?php
 
+use App\Livewire\Alerts\Index;
 use App\Models\Product;
 use App\Services\ProductIdentificationService;
 use Illuminate\Http\Request;
@@ -13,6 +14,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::livewire('suppliers', 'pages::suppliers')->name('suppliers.index');
     Route::livewire('categories', 'pages::categories')->name('categories.index');
     Route::livewire('products', 'pages::products')->name('products.index');
+
+    Route::get('/alerts', Index::class)->name('alerts.index');
 
     Route::get('/products/{product}/print-label', function (Product $product, Request $request, ProductIdentificationService $service) {
         $type = $request->query('type', 'both');

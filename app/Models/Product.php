@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\LowStockNotificationService;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -51,6 +52,24 @@ class Product extends Model
             if (empty($product->identifier)) {
                 $product->identifier = self::generateUniqueIdentifier();
             }
+        });
+
+        static::created(function (Product $product) {
+            app(LowStockNotificationService::class)->handleProductStockUpdate($product);
+        });
+
+        static::updated(function (Product $product) {
+            if ($product->wasChanged(['current_stock', 'minimum_stock'])) {
+                app(LowStockNotificationService::class)->handleProductStockUpdate($product);
+            }
+        });
+
+        static::deleted(function (Product $product) {
+            app(LowStockNotificationService::class)->handleProductStockUpdate($product);
+        });
+
+        static::restored(function (Product $product) {
+            app(LowStockNotificationService::class)->handleProductStockUpdate($product);
         });
     }
 

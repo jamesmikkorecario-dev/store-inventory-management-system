@@ -15,6 +15,7 @@ new #[Title('Dashboard')] class extends Component {
     public float $inventoryValue = 0.0;
     public int $lowStockCount = 0;
     public $lowStockItems = [];
+    public $latestAlerts = [];
     public $recentTransactions = [];
     public bool $isSupplier = false;
     public ?int $supplierId = null;
@@ -92,6 +93,8 @@ new #[Title('Dashboard')] class extends Component {
             $this->outOfStockCount = Product::where('current_stock', 0)->count();
             
             $this->recentSuppliers = Supplier::latest()->limit(5)->get();
+            
+            $this->latestAlerts = app(\App\Services\LowStockNotificationService::class)->getLatestActiveAlerts(5);
         }
     }
 }; ?>
@@ -191,6 +194,41 @@ new #[Title('Dashboard')] class extends Component {
 
         <!-- Details Grid -->
         <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+            <!-- Low Stock Alerts Widget -->
+            <div class="flex flex-col rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 lg:col-span-3">
+                <div class="flex items-center justify-between border-b border-zinc-150 pb-4 dark:border-zinc-800">
+                    <div class="flex items-center gap-2">
+                        <flux:icon name="bell" class="size-5 text-zinc-500" />
+                        <flux:heading size="lg" class="font-semibold">Low Stock Alerts</flux:heading>
+                    </div>
+                    <flux:button variant="subtle" size="sm" href="{{ route('alerts.index') }}" wire:navigate>View All Alerts</flux:button>
+                </div>
+                <div class="mt-4 flex-1">
+                    @forelse($latestAlerts as $alert)
+                        <div class="flex items-center justify-between py-3 border-b border-zinc-100 last:border-0 dark:border-zinc-800">
+                            <div class="flex items-center gap-3">
+                                @if($alert->severity === 'critical')
+                                    <flux:badge color="rose" icon="exclamation-triangle" size="sm">Critical</flux:badge>
+                                @else
+                                    <flux:badge color="amber" icon="exclamation-circle" size="sm">Low</flux:badge>
+                                @endif
+                                <div>
+                                    <flux:text class="font-medium text-zinc-900 dark:text-zinc-100">{{ $alert->product->name ?? 'Unknown Product' }}</flux:text>
+                                    <flux:text class="text-xs text-zinc-500">Stock: {{ $alert->current_stock }} / Min: {{ $alert->threshold }}</flux:text>
+                                </div>
+                            </div>
+                            <flux:text class="text-xs text-zinc-400">{{ $alert->created_at->diffForHumans() }}</flux:text>
+                        </div>
+                    @empty
+                        <div class="flex flex-col items-center justify-center py-8 text-center border border-dashed rounded-lg border-zinc-200 dark:border-zinc-700 mt-2">
+                            <flux:icon name="check-circle" class="size-8 text-emerald-500 mb-2" />
+                            <flux:text class="font-medium text-zinc-800 dark:text-zinc-200">No active alerts</flux:text>
+                            <flux:text class="text-xs text-zinc-500 mt-1">Stock levels are looking good.</flux:text>
+                        </div>
+                    @endforelse
+                </div>
+            </div>
+
             <!-- Left: Low Stock Items List -->
             <div class="flex flex-col rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 lg:col-span-1">
                 <div class="flex items-center justify-between border-b border-zinc-150 pb-4 dark:border-zinc-800">
