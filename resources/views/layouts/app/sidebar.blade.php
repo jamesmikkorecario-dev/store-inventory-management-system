@@ -58,16 +58,9 @@
                         </flux:sidebar.item>
                     @endcan
 
-                    @php
-                        $unreadAlertsCount = app(\App\Services\LowStockNotificationService::class)->getUnreadCount();
-                    @endphp
                     <flux:sidebar.item icon="bell" :href="route('alerts.index')" :current="request()->routeIs('alerts.index')" wire:navigate>
                         {{ __('Alerts') }}
-                        @if($unreadAlertsCount > 0)
-                            <span class="ms-1.5 text-rose-600 dark:text-rose-400">
-                                {{ $unreadAlertsCount > 99 ? '99+' : $unreadAlertsCount }}
-                            </span>
-                        @endif
+                        <livewire:sidebar-alerts-badge />
                     </flux:sidebar.item>
                 </flux:sidebar.group>
             </flux:sidebar.nav>

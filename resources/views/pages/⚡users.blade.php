@@ -4,6 +4,7 @@ use App\Models\User;
 use App\Models\Supplier;
 use Spatie\Permission\Models\Role;
 use Livewire\Attributes\Title;
+use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\Auth;
@@ -49,6 +50,12 @@ new #[Title('User Management')] class extends Component {
     public function updatedFilterStatus(): void
     {
         $this->resetPage();
+    }
+
+    #[On('users-updated')]
+    public function refreshData(): void
+    {
+        // Component will re-render
     }
 
     public function openCreateModal(): void
@@ -119,6 +126,9 @@ new #[Title('User Management')] class extends Component {
             $user->save();
             $user->syncRoles([$this->roleName]);
 
+            $this->dispatch('users-updated');
+            $this->dispatch('dashboard-updated');
+
             Flux::toast(variant: 'success', text: 'Updated successfully.');
         } else {
             $user = User::create([
@@ -130,6 +140,9 @@ new #[Title('User Management')] class extends Component {
             ]);
 
             $user->assignRole($this->roleName);
+
+            $this->dispatch('users-updated');
+            $this->dispatch('dashboard-updated');
 
             Flux::toast(variant: 'success', text: 'Created successfully.');
         }
@@ -155,6 +168,9 @@ new #[Title('User Management')] class extends Component {
         }
 
         $user->delete();
+
+        $this->dispatch('users-updated');
+        $this->dispatch('dashboard-updated');
 
         Flux::toast(variant: 'success', text: 'Deleted successfully.');
         $this->showDeleteModal = false;

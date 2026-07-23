@@ -2,6 +2,7 @@
 
 use App\Models\Supplier;
 use Livewire\Attributes\Title;
+use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\Auth;
@@ -39,6 +40,12 @@ new #[Title('Supplier Management')] class extends Component {
     public function updatedSearch(): void
     {
         $this->resetPage();
+    }
+
+    #[On('suppliers-updated')]
+    public function refreshData(): void
+    {
+        // Component will re-render
     }
 
     public function updatedFilterStatus(): void
@@ -102,6 +109,9 @@ new #[Title('Supplier Management')] class extends Component {
                 'address' => $this->address,
                 'status' => $this->status,
             ]);
+            $this->dispatch('suppliers-updated');
+            $this->dispatch('products-updated');
+            $this->dispatch('dashboard-updated');
             Flux::toast(variant: 'success', text: 'Updated successfully.');
         } else {
             Supplier::create([
@@ -112,6 +122,9 @@ new #[Title('Supplier Management')] class extends Component {
                 'address' => $this->address,
                 'status' => $this->status,
             ]);
+            $this->dispatch('suppliers-updated');
+            $this->dispatch('products-updated');
+            $this->dispatch('dashboard-updated');
             Flux::toast(variant: 'success', text: 'Created successfully.');
         }
 
@@ -143,6 +156,10 @@ new #[Title('Supplier Management')] class extends Component {
         }
 
         $supplier->delete();
+
+        $this->dispatch('suppliers-updated');
+        $this->dispatch('products-updated');
+        $this->dispatch('dashboard-updated');
 
         Flux::toast(variant: 'success', text: 'Deleted successfully.');
         $this->showDeleteModal = false;

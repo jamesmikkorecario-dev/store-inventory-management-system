@@ -5,6 +5,7 @@ namespace App\Livewire\Alerts;
 use App\Models\LowStockNotification;
 use App\Services\LowStockNotificationService;
 use Illuminate\View\View;
+use Livewire\Attributes\On;
 use Livewire\Attributes\Url;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -28,12 +29,15 @@ class Index extends Component
     public function markAsRead(int $id, LowStockNotificationService $service): void
     {
         $service->markAsRead($id);
-        // Refresh component
+        $this->dispatch('alerts-updated');
+        $this->dispatch('dashboard-updated');
     }
 
     public function markAllAsRead(LowStockNotificationService $service): void
     {
         $service->markAllAsRead();
+        $this->dispatch('alerts-updated');
+        $this->dispatch('dashboard-updated');
     }
 
     public function updatedSearch(): void
@@ -54,6 +58,12 @@ class Index extends Component
     public function updatedSeverity(): void
     {
         $this->resetPage();
+    }
+
+    #[On('alerts-updated')]
+    public function refreshData(): void
+    {
+        // Component will re-render
     }
 
     public function render(): View

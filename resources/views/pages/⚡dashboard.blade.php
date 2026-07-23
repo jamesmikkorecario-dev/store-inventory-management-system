@@ -6,6 +6,7 @@ use App\Models\User;
 use App\Models\InventoryTransaction;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Title;
+use Livewire\Attributes\On;
 use Livewire\Component;
 
 new #[Title('Dashboard')] class extends Component {
@@ -35,6 +36,13 @@ new #[Title('Dashboard')] class extends Component {
         $this->loadStatistics();
     }
 
+    #[On('products-updated')]
+    #[On('transactions-updated')]
+    #[On('suppliers-updated')]
+    #[On('alerts-updated')]
+    #[On('users-updated')]
+    #[On('inventory-updated')]
+    #[On('dashboard-updated')]
     public function loadStatistics(): void
     {
         if ($this->isSupplier && $this->supplierId) {
@@ -195,15 +203,15 @@ new #[Title('Dashboard')] class extends Component {
         <!-- Details Grid -->
         <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
             <!-- Low Stock Alerts Widget -->
-            <div class="flex flex-col rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 lg:col-span-3">
+            <div class="flex flex-col rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 lg:col-span-2">
                 <div class="flex items-center justify-between border-b border-zinc-150 pb-4 dark:border-zinc-800">
                     <div class="flex items-center gap-2">
                         <flux:icon name="bell" class="size-5 text-zinc-500" />
                         <flux:heading size="lg" class="font-semibold">Low Stock Alerts</flux:heading>
                     </div>
-                    <flux:button variant="subtle" size="sm" href="{{ route('alerts.index') }}" wire:navigate>View All Alerts</flux:button>
+                    <flux:button variant="subtle" size="sm" href="{{ route('alerts.index') }}" wire:navigate>View All</flux:button>
                 </div>
-                <div class="mt-4 flex-1">
+                <div class="mt-4 flex flex-1 flex-col">
                     @forelse($latestAlerts as $alert)
                         <div class="flex items-center justify-between py-3 border-b border-zinc-100 last:border-0 dark:border-zinc-800">
                             <div class="flex items-center gap-3">
@@ -220,7 +228,7 @@ new #[Title('Dashboard')] class extends Component {
                             <flux:text class="text-xs text-zinc-400">{{ $alert->created_at->diffForHumans() }}</flux:text>
                         </div>
                     @empty
-                        <div class="flex flex-col items-center justify-center py-8 text-center border border-dashed rounded-lg border-zinc-200 dark:border-zinc-700 mt-2">
+                        <div class="flex flex-1 flex-col items-center justify-center py-8 text-center border border-dashed rounded-lg border-zinc-200 dark:border-zinc-700 mt-2">
                             <flux:icon name="check-circle" class="size-8 text-emerald-500 mb-2" />
                             <flux:text class="font-medium text-zinc-800 dark:text-zinc-200">No active alerts</flux:text>
                             <flux:text class="text-xs text-zinc-500 mt-1">Stock levels are looking good.</flux:text>
@@ -232,10 +240,10 @@ new #[Title('Dashboard')] class extends Component {
             <!-- Left: Low Stock Items List -->
             <div class="flex flex-col rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 lg:col-span-1">
                 <div class="flex items-center justify-between border-b border-zinc-150 pb-4 dark:border-zinc-800">
-                    <flux:heading size="lg" class="font-semibold">Low Stock Alert</flux:heading>
+                    <flux:heading size="lg" class="font-semibold">Low Stock Items</flux:heading>
                     <flux:badge variant="warning">{{ count($lowStockItems) }} listed</flux:badge>
                 </div>
-                <div class="mt-4 flex-1 space-y-4">
+                <div class="mt-4 flex flex-1 flex-col space-y-4">
                     @forelse($lowStockItems as $item)
                         <div class="flex flex-col rounded-xl bg-zinc-50 p-3 dark:bg-zinc-800/50">
                             <div class="flex items-center justify-between">
@@ -258,7 +266,7 @@ new #[Title('Dashboard')] class extends Component {
                             </div>
                         </div>
                     @empty
-                        <div class="flex h-full flex-col items-center justify-center py-8 text-center">
+                        <div class="flex flex-1 flex-col items-center justify-center py-8 text-center">
                             <flux:icon name="check-circle" class="size-8 text-emerald-500 mb-2" />
                             <flux:text class="font-medium text-zinc-800 dark:text-zinc-200">No Low Stock Items</flux:text>
                             <flux:text class="text-xs text-zinc-500">All products are within optimal levels.</flux:text>
@@ -271,9 +279,10 @@ new #[Title('Dashboard')] class extends Component {
                     </div>
                 @endif
             </div>
+        </div>
 
-            <!-- Right: Recent Transactions List -->
-            <div class="flex flex-col rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 lg:col-span-2">
+        <!-- Recent Transactions List -->
+        <div class="flex flex-col rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
                 <div class="flex items-center justify-between border-b border-zinc-150 pb-4 dark:border-zinc-800">
                     <flux:heading size="lg" class="font-semibold">
                         {{ $isSupplier ? 'Recent Delivery History' : 'Recent Transactions' }}
@@ -333,7 +342,6 @@ new #[Title('Dashboard')] class extends Component {
                     </table>
                 </div>
             </div>
-        </div>
 
         <!-- Inventory Overview -->
         <div class="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">

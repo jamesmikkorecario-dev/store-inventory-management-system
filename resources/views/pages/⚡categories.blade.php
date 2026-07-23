@@ -2,6 +2,7 @@
 
 use App\Models\Category;
 use Livewire\Attributes\Title;
+use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\Auth;
@@ -34,6 +35,12 @@ new #[Title('Category Management')] class extends Component {
     public function updatedSearch(): void
     {
         $this->resetPage();
+    }
+
+    #[On('categories-updated')]
+    public function refreshData(): void
+    {
+        // Component will re-render
     }
 
     public function openCreateModal(): void
@@ -77,12 +84,18 @@ new #[Title('Category Management')] class extends Component {
                 'name' => $this->name,
                 'description' => $this->description,
             ]);
+            $this->dispatch('categories-updated');
+            $this->dispatch('products-updated');
+            $this->dispatch('dashboard-updated');
             Flux::toast(variant: 'success', text: 'Updated successfully.');
         } else {
             Category::create([
                 'name' => $this->name,
                 'description' => $this->description,
             ]);
+            $this->dispatch('categories-updated');
+            $this->dispatch('products-updated');
+            $this->dispatch('dashboard-updated');
             Flux::toast(variant: 'success', text: 'Created successfully.');
         }
 
@@ -114,6 +127,10 @@ new #[Title('Category Management')] class extends Component {
         }
 
         $category->delete();
+
+        $this->dispatch('categories-updated');
+        $this->dispatch('products-updated');
+        $this->dispatch('dashboard-updated');
 
         Flux::toast(variant: 'success', text: 'Deleted successfully.');
         $this->showDeleteModal = false;
