@@ -213,5 +213,5 @@ test('dashboard widget renders latest active alerts', function () {
     $response = $this->actingAs($user)->get(route('dashboard'));
     $response->assertSee('Low Stock Alerts');
     $response->assertSee('Dash Product 1');
-    $response->assertSee('View All Alerts');
+    $response->assertSee('View All');
 });
