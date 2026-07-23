@@ -7,11 +7,13 @@ use Livewire\Attributes\Title;
 use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithPagination;
+use Livewire\WithFileUploads;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Flux\Flux;
 
 new #[Title('Product Management')] class extends Component {
-    use WithPagination;
+    use WithPagination, WithFileUploads;
 
     public string $search = '';
     public string $filterCategory = '';
@@ -32,6 +34,12 @@ new #[Title('Product Management')] class extends Component {
     public int $minimumStock = 10;
     public string $status = 'active';
     public string $previewFormat = 'barcode';
+
+    public $image = null;
+    public ?string $existingImageUrl = null;
+    public bool $removeImage = false;
+    public bool $showImagePreviewModal = false;
+    public ?string $previewImageUrl = null;
 
     public bool $showFormModal = false;
     public bool $showDeleteModal = false;
@@ -113,6 +121,10 @@ new #[Title('Product Management')] class extends Component {
         $this->minimumStock = $product->minimum_stock;
         $this->status = $product->status;
 
+        $this->existingImageUrl = $product->image_path ? $product->imageUrl() : null;
+        $this->removeImage = false;
+        $this->image = null;
+
         $this->showFormModal = true;
     }
 
@@ -130,6 +142,7 @@ new #[Title('Product Management')] class extends Component {
             'sellingPrice' => 'required|numeric|min:0',
             'minimumStock' => 'required|integer|min:0',
             'status' => 'required|in:active,inactive,discontinued',
+            'image' => 'nullable|image|mimes:jpg,jpeg,png,webp|max:2048',
         ];
 
         $messages = [
@@ -148,8 +161,25 @@ new #[Title('Product Management')] class extends Component {
 
         $validated = $this->validate($rules, $messages);
 
+        $imagePath = null;
+        if ($this->image) {
+            $imagePath = $this->image->store('products', 'public');
+        }
+
         if ($this->productId) {
             $product = Product::findOrFail($this->productId);
+            
+            // Handle image changes
+            if ($imagePath) {
+                if ($product->image_path) {
+                    Storage::disk('public')->delete($product->image_path);
+                }
+                $product->update(['image_path' => $imagePath]);
+            } elseif ($this->removeImage && $product->image_path) {
+                Storage::disk('public')->delete($product->image_path);
+                $product->update(['image_path' => null]);
+            }
+
             $product->update([
                 'sku' => $this->sku,
                 'name' => $this->name,
@@ -176,6 +206,7 @@ new #[Title('Product Management')] class extends Component {
                 'minimum_stock' => $this->minimumStock,
                 'current_stock' => 0, // Enforce starting stock as 0. Stock changes are managed by transactions.
                 'status' => $this->status,
+                'image_path' => $imagePath,
             ]);
             $this->dispatch('products-updated');
             $this->dispatch('dashboard-updated');
@@ -199,6 +230,10 @@ new #[Title('Product Management')] class extends Component {
 
         $product = Product::findOrFail($this->productId);
 
+        if ($product->image_path) {
+            Storage::disk('public')->delete($product->image_path);
+        }
+
         // Prevent soft deleting if product has transaction history
         if ($product->inventoryTransactions()->count() > 0) {
             Flux::toast(
@@ -218,6 +253,19 @@ new #[Title('Product Management')] class extends Component {
         $this->resetForm();
     }
 
+    public function removeProductImage(): void
+    {
+        $this->removeImage = true;
+        $this->existingImageUrl = null;
+        $this->image = null;
+    }
+
+    public function openImagePreview(string $url): void
+    {
+        $this->previewImageUrl = $url;
+        $this->showImagePreviewModal = true;
+    }
+
     private function resetForm(): void
     {
         $this->productId = null;
@@ -232,6 +280,9 @@ new #[Title('Product Management')] class extends Component {
         $this->minimumStock = 10;
         $this->status = 'active';
         $this->previewFormat = 'barcode';
+        $this->image = null;
+        $this->existingImageUrl = null;
+        $this->removeImage = false;
     }
 
     public function with(): array
@@ -351,23 +402,29 @@ new #[Title('Product Management')] class extends Component {
                 <table class="w-full text-left text-sm text-zinc-600 dark:text-zinc-400">
                     <thead>
                         <tr class="border-b border-zinc-200 bg-zinc-50 text-xs font-semibold text-zinc-400 dark:border-zinc-800 dark:bg-zinc-950">
-                            <th scope="col" class="px-6 py-4" style="width: 25%;">SKU / Product Name</th>
-                            <th scope="col" class="px-6 py-4" style="width: 17%;">Category</th>
+                            <th scope="col" class="px-4 py-4 w-[72px]"></th>
+                            <th scope="col" class="pl-0 pr-6 py-4 w-[25%]">SKU / Product Name</th>
+                            <th scope="col" class="px-6 py-4 w-[15%]">Category</th>
                             @if(!$isSupplier)
-                                <th scope="col" class="px-6 py-4" style="width: 16%;">Supplier</th>
+                                <th scope="col" class="px-6 py-4 w-[15%]">Supplier</th>
                             @endif
-                            <th scope="col" class="px-6 py-4" style="width: 16%;">Prices (Cost / Selling)</th>
-                            <th scope="col" class="px-6 py-4" style="width: 14%;">Stock Level</th>
-                            <th scope="col" class="px-6 py-4" style="width: 7%;">Status</th>
+                            <th scope="col" class="px-6 py-4 w-[15%]">Prices (Cost / Selling)</th>
+                            <th scope="col" class="px-6 py-4 w-[15%]">Stock Level</th>
+                            <th scope="col" class="px-6 py-4 w-[10%]">Status</th>
                             @if(!$isReadOnly)
-                                <th scope="col" class="px-6 py-4 text-right" style="width: 5%;">Actions</th>
+                                <th scope="col" class="px-6 py-4 text-right w-[5%]">Actions</th>
                             @endif
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
                         @forelse($products as $product)
                             <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-800/30">
-                                <td class="px-6 py-4">
+                                <td class="px-4 py-4">
+                                    <button type="button" wire:click="openImagePreview('{{ $product->imageUrl() }}')" class="block size-10 rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-700 hover:ring-2 hover:ring-blue-500 transition-all cursor-pointer">
+                                        <img src="{{ $product->imageUrl() }}" alt="{{ $product->name }}" class="size-full object-cover" loading="lazy" onerror="this.src='https://placehold.co/400x400/f4f4f5/a1a1aa?text={{ urlencode(Str::limit($product->name, 10)) }}'" />
+                                    </button>
+                                </td>
+                                <td class="pl-0 pr-6 py-4">
                                     <span class="rounded bg-zinc-100 px-2 py-0.5 text-[10px] font-mono font-bold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">SKU: {{ $product->sku }}</span>
                                     @if($product->identifier)
                                         <span class="rounded bg-zinc-100 px-2 py-0.5 text-[10px] font-mono font-bold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 ml-1" title="Product Identifier">{{ $product->identifier }}</span>
@@ -437,7 +494,7 @@ new #[Title('Product Management')] class extends Component {
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="px-6 py-16">
+                                <td colspan="8" class="px-6 py-16">
                                     <div class="flex flex-col items-center justify-center text-center">
                                         <flux:icon name="archive-box" class="size-12 text-zinc-300 dark:text-zinc-600 mb-4" />
                                         <flux:heading size="lg" class="font-semibold text-zinc-700 dark:text-zinc-300">No Products Yet</flux:heading>
@@ -528,6 +585,44 @@ new #[Title('Product Management')] class extends Component {
                             <flux:error name="description" class="!mt-0.5 text-xs font-medium" />
                         </flux:field>
                         
+                        <flux:field class="mb-4">
+                            <flux:label class="mb-1">Product Image</flux:label>
+                            <div class="space-y-3">
+                                @if($image)
+                                    <div class="relative inline-block">
+                                        <img src="{{ $image->temporaryUrl() }}" class="size-24 rounded-lg object-cover border border-zinc-200 dark:border-zinc-700" alt="Preview" />
+                                        <button type="button" wire:click="$set('image', null)" class="absolute -top-2 -right-2 size-5 rounded-full bg-rose-500 text-white flex items-center justify-center text-xs hover:bg-rose-600">&times;</button>
+                                    </div>
+                                @elseif($existingImageUrl && !$removeImage)
+                                    <div class="relative inline-block">
+                                        <img src="{{ $existingImageUrl }}" class="size-24 rounded-lg object-cover border border-zinc-200 dark:border-zinc-700" alt="Current" />
+                                        <button type="button" wire:click="removeProductImage" class="absolute -top-2 -right-2 size-5 rounded-full bg-rose-500 text-white flex items-center justify-center text-xs hover:bg-rose-600">&times;</button>
+                                    </div>
+                                @endif
+                                <div class="flex items-center gap-4 mt-2">
+                                    <label class="cursor-pointer inline-flex items-center justify-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-medium text-zinc-700 shadow-sm ring-1 ring-inset ring-zinc-300 hover:bg-zinc-50 dark:bg-zinc-800 dark:text-zinc-300 dark:ring-zinc-700 dark:hover:bg-zinc-700 transition-colors focus-within:ring-2 focus-within:ring-indigo-500">
+                                        <flux:icon name="arrow-up-tray" class="size-4" />
+                                        <span>Upload Product Image</span>
+                                        <input type="file" wire:model="image" accept="image/jpeg,image/png,image/webp" class="sr-only" />
+                                    </label>
+                                    <div class="text-xs text-zinc-500 dark:text-zinc-400">
+                                        <div wire:loading.remove wire:target="image">
+                                            @if($image)
+                                                <span class="font-medium text-zinc-700 dark:text-zinc-300">{{ $image->getClientOriginalName() }}</span>
+                                            @else
+                                                JPG, PNG, WEBP (Max 2MB)
+                                            @endif
+                                        </div>
+                                        <div wire:loading wire:target="image" class="flex items-center gap-1.5 text-zinc-600 dark:text-zinc-400">
+                                            <flux:icon name="arrow-path" class="size-3 animate-spin" />
+                                            Uploading...
+                                        </div>
+                                    </div>
+                                </div>
+                                <flux:error name="image" class="!mt-0.5 text-xs font-medium" />
+                            </div>
+                        </flux:field>
+
                         <div class="grid grid-cols-2 gap-x-4">
                             <flux:field class="mb-4">
                                 <flux:label class="mb-1">Category <span class="text-rose-500">*</span></flux:label>
@@ -615,6 +710,16 @@ new #[Title('Product Management')] class extends Component {
                             </span>
                         </flux:button>
                     </div>
+                </div>
+            </flux:modal>
+        @endif
+
+        @if($showImagePreviewModal)
+            <flux:modal wire:model="showImagePreviewModal" class="w-full max-w-md">
+                <div class="flex flex-col items-center gap-4">
+                    <flux:heading size="lg">Product Image</flux:heading>
+                    <img src="{{ $previewImageUrl }}" alt="Product preview" class="w-full max-h-96 object-contain rounded-lg" onerror="this.src='https://placehold.co/400x400/f4f4f5/a1a1aa?text=Image+Not+Found'" />
+                    <flux:button wire:click="$set('showImagePreviewModal', false)" variant="ghost">Close</flux:button>
                 </div>
             </flux:modal>
         @endif
