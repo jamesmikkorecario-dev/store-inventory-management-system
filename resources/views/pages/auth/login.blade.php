@@ -47,7 +47,10 @@
             </flux:field>
 
             <!-- Remember Me -->
-            <flux:checkbox name="remember" :label="__('Remember me')" :checked="old('remember')" class="mb-6" />
+            <div class="flex items-center gap-2 mb-6">
+                <flux:checkbox name="remember" id="remember" :checked="old('remember')" />
+                <flux:label for="remember" class="!mb-0 cursor-pointer">{{ __('Remember me') }}</flux:label>
+            </div>
 
             <div class="flex items-center justify-end">
                 <flux:button variant="primary" type="submit" class="w-full" data-test="login-button">

@@ -26,6 +26,13 @@ class Index extends Component
     #[Url]
     public string $severity = 'all';
 
+    public function mount(): void
+    {
+        if (! auth()->user()->hasAnyRole(['Admin', 'Staff'])) {
+            abort(403, 'Unauthorized action.');
+        }
+    }
+
     public function markAsRead(int $id, LowStockNotificationService $service): void
     {
         $service->markAsRead($id);
