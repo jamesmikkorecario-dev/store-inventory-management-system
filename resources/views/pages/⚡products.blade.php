@@ -21,6 +21,7 @@ new #[Title('Product Management')] class extends Component {
     // Form fields
     public ?int $productId = null;
     public string $sku = '';
+    public string $identifier = '';
     public string $name = '';
     public string $description = '';
     public ?int $categoryId = null;
@@ -29,6 +30,7 @@ new #[Title('Product Management')] class extends Component {
     public float $sellingPrice = 0.00;
     public int $minimumStock = 10;
     public string $status = 'active';
+    public string $previewFormat = 'barcode';
 
     public bool $showFormModal = false;
     public bool $showDeleteModal = false;
@@ -80,6 +82,7 @@ new #[Title('Product Management')] class extends Component {
     {
         if ($this->isReadOnly) abort(403);
         $this->resetForm();
+        $this->identifier = Product::generateUniqueIdentifier();
         $this->showFormModal = true;
     }
 
@@ -90,6 +93,7 @@ new #[Title('Product Management')] class extends Component {
         $product = Product::findOrFail($id);
         $this->productId = $product->id;
         $this->sku = $product->sku;
+        $this->identifier = $product->identifier ?? '';
         $this->name = $product->name;
         $this->description = $product->description ?? '';
         $this->categoryId = $product->category_id;
@@ -202,6 +206,7 @@ new #[Title('Product Management')] class extends Component {
     {
         $this->productId = null;
         $this->sku = '';
+        $this->identifier = '';
         $this->name = '';
         $this->description = '';
         $this->categoryId = null;
@@ -210,6 +215,7 @@ new #[Title('Product Management')] class extends Component {
         $this->sellingPrice = 0.00;
         $this->minimumStock = 10;
         $this->status = 'active';
+        $this->previewFormat = 'barcode';
     }
 
     public function with(): array
@@ -225,6 +231,7 @@ new #[Title('Product Management')] class extends Component {
             $query->where(function ($q) {
                 $q->where('name', 'like', '%' . $this->search . '%')
                   ->orWhere('sku', 'like', '%' . $this->search . '%')
+                  ->orWhere('identifier', 'like', '%' . $this->search . '%')
                   ->orWhere('description', 'like', '%' . $this->search . '%');
             });
         }
@@ -276,7 +283,7 @@ new #[Title('Product Management')] class extends Component {
         <!-- Filters Bar -->
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5 items-end bg-white dark:bg-zinc-900 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700">
             <div class="sm:col-span-2 relative">
-                <flux:input wire:model.live.debounce.300ms="search" label="Search Product" placeholder="Search SKU, name, details..." icon="magnifying-glass" />
+                <flux:input wire:model.live.debounce.300ms="search" label="Search Product" placeholder="Search SKU, identifier, name..." icon="magnifying-glass" />
                 <div wire:loading wire:target="search" class="absolute right-3 top-9">
                     <flux:icon name="arrow-path" class="size-4 animate-spin text-zinc-400" />
                 </div>
@@ -345,7 +352,10 @@ new #[Title('Product Management')] class extends Component {
                         @forelse($products as $product)
                             <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-800/30">
                                 <td class="px-6 py-4">
-                                    <span class="rounded bg-zinc-100 px-2 py-0.5 text-[10px] font-mono font-bold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">{{ $product->sku }}</span>
+                                    <span class="rounded bg-zinc-100 px-2 py-0.5 text-[10px] font-mono font-bold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">SKU: {{ $product->sku }}</span>
+                                    @if($product->identifier)
+                                        <span class="rounded bg-zinc-100 px-2 py-0.5 text-[10px] font-mono font-bold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300 ml-1" title="Product Identifier">{{ $product->identifier }}</span>
+                                    @endif
                                     <flux:text class="block font-semibold text-zinc-900 dark:text-white mt-1">{{ $product->name }}</flux:text>
                                     <flux:text class="block text-xs text-zinc-400 max-w-[250px] truncate" title="{{ $product->description }}">{{ $product->description ?: 'No description' }}</flux:text>
                                 </td>
@@ -443,6 +453,45 @@ new #[Title('Product Management')] class extends Component {
                     </div>
 
                     <form wire:submit.prevent="saveProduct" class="space-y-0" novalidate>
+                        <div class="mb-5 p-4 border border-zinc-200 dark:border-zinc-700 rounded-lg">
+                            <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
+                                <div>
+                                    <flux:heading size="sm" class="font-bold">Product Identifier</flux:heading>
+                                    <flux:text class="text-xs font-mono mt-1 text-zinc-500">{{ $identifier ?: 'Pending generation...' }}</flux:text>
+                                </div>
+                                <div class="w-full sm:w-48">
+                                    <flux:select wire:model.live="previewFormat" size="sm" aria-label="Format">
+                                        <option value="barcode">Code 128 Barcode</option>
+                                        <option value="qr">QR Code</option>
+                                    </flux:select>
+                                </div>
+                            </div>
+                            
+                            @if($identifier)
+                                <div class="flex justify-center p-4 bg-white rounded border border-zinc-100 dark:border-zinc-800 text-black">
+                                    @php
+                                        $idService = app(\App\Services\ProductIdentificationService::class);
+                                    @endphp
+                                    @if($previewFormat === 'barcode')
+                                        <div class="h-16 flex items-center justify-center overflow-hidden">
+                                            {!! $idService->generateBarcodeSvg($identifier) !!}
+                                        </div>
+                                    @else
+                                        <div class="size-32 flex items-center justify-center">
+                                            {!! $idService->generateQrCodeSvg($identifier) !!}
+                                        </div>
+                                    @endif
+                                </div>
+                                @if($productId)
+                                    <div class="mt-4 flex flex-wrap justify-end gap-2">
+                                        <flux:button href="{{ route('products.print-label', ['product' => $productId, 'type' => 'barcode']) }}" target="_blank" size="sm" icon="printer" variant="ghost">Barcode</flux:button>
+                                        <flux:button href="{{ route('products.print-label', ['product' => $productId, 'type' => 'qr']) }}" target="_blank" size="sm" icon="qr-code" variant="ghost">QR Code</flux:button>
+                                        <flux:button href="{{ route('products.print-label', ['product' => $productId, 'type' => 'both']) }}" target="_blank" size="sm" icon="document-duplicate" variant="ghost">Both</flux:button>
+                                    </div>
+                                @endif
+                            @endif
+                        </div>
+
                         <div class="grid grid-cols-2 gap-x-4">
                             <flux:field class="mb-4">
                                 <flux:label class="mb-1">Unique SKU <span class="text-rose-500">*</span></flux:label>
