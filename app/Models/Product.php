@@ -16,6 +16,7 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property int $supplier_id
  * @property int $category_id
  * @property string $sku
+ * @property string $identifier
  * @property string $name
  * @property string|null $description
  * @property float $cost_price
@@ -31,6 +32,7 @@ use Spatie\Activitylog\Support\LogOptions;
     'supplier_id',
     'category_id',
     'sku',
+    'identifier',
     'name',
     'description',
     'cost_price',
@@ -42,6 +44,24 @@ use Spatie\Activitylog\Support\LogOptions;
 class Product extends Model
 {
     use LogsActivity, SoftDeletes;
+
+    protected static function booted(): void
+    {
+        static::creating(function (Product $product) {
+            if (empty($product->identifier)) {
+                $product->identifier = self::generateUniqueIdentifier();
+            }
+        });
+    }
+
+    public static function generateUniqueIdentifier(): string
+    {
+        do {
+            $identifier = 'PRD'.str_pad((string) mt_rand(1, 999999), 6, '0', STR_PAD_LEFT);
+        } while (self::where('identifier', $identifier)->exists());
+
+        return $identifier;
+    }
 
     /**
      * Get the attributes that should be cast.
