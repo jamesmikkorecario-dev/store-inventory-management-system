@@ -64,7 +64,9 @@
                     <flux:sidebar.item icon="bell" :href="route('alerts.index')" :current="request()->routeIs('alerts.index')" wire:navigate>
                         {{ __('Alerts') }}
                         @if($unreadAlertsCount > 0)
-                            <flux:badge size="sm" color="rose" inset="top bottom">{{ $unreadAlertsCount }}</flux:badge>
+                            <span class="ms-1.5 text-rose-600 dark:text-rose-400">
+                                {{ $unreadAlertsCount > 99 ? '99+' : $unreadAlertsCount }}
+                            </span>
                         @endif
                     </flux:sidebar.item>
                 </flux:sidebar.group>
