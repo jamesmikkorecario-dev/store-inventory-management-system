@@ -28,9 +28,9 @@ class ProductIdentificationService
     {
         $options = new QROptions([
             'version' => 5,
-            'outputType'   => QRMarkupSVG::class,
+            'outputType' => QRMarkupSVG::class,
             'outputBase64' => false,
-            'eccLevel'     => EccLevel::L,
+            'eccLevel' => EccLevel::L,
             'svgViewBoxSize' => 100,
             'addQuietzone' => false,
         ]);
@@ -40,11 +40,11 @@ class ProductIdentificationService
         $svg = $qrcode->render($identifier);
 
         // Remove XML declaration if present
-        $svg = preg_replace('/<\?xml.*?\?>/i', '', $svg);
+        $svg = (string) preg_replace('/<\?xml.*?\?>/i', '', $svg);
 
         // Replace fixed black fill with currentColor for dark mode support
         // But chillerlan uses rect with fill="black" or similar. By default, foreground is #000000.
-        $svg = str_replace(['fill="#000000"', 'fill="#000"'], 'fill="currentColor"', $svg);
+        $svg = (string) str_replace(['fill="#000000"', 'fill="#000"'], 'fill="currentColor"', $svg);
 
         return trim($svg);
     }

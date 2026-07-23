@@ -6,6 +6,7 @@ use App\Models\Supplier;
 use App\Models\User;
 use App\Services\ProductIdentificationService;
 use Livewire\Livewire;
+use Spatie\Permission\Models\Permission;
 
 test('generates unique identifier upon creation', function () {
     $category = Category::create(['name' => 'Test Category']);
@@ -41,7 +42,7 @@ test('identifier is unique', function () {
         'minimum_stock' => 5,
         'status' => 'active',
     ]);
-    
+
     $product2 = Product::create([
         'sku' => 'SKU-B',
         'name' => 'B',
@@ -74,7 +75,7 @@ test('qr rendering service returns svg', function () {
 
 test('can search products by identifier', function () {
     $user = User::factory()->create();
-    \Spatie\Permission\Models\Permission::firstOrCreate(['name' => 'manage products']);
+    Permission::firstOrCreate(['name' => 'manage products']);
     $user->givePermissionTo('manage products');
 
     $category = Category::create(['name' => 'Test Category']);
