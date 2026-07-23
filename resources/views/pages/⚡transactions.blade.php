@@ -119,7 +119,7 @@ new #[Title('Inventory Transactions')] class extends Component {
                 $this->remarks
             );
 
-            Flux::toast(variant: 'success', text: __('Transaction processed successfully. Stock updated.'));
+            Flux::toast(variant: 'success', text: 'Created successfully.');
             $this->showFormModal = false;
             $this->resetForm();
         } catch (Exception $e) {
@@ -179,7 +179,7 @@ new #[Title('Inventory Transactions')] class extends Component {
 
     <div class="space-y-6">
         <!-- Heading -->
-        <div class="flex items-center justify-between">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <flux:heading size="xl" class="font-bold">Inventory Transactions</flux:heading>
                 <flux:subheading>
@@ -193,8 +193,11 @@ new #[Title('Inventory Transactions')] class extends Component {
 
         <!-- Filters -->
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5 items-end bg-white dark:bg-zinc-900 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700">
-            <div class="lg:col-span-2">
+            <div class="lg:col-span-2 relative">
                 <flux:input wire:model.live.debounce.300ms="search" label="Search Product" placeholder="Search product name or SKU..." icon="magnifying-glass" />
+                <div wire:loading wire:target="search" class="absolute right-3 top-9">
+                    <flux:icon name="arrow-path" class="size-4 animate-spin text-zinc-400" />
+                </div>
             </div>
             @if(!$isSupplier)
                 <div>
@@ -215,20 +218,23 @@ new #[Title('Inventory Transactions')] class extends Component {
         </div>
 
         <!-- Transactions List -->
-        <div class="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
+        <div wire:loading wire:target="search, filterType, filterStartDate, filterEndDate, filterProduct, sortBy, gotoPage, nextPage, previousPage" class="flex justify-center py-4 w-full">
+            <flux:icon name="arrow-path" class="size-5 animate-spin text-zinc-400" />
+        </div>
+        <div class="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900" wire:loading.class="opacity-50 pointer-events-none" wire:target="search, filterType, filterStartDate, filterEndDate, filterProduct, sortBy, gotoPage, nextPage, previousPage">
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-sm text-zinc-600 dark:text-zinc-400">
                     <thead>
                         <tr class="border-b border-zinc-200 bg-zinc-50 text-xs font-semibold text-zinc-400 dark:border-zinc-800 dark:bg-zinc-950">
-                            <th class="px-6 py-4" style="width: 18%;">Transaction Date</th>
-                            <th class="px-6 py-4" style="width: 25%;">Product details</th>
-                            <th class="px-6 py-4" style="width: 12%;">Type</th>
-                            <th class="px-6 py-4" style="width: 10%;">Quantity</th>
+                            <th scope="col" class="px-6 py-4" style="width: 18%;">Transaction Date</th>
+                            <th scope="col" class="px-6 py-4" style="width: 25%;">Product details</th>
+                            <th scope="col" class="px-6 py-4" style="width: 12%;">Type</th>
+                            <th scope="col" class="px-6 py-4" style="width: 10%;">Quantity</th>
                             @if(!$isSupplier)
-                                <th class="px-6 py-4" style="width: 15%;">Unit Cost / Price</th>
+                                <th scope="col" class="px-6 py-4" style="width: 15%;">Unit Cost / Price</th>
                             @endif
-                            <th class="px-6 py-4" style="width: 12%;">Operator User</th>
-                            <th class="px-6 py-4" style="width: 8%;">Remarks</th>
+                            <th scope="col" class="px-6 py-4" style="width: 12%;">Operator User</th>
+                            <th scope="col" class="px-6 py-4" style="width: 8%;">Remarks</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
@@ -283,7 +289,13 @@ new #[Title('Inventory Transactions')] class extends Component {
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="px-6 py-8 text-center text-zinc-500">No transactions found.</td>
+                                <td colspan="7" class="px-6 py-16">
+                                    <div class="flex flex-col items-center justify-center text-center">
+                                        <flux:icon name="arrows-right-left" class="size-12 text-zinc-300 dark:text-zinc-600 mb-4" />
+                                        <flux:heading size="lg" class="font-semibold text-zinc-700 dark:text-zinc-300">No Transactions Yet</flux:heading>
+                                        <flux:text class="mt-1 text-sm text-zinc-500 dark:text-zinc-400 max-w-sm">Record your first stock movement to begin tracking.</flux:text>
+                                    </div>
+                                </td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -354,7 +366,13 @@ new #[Title('Inventory Transactions')] class extends Component {
 
                         <div class="flex justify-end gap-3">
                             <flux:button wire:click="$set('showFormModal', false)" variant="ghost">Cancel</flux:button>
-                            <flux:button type="submit" variant="primary">Record Movement</flux:button>
+                            <flux:button type="submit" variant="primary" wire:loading.attr="disabled">
+                                <span wire:loading.remove wire:target="saveTransaction">Record Movement</span>
+                                <span wire:loading wire:target="saveTransaction" class="flex items-center gap-2">
+                                    <flux:icon name="arrow-path" class="size-4 animate-spin" />
+                                    Saving...
+                                </span>
+                            </flux:button>
                         </div>
                     </form>
                 </div>

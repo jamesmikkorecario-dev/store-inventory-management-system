@@ -119,7 +119,7 @@ new #[Title('User Management')] class extends Component {
             $user->save();
             $user->syncRoles([$this->roleName]);
 
-            Flux::toast(variant: 'success', text: __('User updated successfully.'));
+            Flux::toast(variant: 'success', text: 'Updated successfully.');
         } else {
             $user = User::create([
                 'name' => $this->name,
@@ -131,7 +131,7 @@ new #[Title('User Management')] class extends Component {
 
             $user->assignRole($this->roleName);
 
-            Flux::toast(variant: 'success', text: __('User created successfully.'));
+            Flux::toast(variant: 'success', text: 'Created successfully.');
         }
 
         $this->showFormModal = false;
@@ -156,7 +156,7 @@ new #[Title('User Management')] class extends Component {
 
         $user->delete();
 
-        Flux::toast(variant: 'success', text: __('User deleted successfully.'));
+        Flux::toast(variant: 'success', text: 'Deleted successfully.');
         $this->showDeleteModal = false;
         $this->resetForm();
     }
@@ -201,7 +201,7 @@ new #[Title('User Management')] class extends Component {
 
     <div class="space-y-6">
         <!-- Heading -->
-        <div class="flex items-center justify-between">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <flux:heading size="xl" class="font-bold">User Management</flux:heading>
                 <flux:subheading>Manage employee system logins, supplier accounts, and portal access permissions.</flux:subheading>
@@ -211,8 +211,11 @@ new #[Title('User Management')] class extends Component {
 
         <!-- Filters Bar -->
         <div class="flex flex-col gap-4 sm:flex-row sm:items-end bg-white dark:bg-zinc-900 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700">
-            <div class="flex-1">
+            <div class="flex-1 relative">
                 <flux:input wire:model.live.debounce.300ms="search" label="Search User" placeholder="Search by name or email..." icon="magnifying-glass" />
+                <div wire:loading wire:target="search" class="absolute right-3 top-9">
+                    <flux:icon name="arrow-path" class="size-4 animate-spin text-zinc-400" />
+                </div>
             </div>
             <div class="w-full sm:w-56">
                 <flux:select wire:model.live="filterRole" label="Role">
@@ -232,17 +235,20 @@ new #[Title('User Management')] class extends Component {
         </div>
 
         <!-- Users Table -->
-        <div class="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
+        <div wire:loading wire:target="search, filterRole, filterStatus, sortBy, gotoPage, nextPage, previousPage" class="flex justify-center py-4 w-full">
+            <flux:icon name="arrow-path" class="size-5 animate-spin text-zinc-400" />
+        </div>
+        <div class="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900" wire:loading.class="opacity-50 pointer-events-none" wire:target="search, filterRole, filterStatus, sortBy, gotoPage, nextPage, previousPage">
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-sm text-zinc-600 dark:text-zinc-400">
                     <thead>
                         <tr class="border-b border-zinc-200 bg-zinc-50 text-xs font-semibold text-zinc-400 dark:border-zinc-800 dark:bg-zinc-950">
-                            <th class="px-6 py-4">Name</th>
-                            <th class="px-6 py-4">Email</th>
-                            <th class="px-6 py-4">Role</th>
-                            <th class="px-6 py-4">Supplier Firm</th>
-                            <th class="px-6 py-4">Status</th>
-                            <th class="px-6 py-4 text-right">Actions</th>
+                            <th scope="col" class="px-6 py-4">Name</th>
+                            <th scope="col" class="px-6 py-4">Email</th>
+                            <th scope="col" class="px-6 py-4">Role</th>
+                            <th scope="col" class="px-6 py-4">Supplier Firm</th>
+                            <th scope="col" class="px-6 py-4">Status</th>
+                            <th scope="col" class="px-6 py-4 text-right">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
@@ -287,7 +293,14 @@ new #[Title('User Management')] class extends Component {
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="px-6 py-8 text-center text-zinc-500">No users found.</td>
+                                <td colspan="6" class="px-6 py-16">
+                                    <div class="flex flex-col items-center justify-center text-center">
+                                        <flux:icon name="users" class="size-12 text-zinc-300 dark:text-zinc-600 mb-4" />
+                                        <flux:heading size="lg" class="font-semibold text-zinc-700 dark:text-zinc-300">No Users Yet</flux:heading>
+                                        <flux:text class="mt-1 text-sm text-zinc-500 dark:text-zinc-400 max-w-sm">Invite team members to collaborate on inventory management.</flux:text>
+                                        <flux:button variant="primary" size="sm" class="mt-4" wire:click="openCreateModal">Add User</flux:button>
+                                    </div>
+                                </td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -363,7 +376,13 @@ new #[Title('User Management')] class extends Component {
 
                         <div class="flex justify-end gap-3">
                             <flux:button wire:click="$set('showFormModal', false)" variant="ghost">Cancel</flux:button>
-                            <flux:button type="submit" variant="primary">Save Changes</flux:button>
+                            <flux:button type="submit" variant="primary" wire:loading.attr="disabled">
+                                <span wire:loading.remove wire:target="saveUser">Save Changes</span>
+                                <span wire:loading wire:target="saveUser" class="flex items-center gap-2">
+                                    <flux:icon name="arrow-path" class="size-4 animate-spin" />
+                                    Saving...
+                                </span>
+                            </flux:button>
                         </div>
                     </form>
                 </div>
@@ -380,7 +399,13 @@ new #[Title('User Management')] class extends Component {
                     </div>
                     <div class="flex justify-end gap-3">
                         <flux:button wire:click="$set('showDeleteModal', false)" variant="ghost">Cancel</flux:button>
-                        <flux:button wire:click="deleteUser" variant="danger">Delete User</flux:button>
+                        <flux:button wire:click="deleteUser" variant="danger" wire:loading.attr="disabled">
+                            <span wire:loading.remove wire:target="deleteUser">Delete User</span>
+                            <span wire:loading wire:target="deleteUser" class="flex items-center gap-2">
+                                <flux:icon name="arrow-path" class="size-4 animate-spin" />
+                                Deleting...
+                            </span>
+                        </flux:button>
                     </div>
                 </div>
             </flux:modal>

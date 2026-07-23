@@ -19,6 +19,12 @@ new #[Title('Dashboard')] class extends Component {
     public bool $isSupplier = false;
     public ?int $supplierId = null;
 
+    public int $totalStockUnits = 0;
+    public int $activeProducts = 0;
+    public int $inactiveProducts = 0;
+    public int $outOfStockCount = 0;
+    public $recentSuppliers = [];
+
     public function mount(): void
     {
         $user = Auth::user();
@@ -53,6 +59,12 @@ new #[Title('Dashboard')] class extends Component {
                 ->latest('transaction_date')
                 ->limit(5)
                 ->get();
+
+            $this->totalStockUnits = (clone $productQuery)->sum('current_stock');
+            $this->activeProducts = (clone $productQuery)->where('status', 'active')->count();
+            $this->inactiveProducts = (clone $productQuery)->where('status', 'inactive')->count();
+            $this->outOfStockCount = (clone $productQuery)->where('current_stock', 0)->count();
+
         } else {
             // Load admin/staff global stats
             $this->totalProducts = Product::count();
@@ -73,18 +85,37 @@ new #[Title('Dashboard')] class extends Component {
                 ->latest('transaction_date')
                 ->limit(5)
                 ->get();
+                
+            $this->totalStockUnits = Product::sum('current_stock');
+            $this->activeProducts = Product::where('status', 'active')->count();
+            $this->inactiveProducts = Product::where('status', 'inactive')->count();
+            $this->outOfStockCount = Product::where('current_stock', 0)->count();
+            
+            $this->recentSuppliers = Supplier::latest()->limit(5)->get();
         }
     }
 }; ?>
 
     <div class="space-y-6">
         <!-- Title & Welcoming -->
-        <div class="flex items-center justify-between">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <flux:heading size="xl" class="font-bold text-zinc-900 dark:text-white">Dashboard</flux:heading>
                 <flux:subheading>Welcome back, {{ auth()->user()->name }} (Role: {{ auth()->user()->roles->pluck('name')->first() }})</flux:subheading>
             </div>
             <flux:text class="text-sm text-zinc-500">{{ now()->format('l, F j, Y') }}</flux:text>
+        </div>
+
+        <!-- Quick Actions Bar -->
+        <div class="flex flex-wrap gap-3">
+            @if(!$isSupplier)
+                <flux:button variant="primary" size="sm" icon="plus" href="{{ route('products.index') }}" wire:navigate>New Product</flux:button>
+                <flux:button variant="filled" size="sm" icon="arrows-right-left" href="{{ route('transactions.index') }}" wire:navigate>Record Transaction</flux:button>
+                <flux:button variant="filled" size="sm" icon="arrow-trending-up" href="{{ route('reports.index') }}" wire:navigate>View Reports</flux:button>
+            @else
+                <flux:button variant="primary" size="sm" icon="archive-box" href="{{ route('products.index') }}" wire:navigate>View Products</flux:button>
+                <flux:button variant="filled" size="sm" icon="clock" href="{{ route('transactions.index') }}" wire:navigate>View Delivery History</flux:button>
+            @endif
         </div>
 
         <!-- Metrics Cards -->
@@ -168,16 +199,24 @@ new #[Title('Dashboard')] class extends Component {
                 </div>
                 <div class="mt-4 flex-1 space-y-4">
                     @forelse($lowStockItems as $item)
-                        <div class="flex items-center justify-between rounded-xl bg-zinc-50 p-3 dark:bg-zinc-800/50">
-                            <div>
-                                <flux:text class="font-medium text-zinc-800 dark:text-zinc-200">{{ $item->name }}</flux:text>
-                                <flux:text class="block text-xs text-zinc-500">SKU: {{ $item->sku }}</flux:text>
+                        <div class="flex flex-col rounded-xl bg-zinc-50 p-3 dark:bg-zinc-800/50">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <flux:text class="font-medium text-zinc-800 dark:text-zinc-200">{{ $item->name }}</flux:text>
+                                    <flux:text class="block text-xs text-zinc-500">SKU: {{ $item->sku }}</flux:text>
+                                </div>
+                                <div class="text-right">
+                                    <span class="rounded bg-rose-50 px-2 py-0.5 text-xs font-semibold text-rose-600 dark:bg-rose-950/30 dark:text-rose-400">
+                                        Stock: {{ $item->current_stock }}
+                                    </span>
+                                    <flux:text class="block text-[10px] text-zinc-400 mt-1">Min: {{ $item->minimum_stock }}</flux:text>
+                                </div>
                             </div>
-                            <div class="text-right">
-                                <span class="rounded bg-rose-50 px-2 py-0.5 text-xs font-semibold text-rose-600 dark:bg-rose-950/30 dark:text-rose-400">
-                                    Stock: {{ $item->current_stock }}
-                                </span>
-                                <flux:text class="block text-[10px] text-zinc-400 mt-1">Min: {{ $item->minimum_stock }}</flux:text>
+                            @php
+                                $percentage = $item->minimum_stock > 0 ? min(100, round(($item->current_stock / $item->minimum_stock) * 100)) : 100;
+                            @endphp
+                            <div class="mt-3">
+                                <flux:progress :value="$percentage" />
                             </div>
                         </div>
                     @empty
@@ -188,6 +227,11 @@ new #[Title('Dashboard')] class extends Component {
                         </div>
                     @endforelse
                 </div>
+                @if($lowStockCount > count($lowStockItems))
+                    <div class="mt-4 border-t border-zinc-150 pt-4 dark:border-zinc-800 text-center">
+                        <flux:link href="{{ route('products.index') }}" class="text-sm font-medium">View all {{ $lowStockCount }} low stock items</flux:link>
+                    </div>
+                @endif
             </div>
 
             <!-- Right: Recent Transactions List -->
@@ -202,11 +246,12 @@ new #[Title('Dashboard')] class extends Component {
                     <table class="w-full text-left text-sm text-zinc-600 dark:text-zinc-400">
                         <thead>
                             <tr class="border-b border-zinc-100 text-xs font-semibold text-zinc-400 dark:border-zinc-800">
-                                <th class="pb-3">Product</th>
-                                <th class="pb-3">Type</th>
-                                <th class="pb-3">Quantity</th>
-                                <th class="pb-3">Remarks</th>
-                                <th class="pb-3 text-right">Date</th>
+                                <th scope="col" class="pb-3">Product</th>
+                                <th scope="col" class="pb-3">Type</th>
+                                <th scope="col" class="pb-3">Quantity</th>
+                                <th scope="col" class="pb-3">Remarks</th>
+                                <th scope="col" class="pb-3">User</th>
+                                <th scope="col" class="pb-3 text-right">Date</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800/50">
@@ -229,11 +274,21 @@ new #[Title('Dashboard')] class extends Component {
                                         {{ $tx->type === 'stock_in' ? '+' : ($tx->type === 'stock_out' ? '-' : ($tx->quantity >= 0 ? '+' : '')) }}{{ abs($tx->quantity) }}
                                     </td>
                                     <td class="py-3 text-zinc-500 max-w-[200px] truncate" title="{{ $tx->remarks }}">{{ $tx->remarks ?: '-' }}</td>
+                                    <td class="py-3">
+                                        @if($tx->user)
+                                            <div class="flex items-center gap-2">
+                                                <flux:avatar size="xs" :initials="$tx->user->initials()" />
+                                                <flux:text class="text-xs text-zinc-500">{{ $tx->user->name }}</flux:text>
+                                            </div>
+                                        @else
+                                            <flux:text class="text-xs text-zinc-500">System</flux:text>
+                                        @endif
+                                    </td>
                                     <td class="py-3 text-right text-zinc-400 text-xs">{{ $tx->transaction_date->diffForHumans() }}</td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="5" class="py-8 text-center text-zinc-500">No transactions recorded yet.</td>
+                                    <td colspan="6" class="py-8 text-center text-zinc-500">No transactions recorded yet.</td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -241,4 +296,47 @@ new #[Title('Dashboard')] class extends Component {
                 </div>
             </div>
         </div>
+
+        <!-- Inventory Overview -->
+        <div class="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+            <flux:heading size="lg" class="font-semibold mb-4">Inventory Overview</flux:heading>
+            <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+                <!-- Total Stock Units -->
+                <div class="text-center">
+                    <flux:text class="text-2xl font-bold text-zinc-900 dark:text-white">{{ number_format($totalStockUnits) }}</flux:text>
+                    <flux:text class="text-xs text-zinc-500">Total Units</flux:text>
+                </div>
+                <!-- Active Products -->
+                <div class="text-center">
+                    <flux:text class="text-2xl font-bold text-emerald-600">{{ $activeProducts }}</flux:text>
+                    <flux:text class="text-xs text-zinc-500">Active Products</flux:text>
+                </div>
+                <!-- Inactive Products -->
+                <div class="text-center">
+                    <flux:text class="text-2xl font-bold text-zinc-400">{{ $inactiveProducts }}</flux:text>
+                    <flux:text class="text-xs text-zinc-500">Inactive</flux:text>
+                </div>
+                <!-- Out of Stock -->
+                <div class="text-center">
+                    <flux:text class="text-2xl font-bold text-rose-600">{{ $outOfStockCount }}</flux:text>
+                    <flux:text class="text-xs text-zinc-500">Out of Stock</flux:text>
+                </div>
+            </div>
+        </div>
+
+        @if(!$isSupplier && count($recentSuppliers) > 0)
+            <!-- Recently Added Suppliers -->
+            <div class="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+                <flux:heading size="lg" class="font-semibold mb-4">Recently Added Suppliers</flux:heading>
+                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                    @foreach($recentSuppliers as $supplier)
+                        <div class="rounded-xl border border-zinc-100 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-800/50 flex flex-col justify-center">
+                            <flux:heading size="sm" class="font-medium truncate">{{ $supplier->name }}</flux:heading>
+                            <flux:text class="text-xs text-zinc-500 truncate mt-1">{{ $supplier->email }}</flux:text>
+                        </div>
+                    @endforeach
+                </div>
+            </div>
+        @endif
     </div>
+

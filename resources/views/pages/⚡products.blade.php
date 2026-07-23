@@ -147,7 +147,7 @@ new #[Title('Product Management')] class extends Component {
                 'minimum_stock' => $this->minimumStock,
                 'status' => $this->status,
             ]);
-            Flux::toast(variant: 'success', text: __('Product updated successfully.'));
+            Flux::toast(variant: 'success', text: 'Updated successfully.');
         } else {
             Product::create([
                 'sku' => $this->sku,
@@ -161,7 +161,7 @@ new #[Title('Product Management')] class extends Component {
                 'current_stock' => 0, // Enforce starting stock as 0. Stock changes are managed by transactions.
                 'status' => $this->status,
             ]);
-            Flux::toast(variant: 'success', text: __('Product created successfully. Log transactions to add stock.'));
+            Flux::toast(variant: 'success', text: 'Created successfully.');
         }
 
         $this->showFormModal = false;
@@ -193,7 +193,7 @@ new #[Title('Product Management')] class extends Component {
 
         $product->delete();
 
-        Flux::toast(variant: 'success', text: __('Product deleted successfully.'));
+        Flux::toast(variant: 'success', text: 'Deleted successfully.');
         $this->showDeleteModal = false;
         $this->resetForm();
     }
@@ -261,7 +261,7 @@ new #[Title('Product Management')] class extends Component {
 
     <div class="space-y-6">
         <!-- Heading -->
-        <div class="flex items-center justify-between">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <flux:heading size="xl" class="font-bold">Product Catalog</flux:heading>
                 <flux:subheading>
@@ -275,8 +275,11 @@ new #[Title('Product Management')] class extends Component {
 
         <!-- Filters Bar -->
         <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5 items-end bg-white dark:bg-zinc-900 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700">
-            <div class="sm:col-span-2">
+            <div class="sm:col-span-2 relative">
                 <flux:input wire:model.live.debounce.300ms="search" label="Search Product" placeholder="Search SKU, name, details..." icon="magnifying-glass" />
+                <div wire:loading wire:target="search" class="absolute right-3 top-9">
+                    <flux:icon name="arrow-path" class="size-4 animate-spin text-zinc-400" />
+                </div>
             </div>
             <div>
                 <flux:select wire:model.live="filterCategory" label="Category">
@@ -317,21 +320,24 @@ new #[Title('Product Management')] class extends Component {
         </div>
 
         <!-- Products Table -->
-        <div class="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
+        <div wire:loading wire:target="search, filterCategory, filterSupplier, filterStockStatus, filterStatus, sortBy, gotoPage, nextPage, previousPage" class="flex justify-center py-4 w-full">
+            <flux:icon name="arrow-path" class="size-5 animate-spin text-zinc-400" />
+        </div>
+        <div class="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900" wire:loading.class="opacity-50 pointer-events-none" wire:target="search, filterCategory, filterSupplier, filterStockStatus, filterStatus, sortBy, gotoPage, nextPage, previousPage">
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-sm text-zinc-600 dark:text-zinc-400">
                     <thead>
                         <tr class="border-b border-zinc-200 bg-zinc-50 text-xs font-semibold text-zinc-400 dark:border-zinc-800 dark:bg-zinc-950">
-                            <th class="px-6 py-4" style="width: 25%;">SKU / Product Name</th>
-                            <th class="px-6 py-4" style="width: 17%;">Category</th>
+                            <th scope="col" class="px-6 py-4" style="width: 25%;">SKU / Product Name</th>
+                            <th scope="col" class="px-6 py-4" style="width: 17%;">Category</th>
                             @if(!$isSupplier)
-                                <th class="px-6 py-4" style="width: 16%;">Supplier</th>
+                                <th scope="col" class="px-6 py-4" style="width: 16%;">Supplier</th>
                             @endif
-                            <th class="px-6 py-4" style="width: 16%;">Prices (Cost / Selling)</th>
-                            <th class="px-6 py-4" style="width: 14%;">Stock Level</th>
-                            <th class="px-6 py-4" style="width: 7%;">Status</th>
+                            <th scope="col" class="px-6 py-4" style="width: 16%;">Prices (Cost / Selling)</th>
+                            <th scope="col" class="px-6 py-4" style="width: 14%;">Stock Level</th>
+                            <th scope="col" class="px-6 py-4" style="width: 7%;">Status</th>
                             @if(!$isReadOnly)
-                                <th class="px-6 py-4 text-right" style="width: 5%;">Actions</th>
+                                <th scope="col" class="px-6 py-4 text-right" style="width: 5%;">Actions</th>
                             @endif
                         </tr>
                     </thead>
@@ -405,7 +411,16 @@ new #[Title('Product Management')] class extends Component {
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="px-6 py-8 text-center text-zinc-500">No products found.</td>
+                                <td colspan="7" class="px-6 py-16">
+                                    <div class="flex flex-col items-center justify-center text-center">
+                                        <flux:icon name="archive-box" class="size-12 text-zinc-300 dark:text-zinc-600 mb-4" />
+                                        <flux:heading size="lg" class="font-semibold text-zinc-700 dark:text-zinc-300">No Products Yet</flux:heading>
+                                        <flux:text class="mt-1 text-sm text-zinc-500 dark:text-zinc-400 max-w-sm">Add your first product to start tracking inventory.</flux:text>
+                                        @if(!$isReadOnly)
+                                            <flux:button variant="primary" size="sm" class="mt-4" wire:click="openCreateModal">Add Product</flux:button>
+                                        @endif
+                                    </div>
+                                </td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -504,7 +519,13 @@ new #[Title('Product Management')] class extends Component {
 
                         <div class="flex justify-end gap-3">
                             <flux:button wire:click="$set('showFormModal', false)" variant="ghost">Cancel</flux:button>
-                            <flux:button type="submit" variant="primary">Save Changes</flux:button>
+                            <flux:button type="submit" variant="primary" wire:loading.attr="disabled">
+                                <span wire:loading.remove wire:target="saveProduct">Save Changes</span>
+                                <span wire:loading wire:target="saveProduct" class="flex items-center gap-2">
+                                    <flux:icon name="arrow-path" class="size-4 animate-spin" />
+                                    Saving...
+                                </span>
+                            </flux:button>
                         </div>
                     </form>
                 </div>
@@ -521,7 +542,13 @@ new #[Title('Product Management')] class extends Component {
                     </div>
                     <div class="flex justify-end gap-3">
                         <flux:button wire:click="$set('showDeleteModal', false)" variant="ghost">Cancel</flux:button>
-                        <flux:button wire:click="deleteProduct" variant="danger">Delete Product</flux:button>
+                        <flux:button wire:click="deleteProduct" variant="danger" wire:loading.attr="disabled">
+                            <span wire:loading.remove wire:target="deleteProduct">Delete Product</span>
+                            <span wire:loading wire:target="deleteProduct" class="flex items-center gap-2">
+                                <flux:icon name="arrow-path" class="size-4 animate-spin" />
+                                Deleting...
+                            </span>
+                        </flux:button>
                     </div>
                 </div>
             </flux:modal>
