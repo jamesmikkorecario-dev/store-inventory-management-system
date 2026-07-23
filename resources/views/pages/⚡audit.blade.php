@@ -124,8 +124,11 @@ new #[Title('Audit Trail')] class extends Component {
 
         <!-- Filters -->
         <div class="flex flex-col gap-4 sm:flex-row sm:items-end bg-white dark:bg-zinc-900 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700">
-            <div class="flex-1">
+            <div class="flex-1 relative">
                 <flux:input wire:model.live.debounce.300ms="search" label="Search Audit Log" placeholder="Search causer user, event description..." icon="magnifying-glass" />
+                <div wire:loading wire:target="search" class="absolute right-3 top-9">
+                    <flux:icon name="arrow-path" class="size-4 animate-spin text-zinc-400" />
+                </div>
             </div>
             <div class="w-full sm:w-64">
                 <flux:select wire:model.live="filterSubject" label="Subject">
@@ -146,16 +149,19 @@ new #[Title('Audit Trail')] class extends Component {
         </div>
 
         <!-- Audit Table -->
-        <div class="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
+        <div wire:loading wire:target="search, filterEvent, filterSubject, sortBy, gotoPage, nextPage, previousPage" class="flex justify-center py-4 w-full">
+            <flux:icon name="arrow-path" class="size-5 animate-spin text-zinc-400" />
+        </div>
+        <div class="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900" wire:loading.class="opacity-50 pointer-events-none" wire:target="search, filterEvent, filterSubject, sortBy, gotoPage, nextPage, previousPage">
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-sm text-zinc-600 dark:text-zinc-400">
                     <thead>
                         <tr class="border-b border-zinc-200 bg-zinc-50 text-xs font-semibold text-zinc-400 dark:border-zinc-800 dark:bg-zinc-950">
-                            <th class="px-6 py-4 w-px whitespace-nowrap">Timestamp</th>
-                            <th class="px-6 py-4 w-px whitespace-nowrap">Causer User</th>
-                            <th class="px-6 py-4 w-px whitespace-nowrap">Event Action</th>
-                            <th class="px-6 py-4 w-px whitespace-nowrap">Subject (Entity)</th>
-                            <th class="px-6 py-4 w-full">Attribute Changes (Old &rarr; New)</th>
+                            <th scope="col" class="px-6 py-4 w-px whitespace-nowrap">Timestamp</th>
+                            <th scope="col" class="px-6 py-4 w-px whitespace-nowrap">Causer User</th>
+                            <th scope="col" class="px-6 py-4 w-px whitespace-nowrap">Event Action</th>
+                            <th scope="col" class="px-6 py-4 w-px whitespace-nowrap">Subject (Entity)</th>
+                            <th scope="col" class="px-6 py-4 w-full">Attribute Changes (Old &rarr; New)</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
@@ -198,7 +204,13 @@ new #[Title('Audit Trail')] class extends Component {
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="px-6 py-8 text-center text-zinc-500">No activity logs recorded.</td>
+                                <td colspan="5" class="px-6 py-16">
+                                    <div class="flex flex-col items-center justify-center text-center">
+                                        <flux:icon name="shield-check" class="size-12 text-zinc-300 dark:text-zinc-600 mb-4" />
+                                        <flux:heading size="lg" class="font-semibold text-zinc-700 dark:text-zinc-300">No Audit Logs Yet</flux:heading>
+                                        <flux:text class="mt-1 text-sm text-zinc-500 dark:text-zinc-400 max-w-sm">Activity logs will appear here once actions are performed.</flux:text>
+                                    </div>
+                                </td>
                             </tr>
                         @endforelse
                     </tbody>

@@ -318,7 +318,7 @@ new #[Title('Inventory Reports')] class extends Component {
 
     <div class="space-y-6">
         <!-- Heading -->
-        <div class="flex items-center justify-between">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <flux:heading size="xl" class="font-bold">Inventory Reports</flux:heading>
                 <flux:subheading>Generate, filter, and export detailed analytical stock sheets and logs.</flux:subheading>
@@ -371,7 +371,10 @@ new #[Title('Inventory Reports')] class extends Component {
         </div>
 
         <!-- Preview Area -->
-        <div class="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
+        <div wire:loading wire:target="reportType, startDate, endDate, categoryId, supplierId" class="flex justify-center py-4 w-full">
+            <flux:icon name="arrow-path" class="size-5 animate-spin text-zinc-400" />
+        </div>
+        <div class="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900" wire:loading.class="opacity-50 pointer-events-none" wire:target="reportType, startDate, endDate, categoryId, supplierId, exportExcel, exportPdf">
             <div class="px-6 py-4 border-b border-zinc-150 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950 flex items-center justify-between">
                 <span class="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Live Report Sheet Preview</span>
                 <span class="text-xs text-zinc-400">Total rows: {{ count($this->reportData['rows']) }}</span>
@@ -382,7 +385,7 @@ new #[Title('Inventory Reports')] class extends Component {
                     <thead>
                         <tr class="border-b border-zinc-200 text-xs font-semibold text-zinc-400 dark:border-zinc-800 bg-zinc-50 dark:bg-zinc-950/20">
                             @foreach($this->reportData['headers'] as $header)
-                                <th class="px-6 py-3 {{ $header['class'] ?? '' }}">{{ $header['title'] }}</th>
+                                <th scope="col" class="px-6 py-3 {{ $header['class'] ?? '' }}">{{ $header['title'] }}</th>
                             @endforeach
                         </tr>
                     </thead>
@@ -409,8 +412,12 @@ new #[Title('Inventory Reports')] class extends Component {
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="{{ count($this->reportData['headers']) }}" class="px-6 py-10 text-center text-zinc-500">
-                                    No data match the current search filters.
+                                <td colspan="{{ count($this->reportData['headers']) }}" class="px-6 py-16">
+                                    <div class="flex flex-col items-center justify-center text-center">
+                                        <flux:icon name="arrow-trending-up" class="size-12 text-zinc-300 dark:text-zinc-600 mb-4" />
+                                        <flux:heading size="lg" class="font-semibold text-zinc-700 dark:text-zinc-300">No Report Data</flux:heading>
+                                        <flux:text class="mt-1 text-sm text-zinc-500 dark:text-zinc-400 max-w-sm">Generate reports once you have inventory data.</flux:text>
+                                    </div>
                                 </td>
                             </tr>
                         @endforelse

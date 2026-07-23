@@ -102,7 +102,7 @@ new #[Title('Supplier Management')] class extends Component {
                 'address' => $this->address,
                 'status' => $this->status,
             ]);
-            Flux::toast(variant: 'success', text: __('Supplier updated successfully.'));
+            Flux::toast(variant: 'success', text: 'Updated successfully.');
         } else {
             Supplier::create([
                 'name' => $this->name,
@@ -112,7 +112,7 @@ new #[Title('Supplier Management')] class extends Component {
                 'address' => $this->address,
                 'status' => $this->status,
             ]);
-            Flux::toast(variant: 'success', text: __('Supplier created successfully.'));
+            Flux::toast(variant: 'success', text: 'Created successfully.');
         }
 
         $this->showFormModal = false;
@@ -144,7 +144,7 @@ new #[Title('Supplier Management')] class extends Component {
 
         $supplier->delete();
 
-        Flux::toast(variant: 'success', text: __('Supplier deleted successfully.'));
+        Flux::toast(variant: 'success', text: 'Deleted successfully.');
         $this->showDeleteModal = false;
         $this->resetForm();
     }
@@ -184,7 +184,7 @@ new #[Title('Supplier Management')] class extends Component {
 
     <div class="space-y-6">
         <!-- Heading -->
-        <div class="flex items-center justify-between">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <flux:heading size="xl" class="font-bold">Supplier Management</flux:heading>
                 <flux:subheading>Manage suppliers, contact info, and their catalog status indicators.</flux:subheading>
@@ -196,8 +196,11 @@ new #[Title('Supplier Management')] class extends Component {
 
         <!-- Filters -->
         <div class="flex flex-col gap-4 sm:flex-row sm:items-end bg-white dark:bg-zinc-900 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700">
-            <div class="flex-1">
+            <div class="flex-1 relative">
                 <flux:input wire:model.live.debounce.300ms="search" label="Search Supplier" placeholder="Search by name, contact, email..." icon="magnifying-glass" />
+                <div wire:loading wire:target="search" class="absolute right-3 top-9">
+                    <flux:icon name="arrow-path" class="size-4 animate-spin text-zinc-400" />
+                </div>
             </div>
             <div class="w-full sm:w-64">
                 <flux:select wire:model.live="filterStatus" label="Status">
@@ -209,19 +212,22 @@ new #[Title('Supplier Management')] class extends Component {
         </div>
 
         <!-- Suppliers List -->
-        <div class="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
+        <div wire:loading wire:target="search, filterStatus, sortBy, gotoPage, nextPage, previousPage" class="flex justify-center py-4 w-full">
+            <flux:icon name="arrow-path" class="size-5 animate-spin text-zinc-400" />
+        </div>
+        <div class="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900" wire:loading.class="opacity-50 pointer-events-none" wire:target="search, filterStatus, sortBy, gotoPage, nextPage, previousPage">
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-sm text-zinc-600 dark:text-zinc-400">
                     <thead>
                         <tr class="border-b border-zinc-200 bg-zinc-50 text-xs font-semibold text-zinc-400 dark:border-zinc-800 dark:bg-zinc-950">
-                            <th class="px-6 py-4">Company Name</th>
-                            <th class="px-6 py-4">Contact Person</th>
-                            <th class="px-6 py-4">Email</th>
-                            <th class="px-6 py-4">Phone</th>
-                            <th class="px-6 py-4">Products Seeded</th>
-                            <th class="px-6 py-4">Status</th>
+                            <th scope="col" class="px-6 py-4">Company Name</th>
+                            <th scope="col" class="px-6 py-4">Contact Person</th>
+                            <th scope="col" class="px-6 py-4">Email</th>
+                            <th scope="col" class="px-6 py-4">Phone</th>
+                            <th scope="col" class="px-6 py-4">Products Seeded</th>
+                            <th scope="col" class="px-6 py-4">Status</th>
                             @if(!$isReadOnly)
-                                <th class="px-6 py-4 text-right">Actions</th>
+                                <th scope="col" class="px-6 py-4 text-right">Actions</th>
                             @endif
                         </tr>
                     </thead>
@@ -262,7 +268,16 @@ new #[Title('Supplier Management')] class extends Component {
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="7" class="px-6 py-8 text-center text-zinc-500">No suppliers found.</td>
+                                <td colspan="7" class="px-6 py-16">
+                                    <div class="flex flex-col items-center justify-center text-center">
+                                        <flux:icon name="truck" class="size-12 text-zinc-300 dark:text-zinc-600 mb-4" />
+                                        <flux:heading size="lg" class="font-semibold text-zinc-700 dark:text-zinc-300">No Suppliers Yet</flux:heading>
+                                        <flux:text class="mt-1 text-sm text-zinc-500 dark:text-zinc-400 max-w-sm">Add a supplier to start managing your supply chain.</flux:text>
+                                        @if(!$isReadOnly)
+                                            <flux:button variant="primary" size="sm" class="mt-4" wire:click="openCreateModal">Add Supplier</flux:button>
+                                        @endif
+                                    </div>
+                                </td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -367,7 +382,13 @@ new #[Title('Supplier Management')] class extends Component {
 
                         <div class="flex justify-end gap-3">
                             <flux:button wire:click="$set('showFormModal', false)" variant="ghost">Cancel</flux:button>
-                            <flux:button type="submit" variant="primary">Save Changes</flux:button>
+                            <flux:button type="submit" variant="primary" wire:loading.attr="disabled">
+                                <span wire:loading.remove wire:target="saveSupplier">Save Changes</span>
+                                <span wire:loading wire:target="saveSupplier" class="flex items-center gap-2">
+                                    <flux:icon name="arrow-path" class="size-4 animate-spin" />
+                                    Saving...
+                                </span>
+                            </flux:button>
                         </div>
                     </form>
                 </div>
@@ -384,7 +405,13 @@ new #[Title('Supplier Management')] class extends Component {
                     </div>
                     <div class="flex justify-end gap-3">
                         <flux:button wire:click="$set('showDeleteModal', false)" variant="ghost">Cancel</flux:button>
-                        <flux:button wire:click="deleteSupplier" variant="danger">Delete Supplier</flux:button>
+                        <flux:button wire:click="deleteSupplier" variant="danger" wire:loading.attr="disabled">
+                            <span wire:loading.remove wire:target="deleteSupplier">Delete Supplier</span>
+                            <span wire:loading wire:target="deleteSupplier" class="flex items-center gap-2">
+                                <flux:icon name="arrow-path" class="size-4 animate-spin" />
+                                Deleting...
+                            </span>
+                        </flux:button>
                     </div>
                 </div>
             </flux:modal>
