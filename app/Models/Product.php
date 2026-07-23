@@ -9,6 +9,8 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
@@ -20,6 +22,7 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property string $identifier
  * @property string $name
  * @property string|null $description
+ * @property string|null $image_path
  * @property float $cost_price
  * @property float $selling_price
  * @property int $current_stock
@@ -36,6 +39,7 @@ use Spatie\Activitylog\Support\LogOptions;
     'identifier',
     'name',
     'description',
+    'image_path',
     'cost_price',
     'selling_price',
     'current_stock',
@@ -144,5 +148,17 @@ class Product extends Model
             ->logFillable()
             ->logOnlyDirty()
             ->dontLogEmptyChanges();
+    }
+
+    /**
+     * Get the product image URL or a placeholder
+     */
+    public function imageUrl(): string
+    {
+        if ($this->image_path) {
+            return Storage::disk('public')->url($this->image_path);
+        }
+
+        return 'https://placehold.co/400x400/f4f4f5/a1a1aa?text='.urlencode(Str::limit($this->name, 10));
     }
 }

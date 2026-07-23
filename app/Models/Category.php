@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -21,7 +22,8 @@ use Spatie\Activitylog\Support\LogOptions;
 #[Fillable(['name', 'description'])]
 class Category extends Model
 {
-    use LogsActivity, SoftDeletes;
+    /** @use HasFactory<\Database\Factories\CategoryFactory> */
+    use HasFactory, LogsActivity, SoftDeletes;
 
     /**
      * Products in this category
