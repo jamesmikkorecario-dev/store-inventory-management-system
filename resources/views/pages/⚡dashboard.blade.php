@@ -200,6 +200,7 @@ new #[Title('Dashboard')] class extends Component {
             @endif
         </div>
 
+        @if(auth()->user()->hasAnyRole(['Admin', 'Staff']))
         <!-- Details Grid -->
         <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
             <!-- Low Stock Alerts Widget -->
@@ -235,8 +236,6 @@ new #[Title('Dashboard')] class extends Component {
                         </div>
                     @endforelse
                 </div>
-            </div>
-
             <!-- Left: Low Stock Items List -->
             <div class="flex flex-col rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 lg:col-span-1">
                 <div class="flex items-center justify-between border-b border-zinc-150 pb-4 dark:border-zinc-800">
@@ -280,6 +279,7 @@ new #[Title('Dashboard')] class extends Component {
                 @endif
             </div>
         </div>
+        @endif
 
         <!-- Recent Transactions List -->
         <div class="flex flex-col rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">

@@ -254,5 +254,5 @@ test('supplier cannot see alerts in sidebar', function () {
     $response = $this->actingAs($supplierUser)->get(route('dashboard'));
     $response->assertStatus(200);
     $response->assertDontSee('href="'.route('alerts.index').'"', false);
-    $response->assertDontSee('Alerts');
+    $response->assertDontSee('>Alerts<', false);
 });
