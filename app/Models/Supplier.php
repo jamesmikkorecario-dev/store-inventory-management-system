@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -25,7 +26,8 @@ use Spatie\Activitylog\Support\LogOptions;
 #[Fillable(['name', 'contact_person', 'email', 'phone', 'address', 'status'])]
 class Supplier extends Model
 {
-    use LogsActivity, SoftDeletes;
+    /** @use HasFactory<\Database\Factories\SupplierFactory> */
+    use HasFactory, LogsActivity, SoftDeletes;
 
     /**
      * Users associated with this supplier
