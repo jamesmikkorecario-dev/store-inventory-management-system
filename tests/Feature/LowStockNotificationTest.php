@@ -8,9 +8,18 @@ use App\Models\Supplier;
 use App\Models\User;
 use Livewire\Livewire;
 
+use Spatie\Permission\Models\Role;
+
 beforeEach(function () {
     $this->category = Category::create(['name' => 'Test Category']);
     $this->supplier = Supplier::create(['name' => 'Test Supplier', 'contact_email' => 'test@supplier.com', 'status' => 'active']);
+    
+    $this->adminRole = Role::firstOrCreate(['name' => 'Admin']);
+    $this->staffRole = Role::firstOrCreate(['name' => 'Staff']);
+    $this->supplierRole = Role::firstOrCreate(['name' => 'Supplier']);
+    
+    $this->adminUser = User::factory()->create();
+    $this->adminUser->assignRole($this->adminRole);
 });
 
 test('it creates a low stock notification when stock is below threshold', function () {
@@ -138,7 +147,8 @@ test('unread count and component rendering', function () {
         'status' => 'active',
     ]);
 
-    Livewire::test(Index::class)
+    Livewire::actingAs($this->adminUser)
+        ->test(Index::class)
         ->assertSee('Product 6')
         ->assertSee('Stock is at');
 });
@@ -158,7 +168,8 @@ test('it can mark notification as read', function () {
 
     $notification = LowStockNotification::first();
 
-    Livewire::test(Index::class)
+    Livewire::actingAs($this->adminUser)
+        ->test(Index::class)
         ->call('markAsRead', $notification->id);
 
     expect($notification->fresh()->read_at)->not->toBeNull();
@@ -189,15 +200,14 @@ test('it can mark all notifications as read', function () {
         'status' => 'active',
     ]);
 
-    Livewire::test(Index::class)
+    Livewire::actingAs($this->adminUser)
+        ->test(Index::class)
         ->call('markAllAsRead');
 
     expect(LowStockNotification::whereNull('read_at')->count())->toBe(0);
 });
 
 test('dashboard widget renders latest active alerts', function () {
-    $user = User::factory()->create();
-
     $product = Product::create([
         'sku' => 'SKU-DASH-1',
         'name' => 'Dash Product 1',
@@ -210,8 +220,39 @@ test('dashboard widget renders latest active alerts', function () {
         'status' => 'active',
     ]);
 
-    $response = $this->actingAs($user)->get(route('dashboard'));
+    $response = $this->actingAs($this->adminUser)->get(route('dashboard'));
     $response->assertSee('Low Stock Alerts');
     $response->assertSee('Dash Product 1');
     $response->assertSee('View All');
+});
+
+test('admin can access alerts module', function () {
+    $response = $this->actingAs($this->adminUser)->get(route('alerts.index'));
+    $response->assertStatus(200);
+});
+
+test('staff can access alerts module', function () {
+    $staffUser = User::factory()->create();
+    $staffUser->assignRole($this->staffRole);
+    
+    $response = $this->actingAs($staffUser)->get(route('alerts.index'));
+    $response->assertStatus(200);
+});
+
+test('supplier cannot access alerts module', function () {
+    $supplierUser = User::factory()->create(['supplier_id' => $this->supplier->id]);
+    $supplierUser->assignRole($this->supplierRole);
+    
+    $response = $this->actingAs($supplierUser)->get(route('alerts.index'));
+    $response->assertStatus(403);
+});
+
+test('supplier cannot see alerts in sidebar', function () {
+    $supplierUser = User::factory()->create(['supplier_id' => $this->supplier->id]);
+    $supplierUser->assignRole($this->supplierRole);
+    
+    $response = $this->actingAs($supplierUser)->get(route('dashboard'));
+    $response->assertStatus(200);
+    $response->assertDontSee('href="'.route('alerts.index').'"', false);
+    $response->assertDontSee('Alerts');
 });

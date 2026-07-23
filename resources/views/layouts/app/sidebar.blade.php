@@ -58,10 +58,12 @@
                         </flux:sidebar.item>
                     @endcan
 
-                    <flux:sidebar.item icon="bell" :href="route('alerts.index')" :current="request()->routeIs('alerts.index')" wire:navigate>
-                        {{ __('Alerts') }}
-                        <livewire:sidebar-alerts-badge />
-                    </flux:sidebar.item>
+                    @if(auth()->user()->hasAnyRole(['Admin', 'Staff']))
+                        <flux:sidebar.item icon="bell" :href="route('alerts.index')" :current="request()->routeIs('alerts.index')" wire:navigate>
+                            {{ __('Alerts') }}
+                            <livewire:sidebar-alerts-badge />
+                        </flux:sidebar.item>
+                    @endif
                 </flux:sidebar.group>
             </flux:sidebar.nav>
 
