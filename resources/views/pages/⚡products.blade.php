@@ -421,7 +421,7 @@ new #[Title('Product Management')] class extends Component {
                             <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-800/30">
                                 <td class="px-4 py-4">
                                     <button type="button" wire:click="openImagePreview('{{ $product->imageUrl() }}')" class="block size-10 rounded-lg overflow-hidden border border-zinc-200 dark:border-zinc-700 hover:ring-2 hover:ring-blue-500 transition-all cursor-pointer">
-                                        <img src="{{ $product->imageUrl() }}" alt="{{ $product->name }}" class="size-full object-cover" loading="lazy" onerror="this.src='https://placehold.co/400x400/f4f4f5/a1a1aa?text={{ urlencode(Str::limit($product->name, 10)) }}'" />
+                                        <img src="{{ $product->imageUrl() }}" alt="{{ $product->name }}" class="size-full object-contain bg-zinc-100 dark:bg-zinc-800/50" loading="lazy" onerror="this.src='https://placehold.co/400x400/f4f4f5/a1a1aa?text={{ urlencode(Str::limit($product->name, 10)) }}'" />
                                     </button>
                                 </td>
                                 <td class="pl-0 pr-6 py-4">
@@ -486,8 +486,8 @@ new #[Title('Product Management')] class extends Component {
                                 @if(!$isReadOnly)
                                     <td class="px-6 py-4 text-right">
                                         <div class="inline-flex items-center gap-2">
-                                            <flux:button wire:click="openEditModal({{ $product->id }})" size="sm" icon="pencil-square" variant="ghost" />
-                                            <flux:button wire:click="confirmDelete({{ $product->id }})" size="sm" icon="trash" variant="ghost" class="text-rose-600 hover:text-rose-700" />
+                                            <flux:button wire:click="openEditModal({{ $product->id }})" size="sm" icon="pencil-square" variant="ghost" aria-label="Edit" />
+                                            <flux:button wire:click="confirmDelete({{ $product->id }})" size="sm" icon="trash" variant="ghost" aria-label="Delete" class="text-rose-600 hover:text-rose-700" />
                                         </div>
                                     </td>
                                 @endif
@@ -590,12 +590,12 @@ new #[Title('Product Management')] class extends Component {
                             <div class="space-y-3">
                                 @if($image)
                                     <div class="relative inline-block">
-                                        <img src="{{ $image->temporaryUrl() }}" class="size-24 rounded-lg object-cover border border-zinc-200 dark:border-zinc-700" alt="Preview" />
+                                        <img src="{{ $image->temporaryUrl() }}" class="size-24 rounded-lg object-contain bg-zinc-100 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700" alt="Preview" />
                                         <button type="button" wire:click="$set('image', null)" class="absolute -top-2 -right-2 size-5 rounded-full bg-rose-500 text-white flex items-center justify-center text-xs hover:bg-rose-600">&times;</button>
                                     </div>
                                 @elseif($existingImageUrl && !$removeImage)
                                     <div class="relative inline-block">
-                                        <img src="{{ $existingImageUrl }}" class="size-24 rounded-lg object-cover border border-zinc-200 dark:border-zinc-700" alt="Current" />
+                                        <img src="{{ $existingImageUrl }}" class="size-24 rounded-lg object-contain bg-zinc-100 dark:bg-zinc-800/50 border border-zinc-200 dark:border-zinc-700" alt="Current" />
                                         <button type="button" wire:click="removeProductImage" class="absolute -top-2 -right-2 size-5 rounded-full bg-rose-500 text-white flex items-center justify-center text-xs hover:bg-rose-600">&times;</button>
                                     </div>
                                 @endif
@@ -627,10 +627,14 @@ new #[Title('Product Management')] class extends Component {
                             <flux:field class="mb-4">
                                 <flux:label class="mb-1">Category <span class="text-rose-500">*</span></flux:label>
                                 <flux:select wire:model="categoryId" required>
-                                    <option value="">Select Category</option>
-                                    @foreach($categories as $category)
-                                        <option value="{{ $category->id }}">{{ $category->name }}</option>
-                                    @endforeach
+                                    @if($categories->isEmpty())
+                                        <option value="" disabled selected>No categories available. Please create one first.</option>
+                                    @else
+                                        <option value="">Select Category</option>
+                                        @foreach($categories as $category)
+                                            <option value="{{ $category->id }}">{{ $category->name }}</option>
+                                        @endforeach
+                                    @endif
                                 </flux:select>
                                 <flux:error name="categoryId" class="!mt-0.5 text-xs font-medium" />
                             </flux:field>
@@ -638,10 +642,14 @@ new #[Title('Product Management')] class extends Component {
                             <flux:field class="mb-4">
                                 <flux:label class="mb-1">Supplier Partner <span class="text-rose-500">*</span></flux:label>
                                 <flux:select wire:model="supplierId" required>
-                                    <option value="">Select Supplier</option>
-                                    @foreach($suppliers as $supplier)
-                                        <option value="{{ $supplier->id }}">{{ $supplier->name }}</option>
-                                    @endforeach
+                                    @if($suppliers->isEmpty())
+                                        <option value="" disabled selected>No suppliers available. Please create one first.</option>
+                                    @else
+                                        <option value="">Select Supplier</option>
+                                        @foreach($suppliers as $supplier)
+                                            <option value="{{ $supplier->id }}">{{ $supplier->name }}</option>
+                                        @endforeach
+                                    @endif
                                 </flux:select>
                                 <flux:error name="supplierId" class="!mt-0.5 text-xs font-medium" />
                             </flux:field>

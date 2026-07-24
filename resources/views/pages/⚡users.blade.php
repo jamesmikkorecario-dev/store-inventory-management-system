@@ -32,9 +32,7 @@ new #[Title('User Management')] class extends Component {
 
     public function mount(): void
     {
-        if (!Auth::user()->can('manage users')) {
-            abort(403, 'Unauthorized action.');
-        }
+        // Handled by route middleware
     }
 
     public function updatedSearch(): void
@@ -80,6 +78,7 @@ new #[Title('User Management')] class extends Component {
 
     public function saveUser(): void
     {
+        if (!Auth::user()->can('manage users')) abort(403);
         $rules = [
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users,email,' . ($this->userId ?: 'NULL'),
@@ -159,6 +158,7 @@ new #[Title('User Management')] class extends Component {
 
     public function deleteUser(): void
     {
+        if (!Auth::user()->can('manage users')) abort(403);
         $user = User::findOrFail($this->userId);
 
         if ($user->id === Auth::id()) {
@@ -300,9 +300,9 @@ new #[Title('User Management')] class extends Component {
                                 </td>
                                 <td class="px-6 py-4 text-right">
                                     <div class="inline-flex items-center gap-2">
-                                        <flux:button wire:click="openEditModal({{ $user->id }})" size="sm" icon="pencil-square" variant="ghost" />
+                                        <flux:button wire:click="openEditModal({{ $user->id }})" size="sm" icon="pencil-square" variant="ghost" aria-label="Edit" />
                                         @if($user->id !== auth()->id())
-                                            <flux:button wire:click="confirmDelete({{ $user->id }})" size="sm" icon="trash" variant="ghost" class="text-rose-600 hover:text-rose-700" />
+                                            <flux:button wire:click="confirmDelete({{ $user->id }})" size="sm" icon="trash" variant="ghost" aria-label="Delete" class="text-rose-600 hover:text-rose-700" />
                                         @endif
                                     </div>
                                 </td>

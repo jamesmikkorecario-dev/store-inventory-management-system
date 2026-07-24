@@ -193,7 +193,7 @@ class InventoryAnalyticsService
     /**
      * Get slow moving products (least or no transactions in period).
      *
-     * @return \Illuminate\Support\Collection<int, Product>
+     * @return Collection<int, Product>
      */
     public function getSlowMovingProducts(int $days = 30, ?int $supplierId = null): Collection
     {

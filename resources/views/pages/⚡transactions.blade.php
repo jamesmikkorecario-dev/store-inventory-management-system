@@ -78,6 +78,7 @@ new #[Title('Inventory Transactions')] class extends Component {
         $this->resetPage();
     }
 
+
     public function openLogModal(): void
     {
         if (!$this->canManage) abort(403);

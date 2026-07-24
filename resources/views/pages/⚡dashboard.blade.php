@@ -654,15 +654,7 @@ new #[Title('Dashboard')] class extends Component {
 
     @script
     <script>
-        // Chart.js CDN loaded via layout head, or load inline
-        if (typeof Chart === 'undefined') {
-            const script = document.createElement('script');
-            script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js';
-            script.onload = () => {
-                document.dispatchEvent(new CustomEvent('chartjs-loaded'));
-            };
-            document.head.appendChild(script);
-        }
+        // Chart.js is now bundled via Vite in app.js
 
         // Detect dark mode
         function isDarkMode() {
@@ -723,7 +715,7 @@ new #[Title('Dashboard')] class extends Component {
                                     backgroundColor: isDarkMode() ? '#27272a' : '#fff',
                                     titleColor: isDarkMode() ? '#fafafa' : '#18181b',
                                     bodyColor: isDarkMode() ? '#d4d4d8' : '#3f3f46',
-                                    borderColor: isDarkMode() ? '#3f3f46' : '#e4e4e7',
+                                    borderColor: isDarkMode() ? '#27272a' : '#e4e4e7',
                                     borderWidth: 1,
                                     padding: 12,
                                     cornerRadius: 8,
@@ -755,7 +747,8 @@ new #[Title('Dashboard')] class extends Component {
                 if (typeof Chart !== 'undefined') {
                     create();
                 } else {
-                    document.addEventListener('chartjs-loaded', create, { once: true });
+                    // Wait briefly for bundle to execute
+                    setTimeout(create, 100);
                 }
             },
         }));
@@ -794,7 +787,7 @@ new #[Title('Dashboard')] class extends Component {
                                     backgroundColor: isDarkMode() ? '#27272a' : '#fff',
                                     titleColor: isDarkMode() ? '#fafafa' : '#18181b',
                                     bodyColor: isDarkMode() ? '#d4d4d8' : '#3f3f46',
-                                    borderColor: isDarkMode() ? '#3f3f46' : '#e4e4e7',
+                                    borderColor: isDarkMode() ? '#27272a' : '#e4e4e7',
                                     borderWidth: 1,
                                     padding: 12,
                                     cornerRadius: 8,
@@ -825,7 +818,7 @@ new #[Title('Dashboard')] class extends Component {
                 if (typeof Chart !== 'undefined') {
                     create();
                 } else {
-                    document.addEventListener('chartjs-loaded', create, { once: true });
+                    setTimeout(create, 100);
                 }
             },
         }));

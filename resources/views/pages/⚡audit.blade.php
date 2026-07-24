@@ -15,9 +15,7 @@ new #[Title('Audit Trail')] class extends Component {
 
     public function mount(): void
     {
-        if (!Auth::user()->can('view audit trail')) {
-            abort(403, 'Unauthorized.');
-        }
+        // View authorization handled by route middleware
     }
 
     public function updatedSearch(): void

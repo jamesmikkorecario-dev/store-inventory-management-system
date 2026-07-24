@@ -19,10 +19,7 @@ new #[Title('Inventory Reports')] class extends Component {
 
     public function mount(): void
     {
-        if (!Auth::user()->can('view reports')) {
-            abort(403, 'Unauthorized.');
-        }
-
+        // View authorization handled by route middleware
         $this->startDate = now()->subDays(30)->format('Y-m-d');
         $this->endDate = now()->format('Y-m-d');
     }
