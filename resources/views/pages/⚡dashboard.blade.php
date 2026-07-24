@@ -136,7 +136,10 @@ new #[Title('Dashboard')] class extends Component {
     {
         $this->analyticsPeriod = $days;
         $this->loadAnalytics();
-        $this->dispatch('analytics-period-changed', period: $days);
+        $this->dispatch('analytics-period-changed', 
+            trend: $this->stockMovementTrend, 
+            activity: $this->activityOverview
+        );
     }
 
     #[On('products-updated')]
@@ -252,17 +255,20 @@ new #[Title('Dashboard')] class extends Component {
                 <flux:icon name="chart-bar" class="size-5 text-indigo-500" />
                 <flux:heading size="lg" class="font-semibold">Inventory Analytics</flux:heading>
             </div>
-            <div class="flex items-center gap-1 rounded-lg bg-zinc-100 p-1 dark:bg-zinc-800">
-                <button wire:click="switchPeriod(7)"
-                    class="rounded-md px-3 py-1.5 text-xs font-medium transition-colors {{ $analyticsPeriod === 7 ? 'bg-white text-zinc-900 shadow-sm dark:bg-zinc-700 dark:text-white' : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200' }}">
+            <div class="inline-flex items-center gap-1 rounded-lg bg-zinc-100 p-1 dark:bg-zinc-800">
+                <button type="button"
+                    wire:click="switchPeriod(7)"
+                    class="rounded-md px-3 py-1.5 text-xs font-medium transition-all duration-150 cursor-pointer {{ $analyticsPeriod === 7 ? 'bg-white text-zinc-900 shadow-sm dark:bg-zinc-700 dark:text-white font-semibold' : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200' }}">
                     7 Days
                 </button>
-                <button wire:click="switchPeriod(30)"
-                    class="rounded-md px-3 py-1.5 text-xs font-medium transition-colors {{ $analyticsPeriod === 30 ? 'bg-white text-zinc-900 shadow-sm dark:bg-zinc-700 dark:text-white' : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200' }}">
+                <button type="button"
+                    wire:click="switchPeriod(30)"
+                    class="rounded-md px-3 py-1.5 text-xs font-medium transition-all duration-150 cursor-pointer {{ $analyticsPeriod === 30 ? 'bg-white text-zinc-900 shadow-sm dark:bg-zinc-700 dark:text-white font-semibold' : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200' }}">
                     30 Days
                 </button>
-                <button wire:click="switchPeriod(90)"
-                    class="rounded-md px-3 py-1.5 text-xs font-medium transition-colors {{ $analyticsPeriod === 90 ? 'bg-white text-zinc-900 shadow-sm dark:bg-zinc-700 dark:text-white' : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200' }}">
+                <button type="button"
+                    wire:click="switchPeriod(90)"
+                    class="rounded-md px-3 py-1.5 text-xs font-medium transition-all duration-150 cursor-pointer {{ $analyticsPeriod === 90 ? 'bg-white text-zinc-900 shadow-sm dark:bg-zinc-700 dark:text-white font-semibold' : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200' }}">
                     90 Days
                 </button>
             </div>
@@ -328,8 +334,7 @@ new #[Title('Dashboard')] class extends Component {
         <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <!-- Stock Movement Trend Chart -->
             <div class="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-900"
-                 x-data="stockMovementChart()"
-                 x-init="initChart()"
+                 x-data="stockMovementChart"
                  wire:ignore>
                 <div class="flex items-center justify-between border-b border-zinc-150 pb-4 dark:border-zinc-800">
                     <div class="flex items-center gap-2">
@@ -348,8 +353,7 @@ new #[Title('Dashboard')] class extends Component {
 
             <!-- Inventory Activity Overview Chart -->
             <div class="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-900"
-                 x-data="activityOverviewChart()"
-                 x-init="initChart()"
+                 x-data="activityOverviewChart"
                  wire:ignore>
                 <div class="flex items-center justify-between border-b border-zinc-150 pb-4 dark:border-zinc-800">
                     <div class="flex items-center gap-2">
@@ -650,11 +654,19 @@ new #[Title('Dashboard')] class extends Component {
                 </div>
             </div>
         @endif
-    </div>
+        @script
+        <script>
+            // Chart.js is now bundled via Vite in app.js
 
-    @script
-    <script>
-        // Chart.js is now bundled via Vite in app.js
+        // Convert Alpine reactive proxy to plain JS object for Chart.js compatibility
+        function toRaw(data) {
+            if (!data) return data;
+            try {
+                return JSON.parse(JSON.stringify(data));
+            } catch (e) {
+                return data;
+            }
+        }
 
         // Detect dark mode
         function isDarkMode() {
@@ -671,156 +683,165 @@ new #[Title('Dashboard')] class extends Component {
 
         Alpine.data('stockMovementChart', () => ({
             chart: null,
-            initChart() {
-                const create = () => {
-                    const ctx = document.getElementById('stockMovementChart');
-                    if (!ctx) return;
-                    const data = $wire.stockMovementTrend;
-                    this.chart = new Chart(ctx, {
-                        type: 'line',
-                        data: {
-                            labels: data.labels,
-                            datasets: [
-                                {
-                                    label: 'Stock In',
-                                    data: data.stock_in,
-                                    borderColor: 'rgb(16, 185, 129)',
-                                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-                                    fill: true,
-                                    tension: 0.4,
-                                    pointRadius: 2,
-                                    pointHoverRadius: 5,
-                                    borderWidth: 2,
-                                },
-                                {
-                                    label: 'Stock Out',
-                                    data: data.stock_out,
-                                    borderColor: 'rgb(244, 63, 94)',
-                                    backgroundColor: 'rgba(244, 63, 94, 0.1)',
-                                    fill: true,
-                                    tension: 0.4,
-                                    pointRadius: 2,
-                                    pointHoverRadius: 5,
-                                    borderWidth: 2,
-                                },
-                            ],
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            interaction: { intersect: false, mode: 'index' },
-                            plugins: {
-                                legend: { display: false },
-                                tooltip: {
-                                    backgroundColor: isDarkMode() ? '#27272a' : '#fff',
-                                    titleColor: isDarkMode() ? '#fafafa' : '#18181b',
-                                    bodyColor: isDarkMode() ? '#d4d4d8' : '#3f3f46',
-                                    borderColor: isDarkMode() ? '#27272a' : '#e4e4e7',
-                                    borderWidth: 1,
-                                    padding: 12,
-                                    cornerRadius: 8,
-                                },
-                            },
-                            scales: {
-                                x: {
-                                    grid: { color: getGridColor() },
-                                    ticks: { color: getTickColor(), maxTicksLimit: 8, font: { size: 11 } },
-                                },
-                                y: {
-                                    beginAtZero: true,
-                                    grid: { color: getGridColor() },
-                                    ticks: { color: getTickColor(), font: { size: 11 } },
-                                },
-                            },
-                        },
-                    });
-
-                    Livewire.on('analytics-period-changed', () => {
-                        const newData = $wire.stockMovementTrend;
-                        this.chart.data.labels = newData.labels;
-                        this.chart.data.datasets[0].data = newData.stock_in;
-                        this.chart.data.datasets[1].data = newData.stock_out;
-                        this.chart.update('none');
-                    });
-                };
-
+            init() {
+                Livewire.on('analytics-period-changed', (eventData) => {
+                    const raw = toRaw(eventData);
+                    if (raw?.trend) {
+                        this.renderChart(raw.trend);
+                    }
+                });
+                this.ensureChartLoaded(() => {
+                    this.renderChart(toRaw($wire.stockMovementTrend));
+                });
+            },
+            ensureChartLoaded(cb) {
                 if (typeof Chart !== 'undefined') {
-                    create();
+                    cb();
                 } else {
-                    // Wait briefly for bundle to execute
-                    setTimeout(create, 100);
+                    setTimeout(() => this.ensureChartLoaded(cb), 50);
                 }
+            },
+            renderChart(data) {
+                const ctx = document.getElementById('stockMovementChart');
+                if (!ctx || !data) return;
+                if (this.chart) {
+                    this.chart.destroy();
+                }
+                this.chart = new Chart(ctx, {
+                    type: 'line',
+                    data: {
+                        labels: data.labels || [],
+                        datasets: [
+                            {
+                                label: 'Stock In',
+                                data: data.stock_in || [],
+                                borderColor: 'rgb(16, 185, 129)',
+                                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                                fill: true,
+                                tension: 0.4,
+                                pointRadius: 2,
+                                pointHoverRadius: 5,
+                                borderWidth: 2,
+                            },
+                            {
+                                label: 'Stock Out',
+                                data: data.stock_out || [],
+                                borderColor: 'rgb(244, 63, 94)',
+                                backgroundColor: 'rgba(244, 63, 94, 0.1)',
+                                fill: true,
+                                tension: 0.4,
+                                pointRadius: 2,
+                                pointHoverRadius: 5,
+                                borderWidth: 2,
+                            },
+                        ],
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: { intersect: false, mode: 'index' },
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: isDarkMode() ? '#27272a' : '#fff',
+                                titleColor: isDarkMode() ? '#fafafa' : '#18181b',
+                                bodyColor: isDarkMode() ? '#d4d4d8' : '#3f3f46',
+                                borderColor: isDarkMode() ? '#27272a' : '#e4e4e7',
+                                borderWidth: 1,
+                                padding: 12,
+                                cornerRadius: 8,
+                            },
+                        },
+                        scales: {
+                            x: {
+                                grid: { color: getGridColor() },
+                                ticks: { color: getTickColor(), maxTicksLimit: 8, font: { size: 11 } },
+                            },
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: getGridColor() },
+                                ticks: { color: getTickColor(), font: { size: 11 } },
+                            },
+                        },
+                    },
+                });
             },
         }));
 
         Alpine.data('activityOverviewChart', () => ({
             chart: null,
-            initChart() {
-                const create = () => {
-                    const ctx = document.getElementById('activityOverviewChart');
-                    if (!ctx) return;
-                    const data = $wire.activityOverview;
-                    this.chart = new Chart(ctx, {
-                        type: 'bar',
-                        data: {
-                            labels: data.labels,
-                            datasets: [
-                                {
-                                    label: 'Transactions',
-                                    data: data.activity,
-                                    backgroundColor: isDarkMode()
-                                        ? 'rgba(139, 92, 246, 0.6)'
-                                        : 'rgba(139, 92, 246, 0.4)',
-                                    borderColor: 'rgb(139, 92, 246)',
-                                    borderWidth: 1,
-                                    borderRadius: 4,
-                                    hoverBackgroundColor: 'rgba(139, 92, 246, 0.8)',
-                                },
-                            ],
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: {
-                                legend: { display: false },
-                                tooltip: {
-                                    backgroundColor: isDarkMode() ? '#27272a' : '#fff',
-                                    titleColor: isDarkMode() ? '#fafafa' : '#18181b',
-                                    bodyColor: isDarkMode() ? '#d4d4d8' : '#3f3f46',
-                                    borderColor: isDarkMode() ? '#27272a' : '#e4e4e7',
-                                    borderWidth: 1,
-                                    padding: 12,
-                                    cornerRadius: 8,
-                                },
-                            },
-                            scales: {
-                                x: {
-                                    grid: { display: false },
-                                    ticks: { color: getTickColor(), maxTicksLimit: 8, font: { size: 11 } },
-                                },
-                                y: {
-                                    beginAtZero: true,
-                                    grid: { color: getGridColor() },
-                                    ticks: { color: getTickColor(), stepSize: 1, font: { size: 11 } },
-                                },
-                            },
-                        },
-                    });
-
-                    Livewire.on('analytics-period-changed', () => {
-                        const newData = $wire.activityOverview;
-                        this.chart.data.labels = newData.labels;
-                        this.chart.data.datasets[0].data = newData.activity;
-                        this.chart.update('none');
-                    });
-                };
-
+            init() {
+                Livewire.on('analytics-period-changed', (eventData) => {
+                    const raw = toRaw(eventData);
+                    if (raw?.activity) {
+                        this.renderChart(raw.activity);
+                    }
+                });
+                this.ensureChartLoaded(() => {
+                    this.renderChart(toRaw($wire.activityOverview));
+                });
+            },
+            ensureChartLoaded(cb) {
                 if (typeof Chart !== 'undefined') {
-                    create();
+                    cb();
                 } else {
-                    setTimeout(create, 100);
+                    setTimeout(() => this.ensureChartLoaded(cb), 50);
                 }
+            },
+            renderChart(data) {
+                const ctx = document.getElementById('activityOverviewChart');
+                if (!ctx || !data) return;
+                if (this.chart) {
+                    this.chart.destroy();
+                }
+                this.chart = new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: data.labels || [],
+                        datasets: [
+                            {
+                                label: 'Transactions',
+                                data: data.activity || [],
+                                backgroundColor: isDarkMode()
+                                    ? 'rgba(139, 92, 246, 0.6)'
+                                    : 'rgba(139, 92, 246, 0.4)',
+                                borderColor: 'rgb(139, 92, 246)',
+                                borderWidth: 1,
+                                borderRadius: 4,
+                                hoverBackgroundColor: 'rgba(139, 92, 246, 0.8)',
+                            },
+                        ],
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                                backgroundColor: isDarkMode() ? '#27272a' : '#fff',
+                                titleColor: isDarkMode() ? '#fafafa' : '#18181b',
+                                bodyColor: isDarkMode() ? '#d4d4d8' : '#3f3f46',
+                                borderColor: isDarkMode() ? '#27272a' : '#e4e4e7',
+                                borderWidth: 1,
+                                padding: 12,
+                                cornerRadius: 8,
+                            },
+                        },
+                        scales: {
+                            x: {
+                                grid: { display: false },
+                                ticks: { color: getTickColor(), maxTicksLimit: 8, font: { size: 11 } },
+                            },
+                            y: {
+                                beginAtZero: true,
+                                grid: { color: getGridColor() },
+                                ticks: { color: getTickColor(), stepSize: 1, font: { size: 11 } },
+                            },
+                        },
+                    },
+                });
             },
         }));
     </script>
     @endscript
+</div>

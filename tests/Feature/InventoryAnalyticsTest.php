@@ -250,6 +250,48 @@ test('it returns slow moving products', function () {
         ->and($slowMovers->first()->days_since_last_transaction)->toBeNull();
 });
 
+test('it filters slow moving products by period', function () {
+    $productA = Product::factory()->create([
+        'name' => 'Product A',
+        'category_id' => $this->category->id,
+        'supplier_id' => $this->supplier->id,
+        'current_stock' => 20,
+        'status' => 'active',
+    ]);
+
+    $productB = Product::factory()->create([
+        'name' => 'Product B',
+        'category_id' => $this->category->id,
+        'supplier_id' => $this->supplier->id,
+        'current_stock' => 15,
+        'status' => 'active',
+    ]);
+
+    // Product A has a transaction 10 days ago (within 30-day window, outside 7-day window)
+    InventoryTransaction::factory()->create([
+        'product_id' => $productA->id,
+        'user_id' => $this->adminUser->id,
+        'transaction_date' => now()->subDays(10),
+    ]);
+
+    // Product B has a transaction 3 days ago (within both windows)
+    InventoryTransaction::factory()->create([
+        'product_id' => $productB->id,
+        'user_id' => $this->adminUser->id,
+        'transaction_date' => now()->subDays(3),
+    ]);
+
+    // With 30-day window: both products have transactions, ordered by count (both have 1)
+    $slowMovers30 = $this->analyticsService->getSlowMovingProducts(30);
+    expect($slowMovers30)->toHaveCount(2);
+
+    // With 7-day window: Product A has NO transactions in this window (its tx was 10 days ago)
+    $slowMovers7 = $this->analyticsService->getSlowMovingProducts(7);
+    expect($slowMovers7)->toHaveCount(2)
+        ->and($slowMovers7->first()->name)->toBe('Product A')
+        ->and($slowMovers7->first()->transaction_count)->toBe(0);
+});
+
 // ─── Inventory Health ─────────────────────────────────────────────────────────
 
 test('it calculates inventory health breakdown', function () {

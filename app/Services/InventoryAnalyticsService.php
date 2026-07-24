@@ -197,19 +197,24 @@ class InventoryAnalyticsService
      */
     public function getSlowMovingProducts(int $days = 30, ?int $supplierId = null): Collection
     {
+        $startDate = Carbon::now()->subDays($days)->startOfDay();
+
         $query = Product::query()
             ->where('products.status', 'active')
             ->where('products.current_stock', '>', 0)
-            ->leftJoin('inventory_transactions', function ($join) {
-                $join->on('products.id', '=', 'inventory_transactions.product_id');
+            ->leftJoin('inventory_transactions', function ($join) use ($startDate) {
+                $join->on('products.id', '=', 'inventory_transactions.product_id')
+                    ->where('inventory_transactions.transaction_date', '>=', $startDate);
             })
             ->select(
                 'products.id',
                 'products.name',
                 'products.current_stock',
-                DB::raw('MAX(inventory_transactions.transaction_date) as last_transaction_date')
+                DB::raw('MAX(inventory_transactions.transaction_date) as last_transaction_date'),
+                DB::raw('COUNT(inventory_transactions.id) as transaction_count')
             )
             ->groupBy('products.id', 'products.name', 'products.current_stock')
+            ->orderBy('transaction_count', 'asc')
             ->orderByRaw('MAX(inventory_transactions.transaction_date) ASC')
             ->limit(5);
 

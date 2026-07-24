@@ -85,6 +85,24 @@ class DatabaseSeeder extends Seeder
             'status' => 'inactive',
         ]);
 
+        $supplier4 = Supplier::create([
+            'name' => 'Kaeri Logistics',
+            'contact_person' => 'Karylle Anne',
+            'email' => 'karylleanne.quinto09@gmail.com',
+            'phone' => '09430589033',
+            'address' => 'Philippines',
+            'status' => 'active',
+        ]);
+
+        $supplier5 = Supplier::create([
+            'name' => 'kkoMi Corp.',
+            'contact_person' => 'James Mikko',
+            'email' => 'recariojamesmikko@gmail.com',
+            'phone' => '09271622341',
+            'address' => 'Philippines',
+            'status' => 'active',
+        ]);
+
         // 4. Seed Users
         $admin = User::create([
             'name' => 'System Administrator',
@@ -93,6 +111,24 @@ class DatabaseSeeder extends Seeder
             'status' => 'active',
         ]);
         $admin->assignRole($adminRole);
+
+        $karylle = User::create([
+            'name' => 'Karylle Anne',
+            'email' => 'karylleanne.quinto09@gmail.com',
+            'password' => bcrypt('password'),
+            'supplier_id' => $supplier4->id,
+            'status' => 'active',
+        ]);
+        $karylle->assignRole($adminRole);
+
+        $james = User::create([
+            'name' => 'James Mikko',
+            'email' => 'recariojamesmikko@gmail.com',
+            'password' => bcrypt('password'),
+            'supplier_id' => $supplier5->id,
+            'status' => 'active',
+        ]);
+        $james->assignRole($adminRole);
 
         $staff = User::create([
             'name' => 'Warehouse Operator Staff',

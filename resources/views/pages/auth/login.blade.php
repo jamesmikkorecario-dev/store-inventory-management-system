@@ -26,7 +26,7 @@
             </flux:field>
 
             <!-- Password -->
-            <flux:field class="mb-4 relative">
+            <flux:field class="mb-4">
                 <div class="flex justify-between items-baseline mb-1">
                     <flux:label>{{ __('Password') }} <span class="text-rose-500">*</span></flux:label>
                     @if (Route::has('password.request'))
