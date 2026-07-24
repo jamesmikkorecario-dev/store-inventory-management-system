@@ -10,12 +10,12 @@ Route::view('/', 'welcome')->name('home');
 
 Route::middleware(['auth', 'verified'])->group(function () {
     Route::livewire('dashboard', 'pages::dashboard')->name('dashboard');
-    Route::livewire('users', 'pages::users')->name('users.index');
-    Route::livewire('suppliers', 'pages::suppliers')->name('suppliers.index');
-    Route::livewire('categories', 'pages::categories')->name('categories.index');
-    Route::livewire('products', 'pages::products')->name('products.index');
+    Route::livewire('users', 'pages::users')->name('users.index')->middleware('permission:manage users');
+    Route::livewire('suppliers', 'pages::suppliers')->name('suppliers.index')->middleware('permission:view suppliers');
+    Route::livewire('categories', 'pages::categories')->name('categories.index')->middleware('permission:view categories');
+    Route::livewire('products', 'pages::products')->name('products.index')->middleware('role_or_permission:Supplier|view products');
 
-    Route::get('/alerts', Index::class)->name('alerts.index');
+    Route::get('/alerts', Index::class)->name('alerts.index')->middleware('role:Admin|Staff');
 
     Route::get('/products/{product}/print-label', function (Product $product, Request $request, ProductIdentificationService $service) {
         $type = $request->query('type', 'both');
@@ -23,11 +23,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
         $qrCodeSvg = $service->generateQrCodeSvg($product->identifier);
 
         return view('pages.products-print-label', compact('product', 'type', 'barcodeSvg', 'qrCodeSvg'));
-    })->name('products.print-label');
+    })->name('products.print-label')->middleware('role_or_permission:Supplier|view products');
 
-    Route::livewire('transactions', 'pages::transactions')->name('transactions.index');
-    Route::livewire('reports', 'pages::reports')->name('reports.index');
-    Route::livewire('audit', 'pages::audit')->name('audit.index');
+    Route::livewire('transactions', 'pages::transactions')->name('transactions.index')->middleware('role_or_permission:Supplier|view transactions');
+    Route::livewire('reports', 'pages::reports')->name('reports.index')->middleware('permission:view reports');
+    Route::livewire('audit', 'pages::audit')->name('audit.index')->middleware('permission:view audit trail');
 });
 
 require __DIR__.'/settings.php';

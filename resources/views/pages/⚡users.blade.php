@@ -32,9 +32,7 @@ new #[Title('User Management')] class extends Component {
 
     public function mount(): void
     {
-        if (!Auth::user()->can('manage users')) {
-            abort(403, 'Unauthorized action.');
-        }
+        // Handled by route middleware
     }
 
     public function updatedSearch(): void
@@ -80,6 +78,7 @@ new #[Title('User Management')] class extends Component {
 
     public function saveUser(): void
     {
+        if (!Auth::user()->can('manage users')) abort(403);
         $rules = [
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users,email,' . ($this->userId ?: 'NULL'),
@@ -159,6 +158,7 @@ new #[Title('User Management')] class extends Component {
 
     public function deleteUser(): void
     {
+        if (!Auth::user()->can('manage users')) abort(403);
         $user = User::findOrFail($this->userId);
 
         if ($user->id === Auth::id()) {

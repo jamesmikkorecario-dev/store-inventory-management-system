@@ -25,10 +25,7 @@ new #[Title('Category Management')] class extends Component {
     public function mount(): void
     {
         $user = Auth::user();
-        if (!$user->can('view categories')) {
-            abort(403, 'Unauthorized.');
-        }
-
+        // View authorization handled by route middleware
         $this->isReadOnly = !$user->can('manage categories');
     }
 

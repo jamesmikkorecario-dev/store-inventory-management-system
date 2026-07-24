@@ -30,10 +30,7 @@ new #[Title('Supplier Management')] class extends Component {
     public function mount(): void
     {
         $user = Auth::user();
-        if (!$user->can('view suppliers')) {
-            abort(403, 'Unauthorized.');
-        }
-
+        // View authorization handled by route middleware
         $this->isReadOnly = !$user->can('manage suppliers');
     }
 

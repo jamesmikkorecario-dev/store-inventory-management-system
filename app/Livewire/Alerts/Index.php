@@ -28,9 +28,7 @@ class Index extends Component
 
     public function mount(): void
     {
-        if (! auth()->user()->hasAnyRole(['Admin', 'Staff'])) {
-            abort(403, 'Unauthorized action.');
-        }
+        // View authorization handled by route middleware
     }
 
     public function markAsRead(int $id, LowStockNotificationService $service): void
