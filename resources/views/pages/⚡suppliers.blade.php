@@ -146,10 +146,10 @@ new #[Title('Supplier Management')] class extends Component {
         $supplier = Supplier::findOrFail($this->supplierId);
 
         // Prevent soft deleting if supplier has active products assigned
-        if ($supplier->products()->count() > 0) {
+        if ($supplier->products()->withTrashed()->count() > 0) {
             Flux::toast(
                 variant: 'danger', 
-                text: __('Cannot delete supplier. They are assigned to ' . $supplier->products()->count() . ' products.')
+                text: __('Cannot delete supplier. They are assigned to ' . $supplier->products()->withTrashed()->count() . ' products.')
             );
             $this->showDeleteModal = false;
             return;
@@ -277,8 +277,8 @@ new #[Title('Supplier Management')] class extends Component {
                                 @if(!$isReadOnly)
                                     <td class="px-6 py-4 text-right">
                                         <div class="inline-flex items-center gap-2">
-                                            <flux:button wire:click="openEditModal({{ $supplier->id }})" size="sm" icon="pencil-square" variant="ghost" />
-                                            <flux:button wire:click="confirmDelete({{ $supplier->id }})" size="sm" icon="trash" variant="ghost" class="text-rose-600 hover:text-rose-700" />
+                                            <flux:button wire:click="openEditModal({{ $supplier->id }})" size="sm" icon="pencil-square" variant="ghost" aria-label="Edit" />
+                                            <flux:button wire:click="confirmDelete({{ $supplier->id }})" size="sm" icon="trash" variant="ghost" aria-label="Delete" class="text-rose-600 hover:text-rose-700" />
                                         </div>
                                     </td>
                                 @endif

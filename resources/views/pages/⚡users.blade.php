@@ -300,9 +300,9 @@ new #[Title('User Management')] class extends Component {
                                 </td>
                                 <td class="px-6 py-4 text-right">
                                     <div class="inline-flex items-center gap-2">
-                                        <flux:button wire:click="openEditModal({{ $user->id }})" size="sm" icon="pencil-square" variant="ghost" />
+                                        <flux:button wire:click="openEditModal({{ $user->id }})" size="sm" icon="pencil-square" variant="ghost" aria-label="Edit" />
                                         @if($user->id !== auth()->id())
-                                            <flux:button wire:click="confirmDelete({{ $user->id }})" size="sm" icon="trash" variant="ghost" class="text-rose-600 hover:text-rose-700" />
+                                            <flux:button wire:click="confirmDelete({{ $user->id }})" size="sm" icon="trash" variant="ghost" aria-label="Delete" class="text-rose-600 hover:text-rose-700" />
                                         @endif
                                     </div>
                                 </td>

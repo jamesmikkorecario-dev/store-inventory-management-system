@@ -117,10 +117,10 @@ new #[Title('Category Management')] class extends Component {
         $category = Category::findOrFail($this->categoryId);
 
         // Prevent soft deleting if category has products
-        if ($category->products()->count() > 0) {
+        if ($category->products()->withTrashed()->count() > 0) {
             Flux::toast(
                 variant: 'danger', 
-                text: __('Cannot delete category. There are ' . $category->products()->count() . ' products cataloged under it.')
+                text: __('Cannot delete category. There are ' . $category->products()->withTrashed()->count() . ' products cataloged under it.')
             );
             $this->showDeleteModal = false;
             return;
@@ -215,8 +215,8 @@ new #[Title('Category Management')] class extends Component {
                                 @if(!$isReadOnly)
                                     <td class="px-6 py-4 text-right">
                                         <div class="inline-flex items-center gap-2">
-                                            <flux:button wire:click="openEditModal({{ $category->id }})" size="sm" icon="pencil-square" variant="ghost" />
-                                            <flux:button wire:click="confirmDelete({{ $category->id }})" size="sm" icon="trash" variant="ghost" class="text-rose-600 hover:text-rose-700" />
+                                            <flux:button wire:click="openEditModal({{ $category->id }})" size="sm" icon="pencil-square" variant="ghost" aria-label="Edit" />
+                                            <flux:button wire:click="confirmDelete({{ $category->id }})" size="sm" icon="trash" variant="ghost" aria-label="Delete" class="text-rose-600 hover:text-rose-700" />
                                         </div>
                                     </td>
                                 @endif
