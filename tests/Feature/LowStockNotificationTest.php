@@ -7,17 +7,16 @@ use App\Models\Product;
 use App\Models\Supplier;
 use App\Models\User;
 use Livewire\Livewire;
-
 use Spatie\Permission\Models\Role;
 
 beforeEach(function () {
     $this->category = Category::create(['name' => 'Test Category']);
     $this->supplier = Supplier::create(['name' => 'Test Supplier', 'contact_email' => 'test@supplier.com', 'status' => 'active']);
-    
+
     $this->adminRole = Role::firstOrCreate(['name' => 'Admin']);
     $this->staffRole = Role::firstOrCreate(['name' => 'Staff']);
     $this->supplierRole = Role::firstOrCreate(['name' => 'Supplier']);
-    
+
     $this->adminUser = User::factory()->create();
     $this->adminUser->assignRole($this->adminRole);
 });
@@ -223,7 +222,7 @@ test('dashboard widget renders latest active alerts', function () {
     $response = $this->actingAs($this->adminUser)->get(route('dashboard'));
     $response->assertSee('Low Stock Alerts');
     $response->assertSee('Dash Product 1');
-    $response->assertSee('View All');
+    $response->assertSee('View all');
 });
 
 test('admin can access alerts module', function () {
@@ -234,7 +233,7 @@ test('admin can access alerts module', function () {
 test('staff can access alerts module', function () {
     $staffUser = User::factory()->create();
     $staffUser->assignRole($this->staffRole);
-    
+
     $response = $this->actingAs($staffUser)->get(route('alerts.index'));
     $response->assertStatus(200);
 });
@@ -242,7 +241,7 @@ test('staff can access alerts module', function () {
 test('supplier cannot access alerts module', function () {
     $supplierUser = User::factory()->create(['supplier_id' => $this->supplier->id]);
     $supplierUser->assignRole($this->supplierRole);
-    
+
     $response = $this->actingAs($supplierUser)->get(route('alerts.index'));
     $response->assertStatus(403);
 });
@@ -250,7 +249,7 @@ test('supplier cannot access alerts module', function () {
 test('supplier cannot see alerts in sidebar', function () {
     $supplierUser = User::factory()->create(['supplier_id' => $this->supplier->id]);
     $supplierUser->assignRole($this->supplierRole);
-    
+
     $response = $this->actingAs($supplierUser)->get(route('dashboard'));
     $response->assertStatus(200);
     $response->assertDontSee('href="'.route('alerts.index').'"', false);

@@ -3,9 +3,9 @@
 namespace App\Livewire;
 
 use App\Services\LowStockNotificationService;
+use Illuminate\View\View;
 use Livewire\Attributes\On;
 use Livewire\Component;
-use Illuminate\View\View;
 
 class SidebarAlertsBadge extends Component
 {
