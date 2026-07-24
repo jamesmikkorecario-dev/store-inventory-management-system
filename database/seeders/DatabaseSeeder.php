@@ -258,5 +258,89 @@ class DatabaseSeeder extends Seeder
             'remarks' => 'Damaged unit found in bin; written off.',
             'transaction_date' => now()->subDays(1),
         ]);
+
+        // 8. Seed Dummy Data via Factories
+        Supplier::factory()->count(15)->create();
+        Category::factory()->count(10)->create();
+
+        // Ensure some products are linked to the specific suppliers we created earlier, plus random ones
+        $allSuppliers = Supplier::all();
+        $allCategories = Category::all();
+
+        $dummyProducts = Product::factory()
+            ->recycle($allSuppliers)
+            ->recycle($allCategories)
+            ->count(50)
+            ->create();
+
+        // Seed Users
+        User::factory()->count(20)->create()->each(function ($user) use ($staffRole, $supplierRole, $allSuppliers) {
+            $isSupplier = rand(0, 1) === 1;
+            if ($isSupplier) {
+                $user->assignRole($supplierRole);
+                $user->supplier_id = $allSuppliers->random()->id;
+            } else {
+                $user->assignRole($staffRole);
+            }
+            $user->save();
+        });
+
+        // Seed Transactions for the dummy products to make data completely functional
+        $allProducts = Product::all();
+        $allUsers = User::all();
+
+        foreach ($allProducts as $product) {
+            $currentStock = 0;
+
+            // 1. Initial large stock_in
+            $initialStock = rand(50, 200);
+            InventoryTransaction::factory()->create([
+                'product_id' => $product->id,
+                'user_id' => $allUsers->random()->id,
+                'type' => 'stock_in',
+                'quantity' => $initialStock,
+                'unit_cost' => $product->cost_price,
+                'unit_price' => $product->selling_price,
+                'transaction_date' => now()->subDays(rand(20, 30)),
+            ]);
+            $currentStock += $initialStock;
+
+            // 2. Random stock outs and adjustments over the last 20 days
+            $numTransactions = rand(2, 6);
+            for ($i = 0; $i < $numTransactions; $i++) {
+                $type = fake()->randomElement(['stock_out', 'stock_out', 'stock_out', 'adjustment']);
+                $qty = rand(1, 15);
+
+                // Adjust quantity based on type
+                if ($type === 'stock_out') {
+                    if ($currentStock < $qty) {
+                        continue;
+                    } // Skip if we don't have enough
+                    $currentStock -= $qty;
+                } elseif ($type === 'adjustment') {
+                    // adjustment can be positive or negative
+                    $adj = rand(-5, 5);
+                    if ($currentStock + $adj < 0) {
+                        continue;
+                    }
+                    $qty = $adj;
+                    $currentStock += $qty;
+                }
+
+                InventoryTransaction::factory()->create([
+                    'product_id' => $product->id,
+                    'user_id' => $allUsers->random()->id,
+                    'type' => $type,
+                    'quantity' => $qty,
+                    'unit_cost' => $product->cost_price,
+                    'unit_price' => $product->selling_price,
+                    'transaction_date' => now()->subDays(rand(1, 19)),
+                ]);
+            }
+
+            // Ensure product current_stock exactly matches transaction history
+            $product->current_stock = $currentStock;
+            $product->save();
+        }
     }
 }

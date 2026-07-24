@@ -238,7 +238,7 @@ new #[Title('Supplier Management')] class extends Component {
                             <th scope="col" class="px-6 py-4">Contact Person</th>
                             <th scope="col" class="px-6 py-4">Email</th>
                             <th scope="col" class="px-6 py-4">Phone</th>
-                            <th scope="col" class="px-6 py-4">Products Seeded</th>
+                            <th scope="col" class="px-6 py-4">Linked Products</th>
                             <th scope="col" class="px-6 py-4">Status</th>
                             @if(!$isReadOnly)
                                 <th scope="col" class="px-6 py-4 text-right">Actions</th>

@@ -191,7 +191,7 @@ new #[Title('Category Management')] class extends Component {
                         <tr class="border-b border-zinc-200 bg-zinc-50 text-xs font-semibold text-zinc-400 dark:border-zinc-800 dark:bg-zinc-950">
                             <th scope="col" class="px-6 py-4">Category Name</th>
                             <th scope="col" class="px-6 py-4">Description</th>
-                            <th scope="col" class="px-6 py-4">Seeded Products</th>
+                            <th scope="col" class="px-6 py-4">Linked Products</th>
                             @if(!$isReadOnly)
                                 <th scope="col" class="px-6 py-4 text-right">Actions</th>
                             @endif
