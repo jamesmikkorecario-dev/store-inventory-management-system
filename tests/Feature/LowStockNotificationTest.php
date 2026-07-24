@@ -222,7 +222,7 @@ test('dashboard widget renders latest active alerts', function () {
     $response = $this->actingAs($this->adminUser)->get(route('dashboard'));
     $response->assertSee('Low Stock Alerts');
     $response->assertSee('Dash Product 1');
-    $response->assertSee('View All');
+    $response->assertSee('View all');
 });
 
 test('admin can access alerts module', function () {
