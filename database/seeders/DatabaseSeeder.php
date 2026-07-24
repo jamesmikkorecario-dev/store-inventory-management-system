@@ -320,10 +320,7 @@ class DatabaseSeeder extends Seeder
                 } elseif ($type === 'adjustment') {
                     // adjustment can be positive or negative
                     $adj = rand(-5, 5);
-                    if ($currentStock + $adj < 0) {
-                        continue;
-                    }
-                    $qty = $adj;
+                    $qty = max(-$currentStock, $adj);
                     $currentStock += $qty;
                 }
 
