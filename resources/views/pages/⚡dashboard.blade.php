@@ -4,6 +4,7 @@ use App\Models\Product;
 use App\Models\Supplier;
 use App\Models\User;
 use App\Models\InventoryTransaction;
+use App\Services\InventoryAnalyticsService;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\On;
@@ -27,6 +28,18 @@ new #[Title('Dashboard')] class extends Component {
     public int $outOfStockCount = 0;
     public $recentSuppliers = [];
 
+    // Analytics properties
+    public int $analyticsPeriod = 30;
+    public array $stockMovementTrend = ['labels' => [], 'stock_in' => [], 'stock_out' => []];
+    public array $activityOverview = ['labels' => [], 'activity' => []];
+    public $topMovingProducts = [];
+    public $slowMovingProducts = [];
+    public array $inventoryHealth = [
+        'healthy' => 0, 'low_stock' => 0, 'out_of_stock' => 0,
+        'healthy_pct' => 0.0, 'low_stock_pct' => 0.0, 'out_of_stock_pct' => 0.0,
+        'total' => 0,
+    ];
+
     public function mount(): void
     {
         $user = Auth::user();
@@ -34,6 +47,7 @@ new #[Title('Dashboard')] class extends Component {
         $this->supplierId = $user->supplier_id;
 
         $this->loadStatistics();
+        $this->loadAnalytics();
     }
 
     #[On('products-updated')]
@@ -104,6 +118,34 @@ new #[Title('Dashboard')] class extends Component {
             
             $this->latestAlerts = app(\App\Services\LowStockNotificationService::class)->getLatestActiveAlerts(5);
         }
+    }
+
+    public function loadAnalytics(): void
+    {
+        $analytics = app(InventoryAnalyticsService::class);
+        $sid = $this->isSupplier ? $this->supplierId : null;
+
+        $this->stockMovementTrend = $analytics->getStockMovementTrend($this->analyticsPeriod, $sid);
+        $this->activityOverview = $analytics->getInventoryActivityOverview($this->analyticsPeriod, $sid);
+        $this->topMovingProducts = $analytics->getTopMovingProducts($this->analyticsPeriod, $sid);
+        $this->slowMovingProducts = $analytics->getSlowMovingProducts($this->analyticsPeriod, $sid);
+        $this->inventoryHealth = $analytics->getInventoryHealth($sid);
+    }
+
+    public function switchPeriod(int $days): void
+    {
+        $this->analyticsPeriod = $days;
+        $this->loadAnalytics();
+        $this->dispatch('analytics-period-changed', period: $days);
+    }
+
+    #[On('products-updated')]
+    #[On('transactions-updated')]
+    #[On('inventory-updated')]
+    #[On('alerts-updated')]
+    public function refreshAnalytics(): void
+    {
+        $this->loadAnalytics();
     }
 }; ?>
 
@@ -198,6 +240,201 @@ new #[Title('Dashboard')] class extends Component {
                     </div>
                 </div>
             @endif
+        </div>
+
+        <!-- ═══════════════════════════════════════════════════ -->
+        <!-- INVENTORY ANALYTICS SECTION                        -->
+        <!-- ═══════════════════════════════════════════════════ -->
+
+        <!-- Period Filter -->
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <flux:icon name="chart-bar" class="size-5 text-indigo-500" />
+                <flux:heading size="lg" class="font-semibold">Inventory Analytics</flux:heading>
+            </div>
+            <div class="flex items-center gap-1 rounded-lg bg-zinc-100 p-1 dark:bg-zinc-800">
+                <button wire:click="switchPeriod(7)"
+                    class="rounded-md px-3 py-1.5 text-xs font-medium transition-colors {{ $analyticsPeriod === 7 ? 'bg-white text-zinc-900 shadow-sm dark:bg-zinc-700 dark:text-white' : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200' }}">
+                    7 Days
+                </button>
+                <button wire:click="switchPeriod(30)"
+                    class="rounded-md px-3 py-1.5 text-xs font-medium transition-colors {{ $analyticsPeriod === 30 ? 'bg-white text-zinc-900 shadow-sm dark:bg-zinc-700 dark:text-white' : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200' }}">
+                    30 Days
+                </button>
+                <button wire:click="switchPeriod(90)"
+                    class="rounded-md px-3 py-1.5 text-xs font-medium transition-colors {{ $analyticsPeriod === 90 ? 'bg-white text-zinc-900 shadow-sm dark:bg-zinc-700 dark:text-white' : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200' }}">
+                    90 Days
+                </button>
+            </div>
+        </div>
+
+        <!-- Inventory Health Widget -->
+        <div class="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+            <div class="flex items-center gap-2 border-b border-zinc-150 pb-4 dark:border-zinc-800">
+                <flux:icon name="heart" class="size-5 text-emerald-500" />
+                <flux:heading size="lg" class="font-semibold">Inventory Health</flux:heading>
+            </div>
+            <div class="mt-6 grid grid-cols-1 gap-6 sm:grid-cols-3">
+                <!-- Healthy -->
+                <div class="flex h-full flex-col items-center justify-center rounded-2xl border border-zinc-200 bg-emerald-50 p-6 text-center transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm hover:border-zinc-300 dark:border-zinc-700 dark:bg-emerald-900/20 dark:hover:border-zinc-600">
+                    <flux:icon name="check-circle" variant="solid" class="size-10 text-emerald-500 dark:text-emerald-400" />
+                    <flux:text class="mt-4 text-4xl font-bold text-emerald-700 dark:text-emerald-400">{{ $inventoryHealth['healthy'] }}</flux:text>
+                    <flux:text class="mt-1 text-sm font-semibold text-emerald-700 dark:text-emerald-500">Healthy Products</flux:text>
+                    <flux:text class="mt-2 text-xs font-medium text-zinc-500 dark:text-zinc-400">{{ $inventoryHealth['healthy_pct'] }}% of total</flux:text>
+                </div>
+                <!-- Low Stock -->
+                <div class="flex h-full flex-col items-center justify-center rounded-2xl border border-zinc-200 bg-amber-50 p-6 text-center transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm hover:border-zinc-300 dark:border-zinc-700 dark:bg-amber-900/20 dark:hover:border-zinc-600">
+                    <flux:icon name="exclamation-triangle" variant="solid" class="size-10 text-amber-500 dark:text-amber-400" />
+                    <flux:text class="mt-4 text-4xl font-bold text-amber-700 dark:text-amber-400">{{ $inventoryHealth['low_stock'] }}</flux:text>
+                    <flux:text class="mt-1 text-sm font-semibold text-amber-700 dark:text-amber-500">Low Stock Products</flux:text>
+                    <flux:text class="mt-2 text-xs font-medium text-zinc-500 dark:text-zinc-400">{{ $inventoryHealth['low_stock_pct'] }}% of total</flux:text>
+                </div>
+                <!-- Out of Stock -->
+                <div class="flex h-full flex-col items-center justify-center rounded-2xl border border-zinc-200 bg-rose-50 p-6 text-center transition-all duration-200 hover:-translate-y-0.5 hover:shadow-sm hover:border-zinc-300 dark:border-zinc-700 dark:bg-rose-900/20 dark:hover:border-zinc-600">
+                    <flux:icon name="x-circle" variant="solid" class="size-10 text-rose-500 dark:text-rose-400" />
+                    <flux:text class="mt-4 text-4xl font-bold text-rose-700 dark:text-rose-400">{{ $inventoryHealth['out_of_stock'] }}</flux:text>
+                    <flux:text class="mt-1 text-sm font-semibold text-rose-700 dark:text-rose-500">Out of Stock</flux:text>
+                    <flux:text class="mt-2 text-xs font-medium text-zinc-500 dark:text-zinc-400">{{ $inventoryHealth['out_of_stock_pct'] }}% of total</flux:text>
+                </div>
+            </div>
+            @if($inventoryHealth['total'] > 0)
+                <!-- Health Bar -->
+                <div class="mt-6 flex h-4 w-full overflow-hidden rounded-full bg-zinc-100 shadow-inner dark:bg-zinc-800/80">
+                    @if($inventoryHealth['healthy_pct'] > 0)
+                        <div class="bg-emerald-500 transition-all duration-500 ease-in-out hover:opacity-90" style="width: {{ $inventoryHealth['healthy_pct'] }}%" title="Healthy: {{ $inventoryHealth['healthy'] }}"></div>
+                    @endif
+                    @if($inventoryHealth['low_stock_pct'] > 0)
+                        <div class="bg-amber-500 transition-all duration-500 ease-in-out hover:opacity-90" style="width: {{ $inventoryHealth['low_stock_pct'] }}%" title="Low Stock: {{ $inventoryHealth['low_stock'] }}"></div>
+                    @endif
+                    @if($inventoryHealth['out_of_stock_pct'] > 0)
+                        <div class="bg-rose-500 transition-all duration-500 ease-in-out hover:opacity-90" style="width: {{ $inventoryHealth['out_of_stock_pct'] }}%" title="Out of Stock: {{ $inventoryHealth['out_of_stock'] }}"></div>
+                    @endif
+                </div>
+                <div class="mt-3 flex items-center justify-center gap-6 text-xs font-medium text-zinc-600 dark:text-zinc-400">
+                    <span class="flex items-center gap-1.5"><span class="size-2 rounded-full bg-emerald-500"></span> Healthy</span>
+                    <span class="flex items-center gap-1.5"><span class="size-2 rounded-full bg-amber-500"></span> Low Stock</span>
+                    <span class="flex items-center gap-1.5"><span class="size-2 rounded-full bg-rose-500"></span> Out of Stock</span>
+                </div>
+            @else
+                <div class="mt-6 flex flex-col items-center justify-center py-6 text-center border border-dashed rounded-lg border-zinc-200 dark:border-zinc-700">
+                    <flux:icon name="archive-box" class="size-8 text-zinc-400 mb-2" />
+                    <flux:text class="font-medium text-zinc-800 dark:text-zinc-200">No active products</flux:text>
+                    <flux:text class="text-xs text-zinc-500 mt-1">Add products to see inventory health.</flux:text>
+                </div>
+            @endif
+        </div>
+
+        <!-- Charts Row -->
+        <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <!-- Stock Movement Trend Chart -->
+            <div class="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-900"
+                 x-data="stockMovementChart()"
+                 x-init="initChart()"
+                 wire:ignore>
+                <div class="flex items-center justify-between border-b border-zinc-150 pb-4 dark:border-zinc-800">
+                    <div class="flex items-center gap-2">
+                        <flux:icon name="arrow-trending-up" class="size-5 text-indigo-500" />
+                        <flux:heading size="lg" class="font-semibold">Stock Movement Trend</flux:heading>
+                    </div>
+                    <div class="flex items-center gap-3 text-xs text-zinc-500">
+                        <span class="flex items-center gap-1.5"><span class="size-2 rounded-full bg-emerald-500"></span> Stock In</span>
+                        <span class="flex items-center gap-1.5"><span class="size-2 rounded-full bg-rose-500"></span> Stock Out</span>
+                    </div>
+                </div>
+                <div class="mt-4" style="height: 280px;">
+                    <canvas id="stockMovementChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Inventory Activity Overview Chart -->
+            <div class="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-900"
+                 x-data="activityOverviewChart()"
+                 x-init="initChart()"
+                 wire:ignore>
+                <div class="flex items-center justify-between border-b border-zinc-150 pb-4 dark:border-zinc-800">
+                    <div class="flex items-center gap-2">
+                        <flux:icon name="chart-bar" class="size-5 text-violet-500" />
+                        <flux:heading size="lg" class="font-semibold">Inventory Activity Overview</flux:heading>
+                    </div>
+                </div>
+                <div class="mt-4" style="height: 280px;">
+                    <canvas id="activityOverviewChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <!-- Product Performance Widgets -->
+        <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <!-- Top Moving Products -->
+            <div class="flex flex-col rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+                <div class="flex items-center justify-between border-b border-zinc-150 pb-4 dark:border-zinc-800">
+                    <div class="flex items-center gap-2">
+                        <flux:icon name="fire" class="size-5 text-orange-500" />
+                        <flux:heading size="lg" class="font-semibold">Top Moving Products</flux:heading>
+                    </div>
+                    <flux:badge variant="pill" color="indigo" size="sm">Last {{ $analyticsPeriod }} days</flux:badge>
+                </div>
+                <div class="mt-4 flex flex-1 flex-col">
+                    @forelse($topMovingProducts as $index => $product)
+                        <div class="flex items-center justify-between py-3 border-b border-zinc-100 last:border-0 dark:border-zinc-800">
+                            <div class="flex items-center gap-3">
+                                <span class="flex size-7 items-center justify-center rounded-full bg-indigo-50 text-xs font-bold text-indigo-600 dark:bg-indigo-950/30 dark:text-indigo-400">{{ $index + 1 }}</span>
+                                <div>
+                                    <flux:text class="font-medium text-zinc-900 dark:text-zinc-100">{{ $product->name }}</flux:text>
+                                    <flux:text class="text-xs text-zinc-500">Stock: {{ $product->current_stock }} units</flux:text>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <flux:text class="font-semibold text-zinc-900 dark:text-white">{{ $product->total_movements }}</flux:text>
+                                <flux:text class="text-xs text-zinc-500">movements</flux:text>
+                            </div>
+                        </div>
+                    @empty
+                        <div class="flex flex-1 flex-col items-center justify-center py-8 text-center border border-dashed rounded-lg border-zinc-200 dark:border-zinc-700 mt-2">
+                            <flux:icon name="arrow-trending-up" class="size-8 text-zinc-400 mb-2" />
+                            <flux:text class="font-medium text-zinc-800 dark:text-zinc-200">No movements yet</flux:text>
+                            <flux:text class="text-xs text-zinc-500 mt-1">Record transactions to see top movers.</flux:text>
+                        </div>
+                    @endforelse
+                </div>
+            </div>
+
+            <!-- Slow Moving Products -->
+            <div class="flex flex-col rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+                <div class="flex items-center justify-between border-b border-zinc-150 pb-4 dark:border-zinc-800">
+                    <div class="flex items-center gap-2">
+                        <flux:icon name="clock" class="size-5 text-zinc-500" />
+                        <flux:heading size="lg" class="font-semibold">Slow Moving Products</flux:heading>
+                    </div>
+                    <flux:badge variant="pill" color="zinc" size="sm">Needs attention</flux:badge>
+                </div>
+                <div class="mt-4 flex flex-1 flex-col">
+                    @forelse($slowMovingProducts as $product)
+                        <div class="flex items-center justify-between py-3 border-b border-zinc-100 last:border-0 dark:border-zinc-800">
+                            <div>
+                                <flux:text class="font-medium text-zinc-900 dark:text-zinc-100">{{ $product->name }}</flux:text>
+                                <flux:text class="text-xs text-zinc-500">Stock: {{ $product->current_stock }} units</flux:text>
+                            </div>
+                            <div class="text-right">
+                                @if($product->days_since_last_transaction !== null)
+                                    <flux:text class="font-semibold {{ $product->days_since_last_transaction > 30 ? 'text-rose-600 dark:text-rose-400' : 'text-amber-600 dark:text-amber-400' }}">
+                                        {{ $product->days_since_last_transaction }}d
+                                    </flux:text>
+                                    <flux:text class="text-xs text-zinc-500">since last tx</flux:text>
+                                @else
+                                    <flux:badge color="rose" size="sm">Never moved</flux:badge>
+                                @endif
+                            </div>
+                        </div>
+                    @empty
+                        <div class="flex flex-1 flex-col items-center justify-center py-8 text-center border border-dashed rounded-lg border-zinc-200 dark:border-zinc-700 mt-2">
+                            <flux:icon name="check-circle" class="size-8 text-emerald-500 mb-2" />
+                            <flux:text class="font-medium text-zinc-800 dark:text-zinc-200">All products moving</flux:text>
+                            <flux:text class="text-xs text-zinc-500 mt-1">No slow-moving products detected.</flux:text>
+                        </div>
+                    @endforelse
+                </div>
+            </div>
         </div>
 
         @if(auth()->user()->hasAnyRole(['Admin', 'Staff']))
@@ -388,3 +625,182 @@ new #[Title('Dashboard')] class extends Component {
         @endif
     </div>
 
+    @script
+    <script>
+        // Chart.js CDN loaded via layout head, or load inline
+        if (typeof Chart === 'undefined') {
+            const script = document.createElement('script');
+            script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js';
+            script.onload = () => {
+                document.dispatchEvent(new CustomEvent('chartjs-loaded'));
+            };
+            document.head.appendChild(script);
+        }
+
+        // Detect dark mode
+        function isDarkMode() {
+            return document.documentElement.classList.contains('dark');
+        }
+
+        function getGridColor() {
+            return isDarkMode() ? 'rgba(113, 113, 122, 0.2)' : 'rgba(228, 228, 231, 0.8)';
+        }
+
+        function getTickColor() {
+            return isDarkMode() ? 'rgba(161, 161, 170, 0.8)' : 'rgba(113, 113, 122, 0.8)';
+        }
+
+        Alpine.data('stockMovementChart', () => ({
+            chart: null,
+            initChart() {
+                const create = () => {
+                    const ctx = document.getElementById('stockMovementChart');
+                    if (!ctx) return;
+                    const data = $wire.stockMovementTrend;
+                    this.chart = new Chart(ctx, {
+                        type: 'line',
+                        data: {
+                            labels: data.labels,
+                            datasets: [
+                                {
+                                    label: 'Stock In',
+                                    data: data.stock_in,
+                                    borderColor: 'rgb(16, 185, 129)',
+                                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                                    fill: true,
+                                    tension: 0.4,
+                                    pointRadius: 2,
+                                    pointHoverRadius: 5,
+                                    borderWidth: 2,
+                                },
+                                {
+                                    label: 'Stock Out',
+                                    data: data.stock_out,
+                                    borderColor: 'rgb(244, 63, 94)',
+                                    backgroundColor: 'rgba(244, 63, 94, 0.1)',
+                                    fill: true,
+                                    tension: 0.4,
+                                    pointRadius: 2,
+                                    pointHoverRadius: 5,
+                                    borderWidth: 2,
+                                },
+                            ],
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            interaction: { intersect: false, mode: 'index' },
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: {
+                                    backgroundColor: isDarkMode() ? '#27272a' : '#fff',
+                                    titleColor: isDarkMode() ? '#fafafa' : '#18181b',
+                                    bodyColor: isDarkMode() ? '#d4d4d8' : '#3f3f46',
+                                    borderColor: isDarkMode() ? '#3f3f46' : '#e4e4e7',
+                                    borderWidth: 1,
+                                    padding: 12,
+                                    cornerRadius: 8,
+                                },
+                            },
+                            scales: {
+                                x: {
+                                    grid: { color: getGridColor() },
+                                    ticks: { color: getTickColor(), maxTicksLimit: 8, font: { size: 11 } },
+                                },
+                                y: {
+                                    beginAtZero: true,
+                                    grid: { color: getGridColor() },
+                                    ticks: { color: getTickColor(), font: { size: 11 } },
+                                },
+                            },
+                        },
+                    });
+
+                    Livewire.on('analytics-period-changed', () => {
+                        const newData = $wire.stockMovementTrend;
+                        this.chart.data.labels = newData.labels;
+                        this.chart.data.datasets[0].data = newData.stock_in;
+                        this.chart.data.datasets[1].data = newData.stock_out;
+                        this.chart.update('none');
+                    });
+                };
+
+                if (typeof Chart !== 'undefined') {
+                    create();
+                } else {
+                    document.addEventListener('chartjs-loaded', create, { once: true });
+                }
+            },
+        }));
+
+        Alpine.data('activityOverviewChart', () => ({
+            chart: null,
+            initChart() {
+                const create = () => {
+                    const ctx = document.getElementById('activityOverviewChart');
+                    if (!ctx) return;
+                    const data = $wire.activityOverview;
+                    this.chart = new Chart(ctx, {
+                        type: 'bar',
+                        data: {
+                            labels: data.labels,
+                            datasets: [
+                                {
+                                    label: 'Transactions',
+                                    data: data.activity,
+                                    backgroundColor: isDarkMode()
+                                        ? 'rgba(139, 92, 246, 0.6)'
+                                        : 'rgba(139, 92, 246, 0.4)',
+                                    borderColor: 'rgb(139, 92, 246)',
+                                    borderWidth: 1,
+                                    borderRadius: 4,
+                                    hoverBackgroundColor: 'rgba(139, 92, 246, 0.8)',
+                                },
+                            ],
+                        },
+                        options: {
+                            responsive: true,
+                            maintainAspectRatio: false,
+                            plugins: {
+                                legend: { display: false },
+                                tooltip: {
+                                    backgroundColor: isDarkMode() ? '#27272a' : '#fff',
+                                    titleColor: isDarkMode() ? '#fafafa' : '#18181b',
+                                    bodyColor: isDarkMode() ? '#d4d4d8' : '#3f3f46',
+                                    borderColor: isDarkMode() ? '#3f3f46' : '#e4e4e7',
+                                    borderWidth: 1,
+                                    padding: 12,
+                                    cornerRadius: 8,
+                                },
+                            },
+                            scales: {
+                                x: {
+                                    grid: { display: false },
+                                    ticks: { color: getTickColor(), maxTicksLimit: 8, font: { size: 11 } },
+                                },
+                                y: {
+                                    beginAtZero: true,
+                                    grid: { color: getGridColor() },
+                                    ticks: { color: getTickColor(), stepSize: 1, font: { size: 11 } },
+                                },
+                            },
+                        },
+                    });
+
+                    Livewire.on('analytics-period-changed', () => {
+                        const newData = $wire.activityOverview;
+                        this.chart.data.labels = newData.labels;
+                        this.chart.data.datasets[0].data = newData.activity;
+                        this.chart.update('none');
+                    });
+                };
+
+                if (typeof Chart !== 'undefined') {
+                    create();
+                } else {
+                    document.addEventListener('chartjs-loaded', create, { once: true });
+                }
+            },
+        }));
+    </script>
+    @endscript
