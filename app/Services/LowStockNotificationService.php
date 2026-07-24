@@ -112,8 +112,7 @@ class LowStockNotificationService
      */
     public function markAllAsRead(): void
     {
-        LowStockNotification::whereNull('resolved_at')
-            ->whereNull('read_at')
+        LowStockNotification::whereNull('read_at')
             ->update(['read_at' => now()]);
     }
 
