@@ -444,32 +444,36 @@ new #[Title('Dashboard')] class extends Component {
             <div class="flex flex-col rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 lg:col-span-2">
                 <div class="flex items-center justify-between border-b border-zinc-150 pb-4 dark:border-zinc-800">
                     <div class="flex items-center gap-2">
-                        <flux:icon name="bell" class="size-5 text-zinc-500" />
+                        <flux:icon name="bell" class="size-5 text-zinc-500 dark:text-zinc-400" />
                         <flux:heading size="lg" class="font-semibold">Low Stock Alerts</flux:heading>
                     </div>
-                    <flux:button variant="subtle" size="sm" href="{{ route('alerts.index') }}" wire:navigate>View All</flux:button>
+                    <flux:button variant="subtle" size="sm" href="{{ route('alerts.index') }}" wire:navigate>View all</flux:button>
                 </div>
-                <div class="mt-4 flex flex-1 flex-col">
+                <div class="mt-2 flex flex-1 flex-col">
                     @forelse($latestAlerts as $alert)
-                        <div class="flex items-center justify-between py-3 border-b border-zinc-100 last:border-0 dark:border-zinc-800">
-                            <div class="flex items-center gap-3">
+                        <div class="flex items-center justify-between py-4 border-b border-zinc-100 last:border-0 dark:border-zinc-800/70 transition-colors hover:bg-zinc-50/50 dark:hover:bg-zinc-800/20 px-2 -mx-2 rounded-lg">
+                            <div class="flex items-center gap-4">
                                 @if($alert->severity === 'critical')
-                                    <flux:badge color="rose" icon="exclamation-triangle" size="sm">Critical</flux:badge>
+                                    <flux:badge color="rose" icon="exclamation-triangle" size="sm" class="w-24 justify-center">Critical</flux:badge>
                                 @else
-                                    <flux:badge color="amber" icon="exclamation-circle" size="sm">Low</flux:badge>
+                                    <flux:badge color="amber" icon="exclamation-circle" size="sm" class="w-24 justify-center">Low</flux:badge>
                                 @endif
                                 <div>
-                                    <flux:text class="font-medium text-zinc-900 dark:text-zinc-100">{{ $alert->product->name ?? 'Unknown Product' }}</flux:text>
-                                    <flux:text class="text-xs text-zinc-500">Stock: {{ $alert->current_stock }} / Min: {{ $alert->threshold }}</flux:text>
+                                    <flux:text class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $alert->product->name ?? 'Unknown Product' }}</flux:text>
+                                    <div class="flex items-center gap-2 mt-0.5">
+                                        <flux:text class="text-xs text-zinc-500">Stock: <span class="font-medium text-zinc-700 dark:text-zinc-300">{{ $alert->current_stock }}</span></flux:text>
+                                        <span class="text-zinc-300 dark:text-zinc-600">&bull;</span>
+                                        <flux:text class="text-xs text-zinc-500">Min: {{ $alert->threshold }}</flux:text>
+                                    </div>
                                 </div>
                             </div>
-                            <flux:text class="text-xs text-zinc-400">{{ $alert->created_at->diffForHumans() }}</flux:text>
+                            <flux:text class="text-[10px] uppercase tracking-wider text-zinc-400 font-medium">{{ $alert->created_at->diffForHumans() }}</flux:text>
                         </div>
                     @empty
-                        <div class="flex flex-1 flex-col items-center justify-center py-8 text-center border border-dashed rounded-lg border-zinc-200 dark:border-zinc-700 mt-2">
-                            <flux:icon name="check-circle" class="size-8 text-emerald-500 mb-2" />
-                            <flux:text class="font-medium text-zinc-800 dark:text-zinc-200">No active alerts</flux:text>
-                            <flux:text class="text-xs text-zinc-500 mt-1">Stock levels are looking good.</flux:text>
+                        <div class="flex flex-1 flex-col items-center justify-center py-10 text-center">
+                            <flux:icon name="check-circle" class="size-10 text-emerald-500 mb-3" />
+                            <flux:text class="font-medium text-zinc-900 dark:text-zinc-100">No active alerts</flux:text>
+                            <flux:text class="text-sm text-zinc-500 mt-1">Stock levels are looking good.</flux:text>
                         </div>
                     @endforelse
                 </div>
@@ -478,42 +482,45 @@ new #[Title('Dashboard')] class extends Component {
             <!-- Left: Low Stock Items List -->
             <div class="flex flex-col rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 lg:col-span-1">
                 <div class="flex items-center justify-between border-b border-zinc-150 pb-4 dark:border-zinc-800">
-                    <flux:heading size="lg" class="font-semibold">Low Stock Items</flux:heading>
+                    <div class="flex items-center gap-2">
+                        <flux:icon name="exclamation-triangle" class="size-5 text-zinc-500 dark:text-zinc-400" />
+                        <flux:heading size="lg" class="font-semibold">Low Stock Items</flux:heading>
+                    </div>
                     <flux:badge variant="warning">{{ count($lowStockItems) }} listed</flux:badge>
                 </div>
-                <div class="mt-4 flex flex-1 flex-col space-y-4">
+                <div class="mt-4 flex flex-1 flex-col space-y-3">
                     @forelse($lowStockItems as $item)
-                        <div class="flex flex-col rounded-xl bg-zinc-50 p-3 dark:bg-zinc-800/50">
-                            <div class="flex items-center justify-between">
-                                <div>
-                                    <flux:text class="font-medium text-zinc-800 dark:text-zinc-200">{{ $item->name }}</flux:text>
-                                    <flux:text class="block text-xs text-zinc-500">SKU: {{ $item->sku }}</flux:text>
+                        <div class="flex flex-col rounded-xl border border-zinc-100 bg-zinc-50/80 p-4 transition-colors hover:border-zinc-200 dark:border-zinc-800/80 dark:bg-zinc-800/20 dark:hover:border-zinc-700">
+                            <div class="flex items-start justify-between">
+                                <div class="flex flex-col">
+                                    <flux:text class="font-semibold text-zinc-900 dark:text-zinc-100 truncate pr-2">{{ $item->name }}</flux:text>
+                                    <flux:text class="mt-0.5 text-xs text-zinc-500 uppercase tracking-wider font-medium">{{ $item->sku }}</flux:text>
                                 </div>
-                                <div class="text-right">
-                                    <span class="rounded bg-rose-50 px-2 py-0.5 text-xs font-semibold text-rose-600 dark:bg-rose-950/30 dark:text-rose-400">
-                                        Stock: {{ $item->current_stock }}
+                                <div class="flex flex-col items-end whitespace-nowrap">
+                                    <span class="rounded bg-rose-100/80 px-2 py-0.5 text-xs font-bold text-rose-700 dark:bg-rose-900/40 dark:text-rose-400">
+                                        {{ $item->current_stock }} left
                                     </span>
-                                    <flux:text class="block text-[10px] text-zinc-400 mt-1">Min: {{ $item->minimum_stock }}</flux:text>
+                                    <flux:text class="mt-1 text-[10px] font-medium text-zinc-400 uppercase tracking-wider">Min: {{ $item->minimum_stock }}</flux:text>
                                 </div>
                             </div>
                             @php
                                 $percentage = $item->minimum_stock > 0 ? min(100, round(($item->current_stock / $item->minimum_stock) * 100)) : 100;
                             @endphp
-                            <div class="mt-3">
-                                <flux:progress :value="$percentage" />
+                            <div class="mt-4 flex h-1.5 w-full overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-700">
+                                <div class="bg-rose-500 rounded-full" style="width: {{ $percentage }}%"></div>
                             </div>
                         </div>
                     @empty
-                        <div class="flex flex-1 flex-col items-center justify-center py-8 text-center">
-                            <flux:icon name="check-circle" class="size-8 text-emerald-500 mb-2" />
-                            <flux:text class="font-medium text-zinc-800 dark:text-zinc-200">No Low Stock Items</flux:text>
-                            <flux:text class="text-xs text-zinc-500">All products are within optimal levels.</flux:text>
+                        <div class="flex flex-1 flex-col items-center justify-center py-10 text-center">
+                            <flux:icon name="check-circle" class="size-10 text-emerald-500 mb-3" />
+                            <flux:text class="font-medium text-zinc-900 dark:text-zinc-100">No Low Stock Items</flux:text>
+                            <flux:text class="text-sm text-zinc-500 mt-1">All products are optimal.</flux:text>
                         </div>
                     @endforelse
                 </div>
                 @if($lowStockCount > count($lowStockItems))
-                    <div class="mt-4 border-t border-zinc-150 pt-4 dark:border-zinc-800 text-center">
-                        <flux:link href="{{ route('products.index') }}" class="text-sm font-medium">View all {{ $lowStockCount }} low stock items</flux:link>
+                    <div class="mt-5 text-center">
+                        <flux:button variant="subtle" class="w-full" href="{{ route('products.index') }}" wire:navigate>View all {{ $lowStockCount }} items</flux:button>
                     </div>
                 @endif
             </div>
@@ -523,58 +530,67 @@ new #[Title('Dashboard')] class extends Component {
         <!-- Recent Transactions List -->
         <div class="flex flex-col rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
                 <div class="flex items-center justify-between border-b border-zinc-150 pb-4 dark:border-zinc-800">
-                    <flux:heading size="lg" class="font-semibold">
-                        {{ $isSupplier ? 'Recent Delivery History' : 'Recent Transactions' }}
-                    </flux:heading>
-                    <flux:link href="{{ route('transactions.index') }}" class="text-sm font-medium">View all</flux:link>
+                    <div class="flex items-center gap-2">
+                        <flux:icon name="arrows-right-left" class="size-5 text-zinc-500 dark:text-zinc-400" />
+                        <flux:heading size="lg" class="font-semibold">
+                            {{ $isSupplier ? 'Recent Delivery History' : 'Recent Transactions' }}
+                        </flux:heading>
+                    </div>
+                    <flux:button variant="subtle" size="sm" href="{{ route('transactions.index') }}" wire:navigate>View all</flux:button>
                 </div>
                 <div class="mt-4 flex-1 overflow-x-auto">
                     <table class="w-full text-left text-sm text-zinc-600 dark:text-zinc-400">
                         <thead>
-                            <tr class="border-b border-zinc-100 text-xs font-semibold text-zinc-400 dark:border-zinc-800">
-                                <th scope="col" class="pb-3">Product</th>
-                                <th scope="col" class="pb-3">Type</th>
-                                <th scope="col" class="pb-3">Quantity</th>
-                                <th scope="col" class="pb-3">Remarks</th>
-                                <th scope="col" class="pb-3">User</th>
-                                <th scope="col" class="pb-3 text-right">Date</th>
+                            <tr class="border-b border-zinc-200 text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
+                                <th scope="col" class="pb-3 pt-2 font-medium">Product</th>
+                                <th scope="col" class="pb-3 pt-2 font-medium">Type</th>
+                                <th scope="col" class="pb-3 pt-2 font-medium">Quantity</th>
+                                <th scope="col" class="pb-3 pt-2 font-medium">Remarks</th>
+                                <th scope="col" class="pb-3 pt-2 font-medium">User</th>
+                                <th scope="col" class="pb-3 pt-2 text-right font-medium">Date</th>
                             </tr>
                         </thead>
-                        <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800/50">
+                        <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800/70">
                             @forelse($recentTransactions as $tx)
-                                <tr>
-                                    <td class="py-3">
-                                        <flux:text class="font-medium text-zinc-800 dark:text-zinc-200">{{ $tx->product->name ?? 'Deleted Product' }}</flux:text>
-                                        <flux:text class="block text-xs text-zinc-400">{{ $tx->product->sku ?? '' }}</flux:text>
+                                <tr class="transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/40 group">
+                                    <td class="py-4 align-middle pr-4">
+                                        <flux:text class="font-semibold text-zinc-900 dark:text-zinc-100">{{ $tx->product->name ?? 'Deleted Product' }}</flux:text>
+                                        <flux:text class="mt-0.5 block text-[11px] font-medium uppercase tracking-wider text-zinc-400">{{ $tx->product->sku ?? '' }}</flux:text>
                                     </td>
-                                    <td class="py-3">
+                                    <td class="py-4 align-middle pr-4">
                                         @if($tx->type === 'stock_in')
-                                            <span class="rounded bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-600 dark:bg-emerald-950/30 dark:text-emerald-400">Stock In</span>
+                                            <flux:badge color="emerald" size="sm" class="w-24 justify-center">Stock In</flux:badge>
                                         @elseif($tx->type === 'stock_out')
-                                            <span class="rounded bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-600 dark:bg-rose-950/30 dark:text-rose-400">Stock Out</span>
+                                            <flux:badge color="rose" size="sm" class="w-24 justify-center">Stock Out</flux:badge>
                                         @else
-                                            <span class="rounded bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400">Adjustment</span>
+                                            <flux:badge color="zinc" size="sm" class="w-24 justify-center">Adjustment</flux:badge>
                                         @endif
                                     </td>
-                                    <td class="py-3 font-semibold {{ $tx->type === 'stock_in' ? 'text-emerald-600' : ($tx->type === 'stock_out' ? 'text-rose-600' : 'text-zinc-600 dark:text-zinc-300') }}">
+                                    <td class="py-4 align-middle pr-4 font-bold {{ $tx->type === 'stock_in' ? 'text-emerald-600 dark:text-emerald-500' : ($tx->type === 'stock_out' ? 'text-rose-600 dark:text-rose-500' : 'text-zinc-700 dark:text-zinc-300') }}">
                                         {{ $tx->type === 'stock_in' ? '+' : ($tx->type === 'stock_out' ? '-' : ($tx->quantity >= 0 ? '+' : '')) }}{{ abs($tx->quantity) }}
                                     </td>
-                                    <td class="py-3 text-zinc-500 max-w-[200px] truncate" title="{{ $tx->remarks }}">{{ $tx->remarks ?: '-' }}</td>
-                                    <td class="py-3">
+                                    <td class="py-4 align-middle pr-4 text-zinc-500 max-w-[200px] truncate" title="{{ $tx->remarks }}">{{ $tx->remarks ?: '-' }}</td>
+                                    <td class="py-4 align-middle pr-4">
                                         @if($tx->user)
-                                            <div class="flex items-center gap-2">
+                                            <div class="flex items-center gap-2.5">
                                                 <flux:avatar size="xs" :initials="$tx->user->initials()" />
-                                                <flux:text class="text-xs text-zinc-500">{{ $tx->user->name }}</flux:text>
+                                                <flux:text class="text-sm font-medium text-zinc-700 dark:text-zinc-300">{{ $tx->user->name }}</flux:text>
                                             </div>
                                         @else
-                                            <flux:text class="text-xs text-zinc-500">System</flux:text>
+                                            <flux:text class="text-sm font-medium text-zinc-500">System</flux:text>
                                         @endif
                                     </td>
-                                    <td class="py-3 text-right text-zinc-400 text-xs">{{ $tx->transaction_date->diffForHumans() }}</td>
+                                    <td class="py-4 align-middle text-right text-[11px] font-medium uppercase tracking-wider text-zinc-400">
+                                        {{ $tx->transaction_date->format('M d, Y') }}
+                                    </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="6" class="py-8 text-center text-zinc-500">No transactions recorded yet.</td>
+                                    <td colspan="6" class="py-10 text-center">
+                                        <flux:icon name="document-text" class="size-10 text-zinc-300 dark:text-zinc-600 mx-auto mb-3" />
+                                        <flux:text class="font-medium text-zinc-900 dark:text-zinc-100">No transactions yet</flux:text>
+                                        <flux:text class="text-sm text-zinc-500 mt-1">Transaction history will appear here.</flux:text>
+                                    </td>
                                 </tr>
                             @endforelse
                         </tbody>
@@ -584,27 +600,32 @@ new #[Title('Dashboard')] class extends Component {
 
         <!-- Inventory Overview -->
         <div class="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
-            <flux:heading size="lg" class="font-semibold mb-4">Inventory Overview</flux:heading>
-            <div class="grid grid-cols-2 gap-4 sm:grid-cols-4">
+            <div class="flex items-center justify-between border-b border-zinc-150 pb-4 dark:border-zinc-800">
+                <div class="flex items-center gap-2">
+                    <flux:icon name="chart-pie" class="size-5 text-zinc-500 dark:text-zinc-400" />
+                    <flux:heading size="lg" class="font-semibold">Inventory Overview</flux:heading>
+                </div>
+            </div>
+            <div class="mt-8 mb-4 grid grid-cols-2 gap-8 sm:grid-cols-4">
                 <!-- Total Stock Units -->
-                <div class="text-center">
-                    <flux:text class="text-2xl font-bold text-zinc-900 dark:text-white">{{ number_format($totalStockUnits) }}</flux:text>
-                    <flux:text class="text-xs text-zinc-500">Total Units</flux:text>
+                <div class="flex flex-col items-center justify-center">
+                    <flux:text class="text-4xl font-bold text-zinc-900 dark:text-white">{{ number_format($totalStockUnits) }}</flux:text>
+                    <flux:text class="mt-2 text-sm font-medium text-zinc-500 dark:text-zinc-400">Total Units</flux:text>
                 </div>
                 <!-- Active Products -->
-                <div class="text-center">
-                    <flux:text class="text-2xl font-bold text-emerald-600">{{ $activeProducts }}</flux:text>
-                    <flux:text class="text-xs text-zinc-500">Active Products</flux:text>
+                <div class="flex flex-col items-center justify-center">
+                    <flux:text class="text-4xl font-bold text-emerald-600 dark:text-emerald-500">{{ $activeProducts }}</flux:text>
+                    <flux:text class="mt-2 text-sm font-medium text-zinc-500 dark:text-zinc-400">Active Products</flux:text>
                 </div>
                 <!-- Inactive Products -->
-                <div class="text-center">
-                    <flux:text class="text-2xl font-bold text-zinc-400">{{ $inactiveProducts }}</flux:text>
-                    <flux:text class="text-xs text-zinc-500">Inactive</flux:text>
+                <div class="flex flex-col items-center justify-center">
+                    <flux:text class="text-4xl font-bold text-zinc-400 dark:text-zinc-500">{{ $inactiveProducts }}</flux:text>
+                    <flux:text class="mt-2 text-sm font-medium text-zinc-500 dark:text-zinc-400">Inactive Products</flux:text>
                 </div>
                 <!-- Out of Stock -->
-                <div class="text-center">
-                    <flux:text class="text-2xl font-bold text-rose-600">{{ $outOfStockCount }}</flux:text>
-                    <flux:text class="text-xs text-zinc-500">Out of Stock</flux:text>
+                <div class="flex flex-col items-center justify-center">
+                    <flux:text class="text-4xl font-bold text-rose-600 dark:text-rose-500">{{ $outOfStockCount }}</flux:text>
+                    <flux:text class="mt-2 text-sm font-medium text-zinc-500 dark:text-zinc-400">Out of Stock</flux:text>
                 </div>
             </div>
         </div>
@@ -612,12 +633,18 @@ new #[Title('Dashboard')] class extends Component {
         @if(!$isSupplier && count($recentSuppliers) > 0)
             <!-- Recently Added Suppliers -->
             <div class="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
-                <flux:heading size="lg" class="font-semibold mb-4">Recently Added Suppliers</flux:heading>
-                <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                <div class="flex items-center justify-between border-b border-zinc-150 pb-4 dark:border-zinc-800">
+                    <div class="flex items-center gap-2">
+                        <flux:icon name="building-office" class="size-5 text-zinc-500 dark:text-zinc-400" />
+                        <flux:heading size="lg" class="font-semibold">Recently Added Suppliers</flux:heading>
+                    </div>
+                    <flux:button variant="subtle" size="sm" href="{{ route('suppliers.index') }}" wire:navigate>View all</flux:button>
+                </div>
+                <div class="mt-6 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                     @foreach($recentSuppliers as $supplier)
-                        <div class="rounded-xl border border-zinc-100 bg-zinc-50 p-4 dark:border-zinc-800 dark:bg-zinc-800/50 flex flex-col justify-center">
-                            <flux:heading size="sm" class="font-medium truncate">{{ $supplier->name }}</flux:heading>
-                            <flux:text class="text-xs text-zinc-500 truncate mt-1">{{ $supplier->email }}</flux:text>
+                        <div class="flex h-full flex-col justify-center rounded-xl border border-zinc-200 bg-zinc-50 p-5 transition-colors hover:border-zinc-300 dark:border-zinc-700/80 dark:bg-zinc-800/40 dark:hover:border-zinc-600">
+                            <flux:heading size="sm" class="font-semibold text-zinc-900 dark:text-zinc-100 truncate">{{ $supplier->name }}</flux:heading>
+                            <flux:text class="mt-1 text-[11px] font-medium text-zinc-500 truncate dark:text-zinc-400">{{ $supplier->email ?: 'No email provided' }}</flux:text>
                         </div>
                     @endforeach
                 </div>
