@@ -438,7 +438,7 @@ new #[Title('Product Management')] class extends Component {
                                     </span>
                                 </td>
                                 @if(!$isSupplier)
-                                    <td class="px-6 py-4 text-zinc-700 dark:text-zinc-300 whitespace-nowrap">
+                                    <td class="px-6 py-4 text-zinc-700 dark:text-zinc-300 max-w-[150px] truncate" title="{{ $product->supplier->name ?? 'No Supplier' }}">
                                         {{ $product->supplier->name ?? 'No Supplier' }}
                                     </td>
                                 @endif

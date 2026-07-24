@@ -185,9 +185,19 @@ new #[Title('Inventory Transactions')] class extends Component {
             $query->whereDate('transaction_date', '<=', $this->filterEndDate);
         }
 
+        $productsQuery = Product::query()
+            ->where('status', 'active')
+            ->select('id', 'name', 'sku', 'current_stock');
+            
+        if ($this->isSupplier) {
+            $productsQuery->where('supplier_id', $this->userSupplierId);
+        }
+        
+        $formProducts = $productsQuery->orderBy('name')->get();
+
         return [
             'transactions' => $query->latest('transaction_date')->paginate(15),
-            'products' => Product::where('status', 'active')->orderBy('name')->get(),
+            'formProducts' => $formProducts,
         ];
     }
 }; ?>
@@ -335,12 +345,133 @@ new #[Title('Inventory Transactions')] class extends Component {
                     <form wire:submit.prevent="saveTransaction" class="space-y-0" novalidate>
                         <flux:field class="mb-4">
                             <flux:label class="mb-1">Select Product <span class="text-rose-500">*</span></flux:label>
-                            <flux:select wire:model="productId" required>
-                                <option value="">Choose product...</option>
-                                @foreach($products as $p)
-                                    <option value="{{ $p->id }}">{{ $p->name }} (SKU: {{ $p->sku }}, Current Stock: {{ $p->current_stock }})</option>
-                                @endforeach
-                            </flux:select>
+                            <!-- Alpine Combobox -->
+                            <div x-data="{
+                                open: false,
+                                search: '',
+                                selectedId: @entangle('productId'),
+                                selectedName: '',
+                                highlightedIndex: 0,
+                                products: {{ Js::from($formProducts) }},
+                                get filteredProducts() {
+                                    if (this.search === '') {
+                                        return this.products.slice(0, 50);
+                                    }
+                                    const lowerSearch = this.search.toLowerCase();
+                                    return this.products.filter(p => 
+                                        p.name.toLowerCase().includes(lowerSearch) || 
+                                        p.sku.toLowerCase().includes(lowerSearch)
+                                    ).slice(0, 50);
+                                },
+                                init() {
+                                    this.$watch('selectedId', (val) => {
+                                        if (val) {
+                                            const p = this.products.find(x => x.id === val);
+                                            if (p) this.selectedName = p.name;
+                                        } else {
+                                            this.selectedName = '';
+                                        }
+                                    });
+                                    if (this.selectedId) {
+                                        const p = this.products.find(x => x.id === this.selectedId);
+                                        if (p) this.selectedName = p.name;
+                                    }
+                                },
+                                openDropdown() {
+                                    this.open = true;
+                                    this.search = '';
+                                    this.highlightedIndex = 0;
+                                    this.$nextTick(() => { this.$refs.searchInput.focus(); });
+                                },
+                                closeDropdown() {
+                                    this.open = false;
+                                },
+                                selectProduct(product) {
+                                    this.selectedId = product.id;
+                                    this.selectedName = product.name;
+                                    this.closeDropdown();
+                                },
+                                highlightNext() {
+                                    if (this.highlightedIndex < this.filteredProducts.length - 1) {
+                                        this.highlightedIndex++;
+                                        this.scrollToHighlighted();
+                                    }
+                                },
+                                highlightPrevious() {
+                                    if (this.highlightedIndex > 0) {
+                                        this.highlightedIndex--;
+                                        this.scrollToHighlighted();
+                                    }
+                                },
+                                selectHighlighted() {
+                                    if (this.open && this.filteredProducts.length > 0) {
+                                        this.selectProduct(this.filteredProducts[this.highlightedIndex]);
+                                    }
+                                },
+                                scrollToHighlighted() {
+                                    this.$nextTick(() => {
+                                        const el = this.$refs.dropdownList.children[this.highlightedIndex];
+                                        if (el) {
+                                            el.scrollIntoView({ block: 'nearest' });
+                                        }
+                                    });
+                                }
+                            }"
+                            @keydown.escape.window="closeDropdown()"
+                            @click.outside="closeDropdown()"
+                            class="relative w-full"
+                            >
+                                <!-- Trigger Button / Input -->
+                                <button type="button" @click="openDropdown()" class="flex items-center justify-between w-full h-10 px-3 py-2 text-sm leading-5 bg-white border rounded-lg shadow-sm appearance-none border-zinc-200 border-b-zinc-300/80 text-zinc-700 dark:bg-white/10 dark:border-white/10 dark:text-zinc-300 focus:outline-hidden focus:ring-2 focus:ring-primary-500">
+                                    <span x-text="selectedName ? selectedName : 'Choose a product...'" :class="selectedName ? '' : 'text-zinc-400 dark:text-zinc-400'" class="truncate"></span>
+                                    <flux:icon name="chevron-down" class="w-4 h-4 text-zinc-400" />
+                                </button>
+                                
+                                <!-- Dropdown Menu -->
+                                <div x-show="open" x-cloak
+                                     class="absolute left-0 z-50 w-full mt-1 bg-white border rounded-lg shadow-lg border-zinc-200 dark:bg-zinc-800 dark:border-zinc-700 overflow-hidden"
+                                     x-transition:enter="transition ease-out duration-100"
+                                     x-transition:enter-start="opacity-0 scale-95"
+                                     x-transition:enter-end="opacity-100 scale-100"
+                                     x-transition:leave="transition ease-in duration-75"
+                                     x-transition:leave-start="opacity-100 scale-100"
+                                     x-transition:leave-end="opacity-0 scale-95"
+                                >
+                                    <!-- Search Input -->
+                                    <div class="p-2 border-b border-zinc-100 dark:border-zinc-700 bg-zinc-50 dark:bg-zinc-800">
+                                        <div class="relative flex items-center">
+                                            <flux:icon name="magnifying-glass" class="absolute w-4 h-4 left-3 text-zinc-400" />
+                                            <input type="text" x-ref="searchInput" x-model="search"
+                                                @keydown.arrow-down.prevent="highlightNext()"
+                                                @keydown.arrow-up.prevent="highlightPrevious()"
+                                                @keydown.enter.prevent="selectHighlighted()"
+                                                placeholder="Search by name or SKU..."
+                                                class="w-full h-9 pl-9 pr-3 text-sm bg-white border rounded-md border-zinc-200 text-zinc-900 focus:outline-hidden focus:ring-2 focus:ring-primary-500 focus:border-primary-500 dark:bg-zinc-900 dark:border-zinc-700 dark:text-white dark:focus:ring-primary-500"
+                                            />
+                                        </div>
+                                    </div>
+                                    
+                                    <!-- Results List -->
+                                    <ul x-ref="dropdownList" class="overflow-y-auto max-h-[250px] p-1">
+                                        <template x-for="(product, index) in filteredProducts" :key="product.id">
+                                            <li @click="selectProduct(product)"
+                                                @mouseenter="highlightedIndex = index"
+                                                :class="{'bg-zinc-100 dark:bg-zinc-700': highlightedIndex === index}"
+                                                class="flex flex-col px-3 py-2 cursor-pointer rounded-md select-none"
+                                            >
+                                                <div class="flex items-center justify-between">
+                                                    <span class="text-sm font-medium text-zinc-900 dark:text-zinc-100" x-text="product.name"></span>
+                                                    <span class="text-xs font-semibold text-zinc-500 dark:text-zinc-400" x-text="'Stock: ' + product.current_stock"></span>
+                                                </div>
+                                                <div class="text-xs text-zinc-500 dark:text-zinc-400" x-text="'SKU: ' + product.sku"></div>
+                                            </li>
+                                        </template>
+                                        <li x-show="filteredProducts.length === 0" class="px-3 py-4 text-sm text-center text-zinc-500 dark:text-zinc-400">
+                                            No products found.
+                                        </li>
+                                    </ul>
+                                </div>
+                            </div>
                             <flux:error name="productId" class="!mt-0.5 text-xs font-medium" />
                         </flux:field>
 
