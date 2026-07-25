@@ -1,0 +1,458 @@
+<?php
+
+namespace App\Services;
+
+use App\Models\Category;
+use App\Models\InventoryTransaction;
+use App\Models\Product;
+use App\Models\Supplier;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Generator;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Carbon;
+use Symfony\Component\HttpFoundation\StreamedResponse;
+
+/**
+ * Builds CSV and PDF exports for the reporting module.
+ *
+ * The row generator is shared by both formats so an export always mirrors the
+ * on screen report for the currently applied filters.
+ */
+class ReportExporter
+{
+    public function __construct(private readonly ReportService $reports) {}
+
+    /**
+     * Human readable report title.
+     */
+    public function title(string $type): string
+    {
+        return (ReportService::REPORT_TYPES[$type] ?? 'Inventory').' Report';
+    }
+
+    /**
+     * Column definitions for the given report.
+     *
+     * @return list<array{title: string, class?: string}>
+     */
+    public function headers(string $type): array
+    {
+        return match ($type) {
+            'low_stock' => [
+                ['title' => 'SKU'],
+                ['title' => 'Product Name'],
+                ['title' => 'Category'],
+                ['title' => 'Supplier'],
+                ['title' => 'Current Stock', 'class' => 'text-right'],
+                ['title' => 'Minimum Stock', 'class' => 'text-right'],
+                ['title' => 'Shortfall', 'class' => 'text-right'],
+                ['title' => 'Status'],
+            ],
+            'dead_stock' => [
+                ['title' => 'SKU'],
+                ['title' => 'Product Name'],
+                ['title' => 'Category'],
+                ['title' => 'Supplier'],
+                ['title' => 'Current Stock', 'class' => 'text-right'],
+                ['title' => 'Stock Value', 'class' => 'text-right'],
+                ['title' => 'Last Transaction'],
+                ['title' => 'Days Since Movement', 'class' => 'text-right'],
+            ],
+            'transactions' => [
+                ['title' => 'Date & Time'],
+                ['title' => 'SKU'],
+                ['title' => 'Product Name'],
+                ['title' => 'Category'],
+                ['title' => 'Supplier'],
+                ['title' => 'Type'],
+                ['title' => 'Quantity', 'class' => 'text-right'],
+                ['title' => 'Operator'],
+                ['title' => 'Remarks'],
+            ],
+            'supplier_performance' => [
+                ['title' => 'Supplier'],
+                ['title' => 'Contact Person'],
+                ['title' => 'Status'],
+                ['title' => 'Products Supplied', 'class' => 'text-right'],
+                ['title' => 'Total Stock', 'class' => 'text-right'],
+                ['title' => 'Low Stock Products', 'class' => 'text-right'],
+                ['title' => 'Inventory Value', 'class' => 'text-right'],
+            ],
+            default => [
+                ['title' => 'SKU'],
+                ['title' => 'Product Name'],
+                ['title' => 'Category'],
+                ['title' => 'Supplier'],
+                ['title' => 'Cost Price', 'class' => 'text-right'],
+                ['title' => 'Selling Price', 'class' => 'text-right'],
+                ['title' => 'Current Stock', 'class' => 'text-right'],
+                ['title' => 'Cost Value', 'class' => 'text-right'],
+                ['title' => 'Retail Value', 'class' => 'text-right'],
+            ],
+        };
+    }
+
+    /**
+     * Stream report rows one at a time so large exports stay memory safe.
+     *
+     * @return Generator<int, list<array{value: string, class?: string, badge?: string}>>
+     */
+    public function rows(string $type, ReportFilters $filters): Generator
+    {
+        switch ($type) {
+            case 'low_stock':
+                /** @var Product $product */
+                foreach ($this->reports->lowStockQuery($filters)->lazy(500) as $product) {
+                    $severity = $this->reports->severityFor($product);
+
+                    yield [
+                        ['value' => $product->sku, 'class' => 'font-mono'],
+                        ['value' => $product->name],
+                        ['value' => $product->category->name ?? 'Uncategorized'],
+                        ['value' => $product->supplier->name ?? 'Unassigned'],
+                        ['value' => (string) $product->current_stock, 'class' => 'text-right font-semibold'],
+                        ['value' => (string) $product->minimum_stock, 'class' => 'text-right'],
+                        ['value' => (string) max($product->minimum_stock - $product->current_stock, 0), 'class' => 'text-right'],
+                        ['value' => $severity === 'critical' ? 'CRITICAL' : 'LOW', 'badge' => $severity === 'critical' ? 'danger' : 'warning'],
+                    ];
+                }
+
+                break;
+
+            case 'dead_stock':
+                /** @var Product $product */
+                foreach ($this->reports->deadStockQuery($filters)->lazy(500) as $product) {
+                    $days = $this->reports->daysSinceLastMovement($product);
+
+                    yield [
+                        ['value' => $product->sku, 'class' => 'font-mono'],
+                        ['value' => $product->name],
+                        ['value' => $product->category->name ?? 'Uncategorized'],
+                        ['value' => $product->supplier->name ?? 'Unassigned'],
+                        ['value' => (string) $product->current_stock, 'class' => 'text-right'],
+                        ['value' => $this->money((float) $product->current_stock * (float) $product->cost_price), 'class' => 'text-right'],
+                        ['value' => $product->last_transaction_date
+                            ? Carbon::parse($product->last_transaction_date)->format('Y-m-d H:i')
+                            : 'Never'],
+                        ['value' => $days === null ? 'Never moved' : (string) $days, 'class' => 'text-right'],
+                    ];
+                }
+
+                break;
+
+            case 'transactions':
+                /** @var InventoryTransaction $transaction */
+                foreach ($this->reports->transactionQuery($filters)->lazy(500) as $transaction) {
+                    yield [
+                        ['value' => $transaction->transaction_date->format('Y-m-d H:i')],
+                        ['value' => $transaction->product->sku ?? '-', 'class' => 'font-mono'],
+                        ['value' => $transaction->product->name ?? 'Deleted Product'],
+                        ['value' => $transaction->product->category->name ?? 'Uncategorized'],
+                        ['value' => $transaction->product->supplier->name ?? 'Unassigned'],
+                        ['value' => $this->transactionTypeLabel($transaction->type), 'badge' => $this->transactionBadge($transaction->type)],
+                        ['value' => $this->signedQuantity($transaction), 'class' => 'text-right font-semibold'],
+                        ['value' => $transaction->user->name ?? 'System'],
+                        ['value' => $transaction->remarks ?: '-'],
+                    ];
+                }
+
+                break;
+
+            case 'supplier_performance':
+                /** @var Supplier $supplier */
+                foreach ($this->reports->supplierPerformanceQuery($filters)->get() as $supplier) {
+                    yield [
+                        ['value' => $supplier->name, 'class' => 'font-semibold'],
+                        ['value' => $supplier->contact_person ?: '-'],
+                        ['value' => ucfirst($supplier->status), 'badge' => $supplier->status === 'active' ? 'success' : 'info'],
+                        ['value' => (string) (int) $supplier->products_supplied, 'class' => 'text-right'],
+                        ['value' => (string) (int) $supplier->total_units, 'class' => 'text-right'],
+                        ['value' => (string) (int) $supplier->low_stock_products, 'class' => 'text-right'],
+                        ['value' => $this->money((float) $supplier->total_value), 'class' => 'text-right font-medium'],
+                    ];
+                }
+
+                break;
+
+            default:
+                /** @var Product $product */
+                foreach ($this->reports->valuationQuery($filters)->lazy(500) as $product) {
+                    yield [
+                        ['value' => $product->sku, 'class' => 'font-mono'],
+                        ['value' => $product->name],
+                        ['value' => $product->category->name ?? 'Uncategorized'],
+                        ['value' => $product->supplier->name ?? 'Unassigned'],
+                        ['value' => $this->money((float) $product->cost_price), 'class' => 'text-right'],
+                        ['value' => $this->money((float) $product->selling_price), 'class' => 'text-right'],
+                        ['value' => (string) $product->current_stock, 'class' => 'text-right font-semibold'],
+                        ['value' => $this->money((float) $product->current_stock * (float) $product->cost_price), 'class' => 'text-right font-medium'],
+                        ['value' => $this->money((float) $product->current_stock * (float) $product->selling_price), 'class' => 'text-right font-medium'],
+                    ];
+                }
+        }
+    }
+
+    /**
+     * Totals row derived from the aggregate summary (not just the visible page).
+     *
+     * @return list<array{value: string, class?: string}>
+     */
+    public function totals(string $type, ReportFilters $filters): array
+    {
+        switch ($type) {
+            case 'low_stock':
+                $summary = $this->reports->lowStockSummary($filters);
+
+                return [
+                    ['value' => 'TOTALS ('.$summary['total'].' products)'],
+                    ['value' => 'Critical: '.$summary['critical']],
+                    ['value' => 'Low: '.$summary['low']],
+                    ['value' => 'Out of stock: '.$summary['out_of_stock']],
+                    ['value' => ''],
+                    ['value' => ''],
+                    ['value' => (string) $summary['units_required'], 'class' => 'text-right'],
+                    ['value' => ''],
+                ];
+
+            case 'dead_stock':
+                $summary = $this->reports->deadStockSummary($filters);
+
+                return [
+                    ['value' => 'TOTALS ('.$summary['total'].' products)'],
+                    ['value' => 'Never moved: '.$summary['never_moved']],
+                    ['value' => ''],
+                    ['value' => ''],
+                    ['value' => (string) $summary['total_units'], 'class' => 'text-right'],
+                    ['value' => $this->money($summary['tied_value']), 'class' => 'text-right'],
+                    ['value' => ''],
+                    ['value' => ''],
+                ];
+
+            case 'transactions':
+                $summary = $this->reports->transactionSummary($filters);
+
+                return [
+                    ['value' => 'TOTALS ('.$summary['transaction_count'].' transactions)'],
+                    ['value' => ''],
+                    ['value' => 'Stock In: '.$summary['stock_in']],
+                    ['value' => 'Stock Out: '.$summary['stock_out']],
+                    ['value' => 'Adjustments: '.$summary['adjustments']],
+                    ['value' => 'Net'],
+                    ['value' => $this->signed($summary['net_movement']), 'class' => 'text-right'],
+                    ['value' => ''],
+                    ['value' => ''],
+                ];
+
+            case 'supplier_performance':
+                $summary = $this->reports->supplierPerformanceSummary($filters);
+
+                return [
+                    ['value' => 'TOTALS ('.$summary['supplier_count'].' suppliers)'],
+                    ['value' => ''],
+                    ['value' => ''],
+                    ['value' => (string) $summary['product_count'], 'class' => 'text-right'],
+                    ['value' => (string) $summary['total_units'], 'class' => 'text-right'],
+                    ['value' => (string) $summary['low_stock_products'], 'class' => 'text-right'],
+                    ['value' => $this->money($summary['total_value']), 'class' => 'text-right'],
+                ];
+
+            default:
+                $summary = $this->reports->valuationSummary($filters);
+
+                return [
+                    ['value' => 'TOTALS ('.$summary['product_count'].' products)'],
+                    ['value' => ''],
+                    ['value' => ''],
+                    ['value' => ''],
+                    ['value' => ''],
+                    ['value' => ''],
+                    ['value' => (string) $summary['total_units'], 'class' => 'text-right'],
+                    ['value' => $this->money($summary['total_cost_value']), 'class' => 'text-right'],
+                    ['value' => $this->money($summary['total_retail_value']), 'class' => 'text-right'],
+                ];
+        }
+    }
+
+    /**
+     * Stream a UTF-8 (Excel compatible) CSV export of the filtered report.
+     */
+    public function csv(string $type, ReportFilters $filters): StreamedResponse
+    {
+        $filename = $this->filename($type, 'csv');
+        $headers = array_map(fn (array $header): string => $header['title'], $this->headers($type));
+        $rows = $this->rows($type, $filters);
+        $totals = array_map(fn (array $total): string => $total['value'], $this->totals($type, $filters));
+
+        return response()->streamDownload(function () use ($headers, $rows, $totals): void {
+            $handle = fopen('php://output', 'w');
+
+            if ($handle === false) {
+                return;
+            }
+
+            // UTF-8 BOM so Excel opens the file with the correct encoding.
+            fwrite($handle, chr(0xEF).chr(0xBB).chr(0xBF));
+            fputcsv($handle, $headers);
+
+            foreach ($rows as $row) {
+                fputcsv($handle, array_map(
+                    fn (array $cell): string => html_entity_decode(strip_tags($cell['value'])),
+                    $row
+                ));
+            }
+
+            fputcsv($handle, []);
+            fputcsv($handle, $totals);
+
+            fclose($handle);
+        }, $filename, [
+            'Content-Type' => 'text/csv; charset=utf-8',
+            'Content-Disposition' => 'attachment; filename="'.$filename.'"',
+        ]);
+    }
+
+    /**
+     * Stream a PDF export of the filtered report.
+     */
+    public function pdf(string $type, ReportFilters $filters, string $operator, int $maxRows = 1000): StreamedResponse
+    {
+        $rows = [];
+        $truncated = false;
+
+        foreach ($this->rows($type, $filters) as $row) {
+            if (count($rows) >= $maxRows) {
+                $truncated = true;
+                break;
+            }
+
+            $rows[] = $row;
+        }
+
+        $pdf = Pdf::loadView('exports.pdf_report', [
+            'title' => $this->title($type),
+            'operator' => $operator,
+            'dateRange' => $this->dateRangeLabel($type, $filters),
+            'filters' => $this->filterSummary($filters),
+            'headers' => $this->headers($type),
+            'rows' => $rows,
+            'totals' => $this->totals($type, $filters),
+            'note' => $truncated
+                ? 'Row output limited to the first '.$maxRows.' records; totals reflect the full filtered dataset. Use the CSV export for the complete listing.'
+                : null,
+        ]);
+
+        $filename = $this->filename($type, 'pdf');
+
+        return response()->streamDownload(function () use ($pdf): void {
+            echo $pdf->output();
+        }, $filename, [
+            'Content-Type' => 'application/pdf',
+        ]);
+    }
+
+    /**
+     * Export filename including the report type and a timestamp.
+     */
+    public function filename(string $type, string $extension): string
+    {
+        return 'sims_'.$type.'_report_'.now()->format('Ymd_His').'.'.$extension;
+    }
+
+    /**
+     * Readable description of the filters applied to the export.
+     */
+    public function filterSummary(ReportFilters $filters): string
+    {
+        $applied = [];
+
+        if ($filters->search) {
+            $applied[] = 'Search: "'.$filters->search.'"';
+        }
+
+        if ($filters->categoryId) {
+            $applied[] = 'Category: '.$this->lookupName(Category::query(), $filters->categoryId);
+        }
+
+        if ($filters->supplierId) {
+            $applied[] = 'Supplier: '.$this->lookupName(Supplier::query(), $filters->supplierId);
+        }
+
+        if ($filters->severity) {
+            $applied[] = 'Severity: '.ucfirst($filters->severity);
+        }
+
+        if ($filters->transactionType) {
+            $applied[] = 'Type: '.$this->transactionTypeLabel($filters->transactionType);
+        }
+
+        if ($filters->productId) {
+            $applied[] = 'Product: '.$this->lookupName(Product::query(), $filters->productId);
+        }
+
+        return $applied === [] ? 'None' : implode(', ', $applied);
+    }
+
+    /**
+     * Resolve a record name for the filter summary, falling back to the raw id.
+     *
+     * @template TModel of Model
+     *
+     * @param  Builder<TModel>  $query
+     */
+    private function lookupName(Builder $query, int $id): string
+    {
+        $name = $query->whereKey($id)->value('name');
+
+        return is_string($name) ? $name : (string) $id;
+    }
+
+    /**
+     * Date range / period label shown in the PDF header.
+     */
+    private function dateRangeLabel(string $type, ReportFilters $filters): string
+    {
+        if ($type === 'dead_stock') {
+            return 'No movement in the last '.$filters->inactivityDays.' days';
+        }
+
+        if ($filters->startDate === null && $filters->endDate === null) {
+            return 'All time';
+        }
+
+        return ($filters->startDate ?? 'Beginning').' to '.($filters->endDate ?? 'Now');
+    }
+
+    private function transactionTypeLabel(string $type): string
+    {
+        return strtoupper(str_replace('_', ' ', $type));
+    }
+
+    private function transactionBadge(string $type): string
+    {
+        return match ($type) {
+            'stock_in' => 'success',
+            'stock_out' => 'danger',
+            default => 'info',
+        };
+    }
+
+    private function signedQuantity(InventoryTransaction $transaction): string
+    {
+        return match ($transaction->type) {
+            'stock_in' => '+'.abs($transaction->quantity),
+            'stock_out' => '-'.abs($transaction->quantity),
+            default => $this->signed($transaction->quantity),
+        };
+    }
+
+    private function signed(int $value): string
+    {
+        return $value > 0 ? '+'.$value : (string) $value;
+    }
+
+    private function money(float $value): string
+    {
+        return '$'.number_format($value, 2);
+    }
+}

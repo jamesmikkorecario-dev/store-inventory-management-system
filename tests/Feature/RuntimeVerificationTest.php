@@ -26,6 +26,7 @@ beforeEach(function () {
     Permission::create(['name' => 'manage products']);
     Permission::create(['name' => 'manage inventory']);
     Permission::create(['name' => 'view reports']);
+    Permission::create(['name' => 'export reports']);
 
     $adminRole->givePermissionTo(Permission::all());
 
@@ -257,7 +258,7 @@ test('runtime verification - reports exports', function () {
     // 1. CSV Download
     $csvResponse = Livewire::test('pages::reports')
         ->set('reportType', 'valuation')
-        ->call('exportExcel');
+        ->call('exportCsv');
 
     $csvResponse->assertStatus(200);
     $csvResponse->assertFileDownloaded();

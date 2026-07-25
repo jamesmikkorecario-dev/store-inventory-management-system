@@ -34,6 +34,7 @@ class DatabaseSeeder extends Seeder
             'manage inventory',
             'view transactions',
             'view reports',
+            'export reports',
             'view audit trail',
         ];
 
@@ -52,6 +53,8 @@ class DatabaseSeeder extends Seeder
             'view products',
             'manage inventory',
             'view transactions',
+            'view reports',
+            'export reports',
         ]);
 
         $supplierRole = Role::create(['name' => 'Supplier']);

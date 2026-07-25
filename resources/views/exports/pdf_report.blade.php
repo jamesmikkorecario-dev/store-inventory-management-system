@@ -152,8 +152,13 @@
         </tbody>
     </table>
 
+    @if(! empty($note))
+        <p style="font-size: 9px; color: #92400e; background-color: #fef3c7; padding: 6px 8px; border-radius: 4px;">
+            {{ $note }}
+        </p>
+    @endif
+
     <div class="footer">
         Confidential Report - System Generated on behalf of SIMS Administration. Page 1 of 1.
-    </div>
-</body>
+    </div></body>
 </html>
