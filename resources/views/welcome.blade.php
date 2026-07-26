@@ -78,7 +78,7 @@
                                 <flux:button href="{{ route('login') }}" variant="outline" class="w-full sm:w-auto px-6 py-2.5 text-base">Log in</flux:button>
                             @endauth
                         @endif
-                        <flux:button href="#" variant="ghost" class="w-full sm:w-auto px-6 py-2.5 text-base" icon="code-bracket">View GitHub</flux:button>
+                        <flux:button href="https://github.com/jamesmikkorecario-dev/store-inventory-management-system.git" variant="ghost" class="w-full sm:w-auto px-6 py-2.5 text-base" icon="code-bracket">View GitHub</flux:button>
                     </div>
                 </div>
             </section>

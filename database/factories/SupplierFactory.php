@@ -17,12 +17,26 @@ class SupplierFactory extends Factory
      */
     public function definition(): array
     {
+        $prefixes = [
+            'Apex', 'Global', 'Prime', 'Nexus', 'TechVision',
+            'Vanguard', 'OmniData', 'Pinnacle', 'Horizon', 'Silverline',
+            'Crestview', 'Summit', 'ProActive', 'Dynamic', 'Quantum',
+            'Starlight', 'Vortex', 'Synergy', 'Precision', 'Frontier',
+        ];
+        $suffixes = [
+            'Electronics Corp', 'Logistics Spares', 'Packaging Solutions',
+            'Computing Supplies', 'Hardware Inc', 'Network Solutions',
+            'Components Ltd', 'Office Systems', 'Power & Battery',
+            'Storage Solutions', 'Audio & Video', 'Server Infrastructure',
+            'Security Systems', 'Industrial Supply', 'Distributors LLC',
+        ];
+
         return [
-            'name' => fake()->company(),
+            'name' => fake()->unique()->randomElement($prefixes).' '.fake()->randomElement($suffixes).' #'.fake()->unique()->numberBetween(100, 999),
             'contact_person' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
             'phone' => fake()->phoneNumber(),
-            'address' => fake()->address(),
+            'address' => fake()->streetAddress().', '.fake()->city().', '.fake()->stateAbbr().' '.fake()->postcode(),
             'status' => 'active',
         ];
     }
