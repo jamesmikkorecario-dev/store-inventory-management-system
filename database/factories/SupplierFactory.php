@@ -36,7 +36,7 @@ class SupplierFactory extends Factory
             'contact_person' => fake()->name(),
             'email' => fake()->unique()->safeEmail(),
             'phone' => fake()->phoneNumber(),
-            'address' => fake()->streetAddress().', '.fake()->city().', '.fake()->stateAbbr().' '.fake()->postcode(),
+            'address' => fake()->streetAddress().', '.fake()->city().', '.fake()->randomElement(['CA', 'NY', 'TX', 'IL', 'WA', 'GA', 'CO', 'MA', 'FL', 'OH', 'PA', 'NC', 'MI', 'NJ', 'VA']).' '.fake()->postcode(),
             'status' => 'active',
         ];
     }

@@ -27,6 +27,7 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property int|null $total_units
  * @property float|null $total_value
  * @property int|null $low_stock_products
+ * @property int|null $products_count
  */
 #[Fillable(['name', 'contact_person', 'email', 'phone', 'address', 'status'])]
 class Supplier extends Model

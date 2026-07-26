@@ -36,6 +36,9 @@ class DatabaseSeeder extends Seeder
             'view reports',
             'export reports',
             'view audit trail',
+            'import products',
+            'bulk manage products',
+            'export catalog',
         ];
 
         foreach ($permissions as $permission) {
@@ -55,6 +58,9 @@ class DatabaseSeeder extends Seeder
             'view transactions',
             'view reports',
             'export reports',
+            'import products',
+            'bulk manage products',
+            'export catalog',
         ]);
 
         $supplierRole = Role::create(['name' => 'Supplier']);

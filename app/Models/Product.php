@@ -39,6 +39,7 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property float|null $inventory_value
  * @property float|null $retail_value
  * @property int|null $stock_shortfall
+ * @property int|null $inventory_transactions_count
  */
 #[Fillable([
     'supplier_id',

@@ -1,11 +1,16 @@
 <?php
 
 use App\Models\Supplier;
+use App\Services\CatalogExporter;
+use App\Services\CatalogFilters;
+use App\Services\CatalogService;
 use Livewire\Attributes\Title;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\Auth;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Flux\Flux;
 
 new #[Title('Supplier Management')] class extends Component {
@@ -25,13 +30,18 @@ new #[Title('Supplier Management')] class extends Component {
 
     public bool $showFormModal = false;
     public bool $showDeleteModal = false;
+    #[Locked]
     public bool $isReadOnly = true;
+
+    #[Locked]
+    public bool $canExportCatalog = false;
 
     public function mount(): void
     {
         $user = Auth::user();
         // View authorization handled by route middleware
         $this->isReadOnly = !$user->can('manage suppliers');
+        $this->canExportCatalog = !$user->hasRole('Supplier') && $user->can('export catalog');
     }
 
     public function updatedSearch(): void
@@ -176,23 +186,35 @@ new #[Title('Supplier Management')] class extends Component {
 
     public function with(): array
     {
-        $query = Supplier::withCount('products');
-
-        if ($this->search) {
-            $query->where(function ($q) {
-                $q->where('name', 'like', '%' . $this->search . '%')
-                  ->orWhere('contact_person', 'like', '%' . $this->search . '%')
-                  ->orWhere('email', 'like', '%' . $this->search . '%');
-            });
-        }
-
-        if ($this->filterStatus) {
-            $query->where('status', $this->filterStatus);
-        }
-
         return [
-            'suppliers' => $query->latest()->paginate(10),
+            'suppliers' => app(CatalogService::class)->supplierQuery($this->filters())->paginate(10),
         ];
+    }
+
+    /**
+     * Export the currently filtered supplier list.
+     */
+    public function exportCsv(): StreamedResponse
+    {
+        $user = Auth::user();
+
+        abort_unless(
+            $this->canExportCatalog && $user !== null && !$user->hasRole('Supplier') && $user->can('export catalog'),
+            403
+        );
+
+        return app(CatalogExporter::class)->csv('suppliers', $this->filters());
+    }
+
+    /**
+     * Current filter state, shared by the table and the CSV export.
+     */
+    protected function filters(): CatalogFilters
+    {
+        return CatalogFilters::fromArray([
+            'search' => $this->search,
+            'status' => $this->filterStatus,
+        ]);
     }
 }; ?>
 
@@ -203,9 +225,14 @@ new #[Title('Supplier Management')] class extends Component {
                 <flux:heading size="xl" class="font-bold">Supplier Management</flux:heading>
                 <flux:subheading>Manage suppliers, contact info, and their catalog status indicators.</flux:subheading>
             </div>
-            @if(!$isReadOnly)
-                <flux:button wire:click="openCreateModal" variant="primary" icon="plus">Add Supplier</flux:button>
-            @endif
+            <div class="flex flex-wrap items-center gap-2">
+                @if($canExportCatalog)
+                    <flux:button wire:click="exportCsv" icon="arrow-down-tray" size="sm" class="w-full sm:w-auto" data-test="export-suppliers">Export CSV</flux:button>
+                @endif
+                @if(!$isReadOnly)
+                    <flux:button wire:click="openCreateModal" variant="primary" icon="plus" size="sm" class="w-full sm:w-auto">Add Supplier</flux:button>
+                @endif
+            </div>
         </div>
 
         <!-- Filters -->

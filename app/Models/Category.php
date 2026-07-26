@@ -19,6 +19,7 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
+ * @property int|null $products_count
  */
 #[Fillable(['name', 'description'])]
 class Category extends Model
