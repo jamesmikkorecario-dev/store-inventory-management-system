@@ -308,21 +308,6 @@ Remaining roadmap enhancements for future versions:
 
 ---
 
-## Screenshots
-
-### Reports & Inventory Valuation
-![Inventory Valuation](docs/screenshots/reports-inventory-valuation.png)
-
-### Supplier Performance Scorecard
-![Supplier Performance](docs/screenshots/reports-supplier-performance.png)
-
-### Mobile Responsive Interface
-![Mobile View](docs/screenshots/reports-mobile.png)
-
-> **TODO**: Add updated high-resolution desktop screenshots for Dashboard, Purchase Orders, Forecasting, and Supplier Portal modules following production deployment.
-
----
-
 ## License
 
 This project was developed for educational, professional portfolio, and enterprise architecture demonstration purposes.
