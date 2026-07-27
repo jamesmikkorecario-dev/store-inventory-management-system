@@ -3,6 +3,7 @@
 use App\Models\Product;
 use App\Models\PurchaseOrder;
 use App\Models\Supplier;
+use App\Services\ForecastService;
 use App\Services\PurchaseOrderService;
 use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
@@ -35,7 +36,19 @@ new #[Title('Purchase Orders')] class extends Component {
      */
     public array $lineItems = [];
 
+    // Replenishment recommendations
+    public bool $showRecommendations = false;
+    public int $recommendationPeriod = 30;
+
+    /**
+     * Product ids selected for draft purchase order generation.
+     *
+     * @var list<int>
+     */
+    public array $selectedRecommendations = [];
+
     // Permissions
+    public bool $canViewForecasts = false;
     public bool $canManage = false;
     public bool $canApprove = false;
     public bool $canReceive = false;
@@ -44,6 +57,7 @@ new #[Title('Purchase Orders')] class extends Component {
     {
         $user = Auth::user();
 
+        $this->canViewForecasts = (bool) $user?->can('view forecasts');
         $this->canManage = (bool) $user?->can('manage purchase orders');
         $this->canApprove = (bool) $user?->can('approve purchase orders');
         $this->canReceive = (bool) $user?->can('receive purchase orders');
@@ -217,6 +231,101 @@ new #[Title('Purchase Orders')] class extends Component {
         );
     }
 
+    public function toggleRecommendations(): void
+    {
+        abort_unless($this->canViewForecasts, 403);
+
+        $this->showRecommendations = ! $this->showRecommendations;
+        $this->selectedRecommendations = [];
+    }
+
+    public function switchRecommendationPeriod(int $days): void
+    {
+        abort_unless($this->canViewForecasts, 403);
+
+        $this->recommendationPeriod = app(ForecastService::class)->periodDays($days);
+        $this->selectedRecommendations = [];
+    }
+
+    /**
+     * Raise one draft purchase order per supplier from the selected recommendations.
+     */
+    public function generateDraftFromRecommendations(ForecastService $forecasts, PurchaseOrderService $orders): void
+    {
+        abort_unless($this->canViewForecasts && $this->canManage, 403);
+
+        if ($this->selectedRecommendations === []) {
+            Flux::toast(variant: 'warning', text: 'Select at least one recommendation first.');
+
+            return;
+        }
+
+        $products = Product::whereIn('id', $this->selectedRecommendations)
+            ->where('status', 'active')
+            ->get();
+
+        if ($products->isEmpty()) {
+            Flux::toast(variant: 'danger', text: 'The selected products are no longer available.');
+
+            return;
+        }
+
+        $created = 0;
+
+        try {
+            foreach ($products->groupBy('supplier_id') as $supplierId => $supplierProducts) {
+                $items = [];
+
+                foreach ($supplierProducts as $product) {
+                    $quantity = $forecasts->forecastFor($product, $this->recommendationPeriod)['suggested_reorder_quantity'];
+
+                    if ($quantity < 1) {
+                        continue;
+                    }
+
+                    $items[] = [
+                        'product_id' => $product->id,
+                        'quantity_ordered' => $quantity,
+                        'unit_cost' => (float) $product->cost_price,
+                    ];
+                }
+
+                if ($items === []) {
+                    continue;
+                }
+
+                $orders->create([
+                    'supplier_id' => (int) $supplierId,
+                    'order_date' => now()->toDateString(),
+                    'expected_delivery_date' => now()->addDays(ForecastService::LEAD_TIME_DAYS)->toDateString(),
+                    'notes' => 'Generated from inventory forecast (last '.$this->recommendationPeriod.' days of consumption).',
+                ], $items, Auth::user());
+
+                $created++;
+            }
+        } catch (Throwable $e) {
+            Flux::toast(variant: 'danger', text: $e->getMessage());
+
+            return;
+        }
+
+        if ($created === 0) {
+            Flux::toast(variant: 'warning', text: 'No reorder quantity is suggested for the selected products.');
+
+            return;
+        }
+
+        $this->selectedRecommendations = [];
+        $this->resetPage();
+
+        $this->dispatch('purchase-orders-updated');
+        $this->dispatch('dashboard-updated');
+
+        Flux::toast(variant: 'success', text: $created === 1
+            ? 'Draft purchase order created from the forecast.'
+            : $created.' draft purchase orders created from the forecast.');
+    }
+
     public function resetFilters(): void
     {
         $this->reset(['search', 'filterStatus', 'filterSupplier', 'filterStartDate', 'filterEndDate']);
@@ -263,8 +372,15 @@ new #[Title('Purchase Orders')] class extends Component {
             ->orderBy('name')
             ->get(['id', 'name', 'sku', 'cost_price', 'supplier_id']);
 
+        $recommendations = $this->showRecommendations && $this->canViewForecasts
+            ? app(ForecastService::class)->replenishmentRecommendations($this->recommendationPeriod)
+            : collect();
+
         return [
             'orders' => $query->latest('order_date')->latest('id')->paginate(15),
+            'recommendations' => $recommendations,
+            'forecastService' => app(ForecastService::class),
+            'recommendationPeriods' => ForecastService::ANALYSIS_PERIODS,
             'statuses' => PurchaseOrder::STATUSES,
             'suppliers' => Supplier::orderBy('name')->get(['id', 'name']),
             'formProducts' => $formProducts,
@@ -318,6 +434,122 @@ new #[Title('Purchase Orders')] class extends Component {
             <flux:button wire:click="openCreateModal" variant="primary" icon="plus" data-test="new-purchase-order">New Purchase Order</flux:button>
         @endif
     </div>
+
+    @if($canViewForecasts)
+        <!-- Replenishment Recommendations -->
+        <div class="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
+            <div class="flex flex-col gap-3 border-b border-zinc-200 bg-zinc-50 px-6 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-zinc-800 dark:bg-zinc-950">
+                <div class="flex items-center gap-2">
+                    <flux:icon name="sparkles" class="size-5 text-indigo-500" />
+                    <div>
+                        <span class="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Replenishment Recommendations</span>
+                        <flux:text class="block text-xs text-zinc-500 dark:text-zinc-400">Forecast-driven suggestions based on recent consumption.</flux:text>
+                    </div>
+                </div>
+                <flux:button
+                    wire:click="toggleRecommendations"
+                    size="sm"
+                    variant="{{ $showRecommendations ? 'filled' : 'ghost' }}"
+                    :icon="$showRecommendations ? 'chevron-up' : 'chevron-down'"
+                    data-test="toggle-recommendations"
+                >
+                    {{ $showRecommendations ? 'Hide' : 'Show' }} Recommendations
+                </flux:button>
+            </div>
+
+            @if($showRecommendations)
+                <div class="flex flex-col gap-3 border-b border-zinc-200 px-6 py-3 sm:flex-row sm:items-center sm:justify-between dark:border-zinc-800">
+                    <div class="inline-flex items-center gap-1 rounded-lg bg-zinc-100 p-1 dark:bg-zinc-800">
+                        @foreach($recommendationPeriods as $period)
+                            <button type="button"
+                                wire:click="switchRecommendationPeriod({{ $period }})"
+                                data-test="rec-period-{{ $period }}"
+                                class="cursor-pointer rounded-md px-3 py-1.5 text-xs font-medium transition-all duration-150 {{ $recommendationPeriod === $period ? 'bg-white font-semibold text-zinc-900 shadow-sm dark:bg-zinc-700 dark:text-white' : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200' }}">
+                                {{ $period }} Days
+                            </button>
+                        @endforeach
+                    </div>
+                    @if($canManage)
+                        <flux:button
+                            wire:click="generateDraftFromRecommendations"
+                            size="sm"
+                            variant="primary"
+                            icon="clipboard-document-list"
+                            :disabled="count($selectedRecommendations) === 0"
+                            data-test="generate-draft-po"
+                        >
+                            Generate Draft PO{{ count($selectedRecommendations) > 0 ? ' ('.count($selectedRecommendations).')' : '' }}
+                        </flux:button>
+                    @endif
+                </div>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full min-w-[820px] table-fixed text-left text-sm text-zinc-600 dark:text-zinc-400">
+                        <thead>
+                            <tr class="border-b border-zinc-200 bg-zinc-50/60 text-xs font-semibold text-zinc-400 dark:border-zinc-800 dark:bg-zinc-950/50">
+                                <th scope="col" class="px-4 py-3 w-[6%]"><span class="sr-only">Select</span></th>
+                                <th scope="col" class="px-4 py-3 w-[28%]">Product</th>
+                                <th scope="col" class="px-4 py-3 w-[20%]">Supplier</th>
+                                <th scope="col" class="px-4 py-3 text-left w-[12%]">Current Stock</th>
+                                <th scope="col" class="px-4 py-3 text-left w-[12%]">Days Left</th>
+                                <th scope="col" class="px-4 py-3 text-left w-[12%]">Suggested Qty</th>
+                                <th scope="col" class="px-4 py-3 w-[10%]">Severity</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
+                            @forelse($recommendations as $product)
+                                @php $forecast = $forecastService->forecastFor($product, $recommendationPeriod); @endphp
+                                <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-800/30" wire:key="rec-{{ $product->id }}">
+                                    <td class="px-4 py-3">
+                                        <flux:checkbox
+                                            wire:model.live="selectedRecommendations"
+                                            value="{{ $product->id }}"
+                                            :aria-label="'Select ' . $product->name . ' for replenishment'"
+                                            data-test="rec-check-{{ $product->id }}"
+                                        />
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <flux:text class="block truncate font-semibold text-zinc-900 dark:text-white" title="{{ $product->name }}">{{ $product->name }}</flux:text>
+                                        <flux:text class="block truncate font-mono text-[11px] text-zinc-400">{{ $product->sku }}</flux:text>
+                                    </td>
+                                    <td class="px-4 py-3">
+                                        <flux:text class="block truncate" title="{{ $product->supplier->name ?? 'Unassigned' }}">{{ $product->supplier->name ?? 'Unassigned' }}</flux:text>
+                                    </td>
+                                    <td class="px-4 py-3 text-right whitespace-nowrap">
+                                        <span class="font-semibold text-zinc-900 dark:text-white">{{ number_format($product->current_stock) }}</span>
+                                        <span class="text-xs text-zinc-400"> / {{ number_format($product->minimum_stock) }}</span>
+                                    </td>
+                                    <td class="px-4 py-3 text-right">
+                                        @if($forecast['days_remaining'] === null)
+                                            <span class="text-xs text-zinc-400">—</span>
+                                        @else
+                                            <span class="font-semibold {{ in_array($forecast['severity'], ['critical', 'out_of_stock'], true) ? 'text-rose-600 dark:text-rose-400' : 'text-amber-600 dark:text-amber-400' }}">
+                                                {{ number_format(floor($forecast['days_remaining'])) }}
+                                            </span>
+                                        @endif
+                                    </td>
+                                    <td class="px-4 py-3 text-right font-bold text-zinc-900 dark:text-white">{{ number_format($forecast['suggested_reorder_quantity']) }}</td>
+                                    <td class="px-4 py-3">
+                                        <flux:badge :color="$forecastService->severityColor($forecast['severity'])" size="sm" class="whitespace-nowrap">{{ $forecast['severity_label'] }}</flux:badge>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="7" class="px-6 py-12">
+                                        <div class="flex flex-col items-center justify-center text-center">
+                                            <flux:icon name="check-circle" class="mb-3 size-10 text-emerald-500" />
+                                            <flux:text class="font-medium text-zinc-900 dark:text-zinc-100">Nothing needs replenishing</flux:text>
+                                            <flux:text class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">No active product is below its minimum stock or projected to deplete soon.</flux:text>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+        </div>
+    @endif
 
     <!-- Metrics -->
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -400,15 +632,15 @@ new #[Title('Purchase Orders')] class extends Component {
     <div class="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900"
          wire:loading.class="opacity-50 pointer-events-none" wire:target="{{ $loadingTargets }}">
         <div class="overflow-x-auto">
-            <table class="w-full min-w-[940px] table-fixed text-left text-sm text-zinc-600 dark:text-zinc-400">
+            <table class="w-full min-w-[955px] table-fixed text-left text-sm text-zinc-600 dark:text-zinc-400">
                 <thead>
                     <tr class="border-b border-zinc-200 bg-zinc-50 text-xs font-semibold text-zinc-400 dark:border-zinc-800 dark:bg-zinc-950">
-                        <th scope="col" class="px-4 py-4 w-[14%]">PO Number</th>
-                        <th scope="col" class="px-4 py-4 w-[17%]">Supplier</th>
-                        <th scope="col" class="px-4 py-4 w-[17%]">Dates</th>
+                        <th scope="col" class="px-4 py-4 w-[13%]">PO Number</th>
+                        <th scope="col" class="px-4 py-4 w-[14%]">Supplier</th>
+                        <th scope="col" class="px-4 py-4 w-[22%]">Dates</th>
                         <th scope="col" class="px-4 py-4 text-left w-[8%]">Items</th>
-                        <th scope="col" class="px-4 py-4 w-[10%]">Received</th>
-                        <th scope="col" class="px-4 py-4 text-left w-[11%]">Total</th>
+                        <th scope="col" class="px-4 py-4 w-[8%]">Received</th>
+                        <th scope="col" class="px-4 py-4 text-left w-[12%]">Total</th>
                         <th scope="col" class="px-4 py-4 w-[15%]">Status</th>
                         <th scope="col" class="px-4 py-4 text-left w-[8%]">Actions</th>
                     </tr>

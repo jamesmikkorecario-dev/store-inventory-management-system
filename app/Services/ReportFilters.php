@@ -18,12 +18,13 @@ class ReportFilters
         public readonly ?string $transactionType = null,
         public readonly ?int $productId = null,
         public readonly ?string $purchaseOrderStatus = null,
+        public readonly int $forecastDays = 30,
     ) {}
 
     /**
      * Build a filter set from raw (string based) component state.
      *
-     * @param  array{search?: string|null, startDate?: string|null, endDate?: string|null, categoryId?: int|string|null, supplierId?: int|string|null, severity?: string|null, inactivityDays?: int|string|null, transactionType?: string|null, productId?: int|string|null, purchaseOrderStatus?: string|null}  $state
+     * @param  array{search?: string|null, startDate?: string|null, endDate?: string|null, categoryId?: int|string|null, supplierId?: int|string|null, severity?: string|null, inactivityDays?: int|string|null, transactionType?: string|null, productId?: int|string|null, purchaseOrderStatus?: string|null, forecastDays?: int|string|null}  $state
      */
     public static function fromArray(array $state): self
     {
@@ -38,6 +39,7 @@ class ReportFilters
             transactionType: self::nullableString($state['transactionType'] ?? null),
             productId: self::nullableInt($state['productId'] ?? null),
             purchaseOrderStatus: self::nullableString($state['purchaseOrderStatus'] ?? null),
+            forecastDays: self::nullableInt($state['forecastDays'] ?? null) ?? 30,
         );
     }
 

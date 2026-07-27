@@ -4,6 +4,7 @@ use App\Models\Product;
 use App\Models\Supplier;
 use App\Models\User;
 use App\Models\InventoryTransaction;
+use App\Services\ForecastService;
 use App\Services\InventoryAnalyticsService;
 use App\Services\PurchaseOrderService;
 use Illuminate\Support\Facades\Auth;
@@ -37,6 +38,11 @@ new #[Title('Dashboard')] class extends Component {
     public int $pendingDeliveries = 0;
     public int $overdueDeliveries = 0;
     public $recentlyReceivedOrders = [];
+
+    // Forecasting (Admin/Staff only)
+    public bool $showForecasts = false;
+    public int $forecastPeriod = 30;
+    public $forecastedStockouts = [];
 
     // Analytics properties
     public int $analyticsPeriod = 30;
@@ -131,6 +137,33 @@ new #[Title('Dashboard')] class extends Component {
         }
 
         $this->loadPurchaseOrderMetrics();
+        $this->loadForecasts();
+    }
+
+    /**
+     * Products projected to deplete soonest, nearest depletion date first.
+     */
+    public function loadForecasts(): void
+    {
+        $this->showForecasts = (bool) Auth::user()?->can('view forecasts');
+
+        if (! $this->showForecasts) {
+            $this->forecastedStockouts = [];
+
+            return;
+        }
+
+        $this->forecastedStockouts = app(ForecastService::class)->upcomingStockouts(
+            limit: 6,
+            periodDays: $this->forecastPeriod,
+            supplierId: $this->isSupplier ? $this->supplierId : null,
+        );
+    }
+
+    public function switchForecastPeriod(int $days): void
+    {
+        $this->forecastPeriod = app(ForecastService::class)->periodDays($days);
+        $this->loadForecasts();
     }
 
     /**
@@ -367,6 +400,93 @@ new #[Title('Dashboard')] class extends Component {
                                         <flux:icon name="truck" class="size-10 text-zinc-300 dark:text-zinc-600 mx-auto mb-3" />
                                         <flux:text class="font-medium text-zinc-900 dark:text-zinc-100">No deliveries received yet</flux:text>
                                         <flux:text class="text-sm text-zinc-500 mt-1">Received purchase orders will appear here.</flux:text>
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        @endif
+
+        @if($showForecasts)
+            <!-- ═══════════════════════════════════════════════════ -->
+            <!-- FORECASTED STOCKOUTS                               -->
+            <!-- ═══════════════════════════════════════════════════ -->
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div class="flex items-center gap-2">
+                    <flux:icon name="chart-bar-square" class="size-5 text-rose-500" />
+                    <flux:heading size="lg" class="font-semibold">Forecasted Stockouts</flux:heading>
+                </div>
+                <div class="inline-flex items-center gap-1 rounded-lg bg-zinc-100 p-1 dark:bg-zinc-800">
+                    @foreach(\App\Services\ForecastService::ANALYSIS_PERIODS as $period)
+                        <button type="button"
+                            wire:click="switchForecastPeriod({{ $period }})"
+                            data-test="forecast-period-{{ $period }}"
+                            class="cursor-pointer rounded-md px-3 py-1.5 text-xs font-medium transition-all duration-150 {{ $forecastPeriod === $period ? 'bg-white font-semibold text-zinc-900 shadow-sm dark:bg-zinc-700 dark:text-white' : 'text-zinc-500 hover:text-zinc-700 dark:text-zinc-400 dark:hover:text-zinc-200' }}">
+                            {{ $period }} Days
+                        </button>
+                    @endforeach
+                </div>
+            </div>
+
+            <div class="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+                <div class="flex flex-col gap-1 border-b border-zinc-150 px-6 py-4 sm:flex-row sm:items-center sm:justify-between dark:border-zinc-800">
+                    <flux:text class="text-sm text-zinc-500 dark:text-zinc-400">
+                        Projected from the last {{ $forecastPeriod }} days of stock-out activity, soonest depletion first.
+                    </flux:text>
+                    @can('view reports')
+                        <flux:button variant="subtle" size="sm" href="{{ route('reports.index', ['report' => 'forecast']) }}" wire:navigate>Full forecast</flux:button>
+                    @endcan
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full min-w-[720px] table-fixed text-left text-sm text-zinc-600 dark:text-zinc-400">
+                        <thead>
+                            <tr class="border-b border-zinc-200 bg-zinc-50 text-xs font-semibold text-zinc-400 dark:border-zinc-800 dark:bg-zinc-950">
+                                <th scope="col" class="px-4 py-3 w-[30%]">Product</th>
+                                <th scope="col" class="px-4 py-3 text-left w-[12%]">Current Stock</th>
+                                <th scope="col" class="px-4 py-3 text-left w-[14%]">Avg Daily Usage</th>
+                                <th scope="col" class="px-4 py-3 text-left w-[12%]">Days Left</th>
+                                <th scope="col" class="px-4 py-3 w-[17%]">Stockout Date</th>
+                                <th scope="col" class="px-4 py-3 w-[15%]">Severity</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
+                            @forelse($forecastedStockouts as $product)
+                                @php $forecast = app(\App\Services\ForecastService::class)->forecastFor($product, $forecastPeriod); @endphp
+                                <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-800/30" wire:key="stockout-{{ $product->id }}">
+                                    <td class="px-4 py-3.5">
+                                        <flux:text class="block truncate font-semibold text-zinc-900 dark:text-white" title="{{ $product->name }}">{{ $product->name }}</flux:text>
+                                        <flux:text class="block truncate font-mono text-[11px] text-zinc-400">{{ $product->sku }}</flux:text>
+                                    </td>
+                                    <td class="px-4 py-3.5 text-right font-semibold text-zinc-900 dark:text-white">{{ number_format($product->current_stock) }}</td>
+                                    <td class="px-4 py-3.5 text-right">{{ number_format($forecast['average_daily_usage'], 2) }}</td>
+                                    <td class="px-4 py-3.5 text-right">
+                                        @if($forecast['days_remaining'] === null)
+                                            <span class="text-xs text-zinc-400">—</span>
+                                        @else
+                                            <span class="font-bold {{ in_array($forecast['severity'], ['critical', 'out_of_stock'], true) ? 'text-rose-600 dark:text-rose-400' : ($forecast['severity'] === 'warning' ? 'text-amber-600 dark:text-amber-400' : 'text-zinc-700 dark:text-zinc-300') }}">
+                                                {{ number_format(floor($forecast['days_remaining'])) }}
+                                            </span>
+                                        @endif
+                                    </td>
+                                    <td class="px-4 py-3.5 whitespace-nowrap">
+                                        {{ $forecast['stockout_date']?->format('M d, Y') ?? \App\Services\ForecastService::INSUFFICIENT_DATA }}
+                                    </td>
+                                    <td class="px-4 py-3.5">
+                                        <flux:badge :color="app(\App\Services\ForecastService::class)->severityColor($forecast['severity'])" size="sm" class="whitespace-nowrap">
+                                            {{ $forecast['severity_label'] }}
+                                        </flux:badge>
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="6" class="px-6 py-12">
+                                        <div class="flex flex-col items-center justify-center text-center">
+                                            <flux:icon name="check-circle" class="mb-3 size-10 text-emerald-500" />
+                                            <flux:text class="font-medium text-zinc-900 dark:text-zinc-100">No forecasted stockouts</flux:text>
+                                            <flux:text class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">No product has enough recent consumption to project a depletion date.</flux:text>
+                                        </div>
                                     </td>
                                 </tr>
                             @endforelse

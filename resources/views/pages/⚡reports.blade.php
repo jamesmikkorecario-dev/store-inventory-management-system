@@ -2,6 +2,7 @@
 
 use App\Models\Category;
 use App\Models\PurchaseOrder;
+use App\Services\ForecastService;
 use App\Models\Supplier;
 use App\Services\ReportExporter;
 use App\Services\ReportFilters;
@@ -29,6 +30,7 @@ new #[Title('Advanced Reports')] class extends Component {
     public string $transactionType = '';
     public string $productId = '';
     public string $purchaseOrderStatus = '';
+    public int $forecastDays = 30;
     public int $perPage = 15;
 
     /**
@@ -47,6 +49,7 @@ new #[Title('Advanced Reports')] class extends Component {
         'transactionType',
         'productId',
         'purchaseOrderStatus',
+        'forecastDays',
         'perPage',
     ];
 
@@ -54,6 +57,10 @@ new #[Title('Advanced Reports')] class extends Component {
     {
         // View authorization is handled by the `permission:view reports` route middleware.
         if (! array_key_exists($this->reportType, ReportService::REPORT_TYPES)) {
+            $this->reportType = 'valuation';
+        }
+
+        if ($this->reportType === 'forecast' && ! $this->canViewForecasts()) {
             $this->reportType = 'valuation';
         }
     }
@@ -67,6 +74,10 @@ new #[Title('Advanced Reports')] class extends Component {
 
     public function selectReport(string $type): void
     {
+        if ($type === 'forecast') {
+            abort_unless($this->canViewForecasts(), 403);
+        }
+
         $this->reportType = array_key_exists($type, ReportService::REPORT_TYPES) ? $type : 'valuation';
         $this->resetPage();
     }
@@ -86,6 +97,7 @@ new #[Title('Advanced Reports')] class extends Component {
         ]);
 
         $this->inactivityDays = 30;
+        $this->forecastDays = 30;
         $this->resetPage();
     }
 
@@ -118,6 +130,9 @@ new #[Title('Advanced Reports')] class extends Component {
             'categories' => Category::orderBy('name')->get(),
             'suppliers' => Supplier::orderBy('name')->get(),
             'purchaseOrderStatuses' => PurchaseOrder::STATUSES,
+            'forecastPeriods' => ForecastService::REPORT_PERIODS,
+            'forecastService' => app(ForecastService::class),
+            'canViewForecasts' => $this->canViewForecasts(),
             'canExport' => Auth::user()?->can('export reports') ?? false,
             'hasActiveFilters' => $filters->hasAny(),
             'reportService' => $reports,
@@ -159,6 +174,11 @@ new #[Title('Advanced Reports')] class extends Component {
                 'summary' => $reports->supplierPurchaseSummary($filters),
                 'rows' => $reports->supplierPurchaseQuery($filters)->paginate($this->perPage),
             ],
+            'forecast' => [
+                ...$shared,
+                'summary' => app(ForecastService::class)->forecastSummary($filters),
+                'rows' => app(ForecastService::class)->forecastQuery($filters)->paginate($this->perPage),
+            ],
             default => [
                 ...$shared,
                 'summary' => $reports->valuationSummary($filters),
@@ -186,17 +206,30 @@ new #[Title('Advanced Reports')] class extends Component {
             'transactionType' => $this->transactionType,
             'productId' => $this->productId,
             'purchaseOrderStatus' => $this->purchaseOrderStatus,
+            'forecastDays' => $this->forecastDays,
         ]);
     }
 
     protected function authorizeExport(): void
     {
         abort_unless(Auth::user()?->can('export reports') ?? false, 403);
+
+        if ($this->reportType === 'forecast') {
+            abort_unless(Auth::user()?->can('export forecasts') ?? false, 403);
+        }
+    }
+
+    /**
+     * Whether the current user may see forecasting data.
+     */
+    protected function canViewForecasts(): bool
+    {
+        return Auth::user()?->can('view forecasts') ?? false;
     }
 }; ?>
 
 @php
-    $loadingTargets = 'reportType, selectReport, search, startDate, endDate, categoryId, supplierId, severity, inactivityDays, transactionType, productId, purchaseOrderStatus, perPage, resetFilters, gotoPage, nextPage, previousPage';
+    $loadingTargets = 'reportType, selectReport, search, startDate, endDate, categoryId, supplierId, severity, inactivityDays, transactionType, productId, purchaseOrderStatus, forecastDays, perPage, resetFilters, gotoPage, nextPage, previousPage';
     $purchaseOrderReports = ['purchase_orders', 'outstanding_orders', 'supplier_purchases'];
     $isPurchaseOrderReport = in_array($reportType, $purchaseOrderReports, true);
 @endphp
@@ -206,7 +239,7 @@ new #[Title('Advanced Reports')] class extends Component {
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
             <flux:heading size="xl" class="font-bold">Advanced Reports</flux:heading>
-            <flux:subheading>Inventory valuation, stock risk, dead stock, movement, supplier performance and purchase order analytics.</flux:subheading>
+            <flux:subheading>Inventory valuation, stock risk, dead stock, movement, supplier performance, purchase order and forecasting analytics.</flux:subheading>
         </div>
         @if($canExport)
             <div class="flex items-center gap-2">
@@ -220,6 +253,7 @@ new #[Title('Advanced Reports')] class extends Component {
     <div class="overflow-x-auto rounded-xl border border-zinc-200 bg-white p-2 dark:border-zinc-700 dark:bg-zinc-900">
         <div class="flex min-w-max items-center gap-1">
             @foreach($reportTypes as $type => $label)
+                @continue($type === 'forecast' && ! $canViewForecasts)
                 <button
                     type="button"
                     wire:click="selectReport('{{ $type }}')"
@@ -251,14 +285,14 @@ new #[Title('Advanced Reports')] class extends Component {
             </div>
         </div>
 
-        <div>
+        <div @class(['hidden' => $reportType === 'forecast'])>
             <flux:input
                 wire:model.live="startDate"
                 type="date"
                 :label="$reportType === 'transactions' ? 'Transactions From' : ($isPurchaseOrderReport ? 'Ordered From' : 'Records From')"
             />
         </div>
-        <div>
+        <div @class(['hidden' => $reportType === 'forecast'])>
             <flux:input
                 wire:model.live="endDate"
                 type="date"
@@ -321,6 +355,16 @@ new #[Title('Advanced Reports')] class extends Component {
                     <option value="">All Statuses</option>
                     @foreach($purchaseOrderStatuses as $value => $label)
                         <option value="{{ $value }}">{{ $label }}</option>
+                    @endforeach
+                </flux:select>
+            </div>
+        @endif
+
+        @if($reportType === 'forecast')
+            <div>
+                <flux:select wire:model.live="forecastDays" label="Forecast Period">
+                    @foreach($forecastPeriods as $period)
+                        <option value="{{ $period }}">Based on last {{ $period }} days</option>
                     @endforeach
                 </flux:select>
             </div>
@@ -494,6 +538,27 @@ new #[Title('Advanced Reports')] class extends Component {
                 <x-report-stat-card label="Purchase Value" icon="banknotes" icon-class="text-emerald-500" :value="'$' . number_format($summary['total_value'], 2)" :hint="'$' . number_format($summary['received_value'], 2) . ' delivered'" />
                 <x-report-stat-card label="Units Ordered" icon="cube" icon-class="text-amber-500" :value="number_format($summary['units_ordered'])" :hint="number_format($summary['units_received']) . ' received'" />
             </div>
+        @elseif($reportType === 'forecast')
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <x-report-stat-card label="Products Forecast" icon="chart-bar" icon-class="text-indigo-500" :value="number_format($summary['product_count'])" :hint="number_format($summary['forecastable']) . ' with usage history'" />
+                <x-report-stat-card
+                    label="Projected At Risk"
+                    icon="exclamation-triangle"
+                    :icon-class="$summary['at_risk'] > 0 ? 'text-amber-500' : 'text-zinc-400'"
+                    :value="number_format($summary['at_risk'])"
+                    :hint="'Depleting within ' . \App\Services\ForecastService::WARNING_DAYS . ' days'"
+                    :hint-class="$summary['at_risk'] > 0 ? 'text-amber-500' : 'text-zinc-500'"
+                />
+                <x-report-stat-card
+                    label="Critical"
+                    icon="exclamation-circle"
+                    :icon-class="$summary['critical'] > 0 ? 'text-rose-500' : 'text-zinc-400'"
+                    :value="number_format($summary['critical'])"
+                    :hint="number_format($summary['out_of_stock']) . ' already out of stock'"
+                    :hint-class="$summary['critical'] > 0 ? 'text-rose-500' : 'text-zinc-500'"
+                />
+                <x-report-stat-card label="Suggested Reorder" icon="shopping-cart" icon-class="text-emerald-500" :value="number_format($summary['suggested_units'])" :hint="'$' . number_format($summary['suggested_value'], 2) . ' at cost'" />
+            </div>
         @else
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                 <x-report-stat-card label="Suppliers Ranked" icon="truck" icon-class="text-pink-500" :value="number_format($summary['supplier_count'])" :hint="$summary['top_supplier'] ? 'Top: ' . $summary['top_supplier'] : null" />
@@ -511,7 +576,9 @@ new #[Title('Advanced Reports')] class extends Component {
             </div>
 
             <div class="overflow-x-auto">
-                <table class="w-full text-left text-sm text-zinc-600 dark:text-zinc-400">
+                {{-- The forecast report truncates long product/supplier names, which needs a
+                     fixed layout so the percentage column widths stay authoritative. --}}
+                <table @class(['w-full text-left text-sm text-zinc-600 dark:text-zinc-400', 'min-w-[1040px] table-fixed' => $reportType === 'forecast'])>
                     @if($reportType === 'valuation')
                         <thead>
                             <tr class="border-b border-zinc-200 bg-zinc-50 text-xs font-semibold text-zinc-400 dark:border-zinc-800 dark:bg-zinc-950">
@@ -577,7 +644,7 @@ new #[Title('Advanced Reports')] class extends Component {
                         </thead>
                         <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
                             @forelse($rows as $product)
-                                @php($severity = $reportService->severityFor($product))
+                                @php $severity = $reportService->severityFor($product); @endphp
                                 <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-800/30">
                                     <td class="px-6 py-3.5">
                                         <flux:text class="font-semibold text-zinc-900 dark:text-white">{{ $product->name }}</flux:text>
@@ -635,7 +702,7 @@ new #[Title('Advanced Reports')] class extends Component {
                         </thead>
                         <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
                             @forelse($rows as $product)
-                                @php($days = $reportService->daysSinceLastMovement($product))
+                                @php $days = $reportService->daysSinceLastMovement($product); @endphp
                                 <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-800/30">
                                     <td class="px-6 py-3.5">
                                         <flux:text class="font-semibold text-zinc-900 dark:text-white">{{ $product->name }}</flux:text>
@@ -927,6 +994,90 @@ new #[Title('Advanced Reports')] class extends Component {
                                     <td class="px-6 py-4 text-right">{{ number_format($summary['units_received']) }}</td>
                                     <td class="px-6 py-4 text-right">${{ number_format($summary['total_value'], 2) }}</td>
                                     <td class="px-6 py-4"></td>
+                                </tr>
+                            </tfoot>
+                        @endif
+                    @elseif($reportType === 'forecast')
+                        <thead>
+                            <tr class="border-b border-zinc-200 bg-zinc-50 text-xs font-semibold text-zinc-400 dark:border-zinc-800 dark:bg-zinc-950">
+                                <th scope="col" class="px-4 py-4 w-[20%]">SKU / Product</th>
+                                <th scope="col" class="px-4 py-4 w-[13%]">Category</th>
+                                <th scope="col" class="px-4 py-4 w-[14%]">Supplier</th>
+                                <th scope="col" class="px-4 py-4 text-left w-[9%]">Stock / Min</th>
+                                <th scope="col" class="px-4 py-4 text-left w-[10%]">Avg Daily Usage</th>
+                                <th scope="col" class="px-4 py-4 text-left w-[9%]">Days Left</th>
+                                <th scope="col" class="px-4 py-4 w-[13%]">Forecasted Stockout</th>
+                                <th scope="col" class="px-4 py-4 text-left w-[12%]">Suggested Reorder</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
+                            @forelse($rows as $product)
+                                @php $forecast = $forecastService->forecastFor($product, $forecastDays); @endphp
+                                <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-800/30" wire:key="forecast-{{ $product->id }}">
+                                    <td class="px-4 py-3.5">
+                                        <flux:text class="block truncate font-semibold text-zinc-900 dark:text-white" title="{{ $product->name }}">{{ $product->name }}</flux:text>
+                                        <flux:text class="block truncate font-mono text-[11px] text-zinc-400">{{ $product->sku }}</flux:text>
+                                    </td>
+                                    <td class="px-4 py-3.5">
+                                        <flux:text class="block truncate" title="{{ $product->category->name ?? 'Uncategorized' }}">{{ $product->category->name ?? 'Uncategorized' }}</flux:text>
+                                    </td>
+                                    <td class="px-4 py-3.5">
+                                        <flux:text class="block truncate" title="{{ $product->supplier->name ?? 'Unassigned' }}">{{ $product->supplier->name ?? 'Unassigned' }}</flux:text>
+                                    </td>
+                                    <td class="px-4 py-3.5 text-right whitespace-nowrap">
+                                        <span class="font-semibold text-zinc-900 dark:text-white">{{ number_format($product->current_stock) }}</span>
+                                        <span class="text-xs text-zinc-400"> / {{ number_format($product->minimum_stock) }}</span>
+                                    </td>
+                                    <td class="px-4 py-3.5 text-right">
+                                        {{ $forecast['has_data'] ? number_format($forecast['average_daily_usage'], 2) : '—' }}
+                                    </td>
+                                    <td class="px-4 py-3.5 text-right">
+                                        @if($forecast['days_remaining'] === null)
+                                            <span class="text-xs text-zinc-400">—</span>
+                                        @else
+                                            <span class="font-semibold {{ $forecast['severity'] === 'critical' || $forecast['severity'] === 'out_of_stock' ? 'text-rose-600 dark:text-rose-400' : ($forecast['severity'] === 'warning' ? 'text-amber-600 dark:text-amber-400' : 'text-zinc-700 dark:text-zinc-300') }}">
+                                                {{ number_format(floor($forecast['days_remaining'])) }}
+                                            </span>
+                                        @endif
+                                    </td>
+                                    <td class="px-4 py-3.5">
+                                        @if($forecast['stockout_date'])
+                                            <flux:text class="block whitespace-nowrap text-zinc-700 dark:text-zinc-300">{{ $forecast['stockout_date']->format('M d, Y') }}</flux:text>
+                                            <flux:badge :color="$forecastService->severityColor($forecast['severity'])" size="sm" class="mt-1">{{ $forecast['severity_label'] }}</flux:badge>
+                                        @else
+                                            <flux:badge color="zinc" size="sm">{{ \App\Services\ForecastService::INSUFFICIENT_DATA }}</flux:badge>
+                                        @endif
+                                    </td>
+                                    <td class="px-4 py-3.5 text-right font-semibold text-zinc-900 dark:text-white">
+                                        {{ number_format($forecast['suggested_reorder_quantity']) }}
+                                        @if($forecast['suggested_reorder_date'])
+                                            <flux:text class="block text-[10px] font-normal text-zinc-400">by {{ $forecast['suggested_reorder_date']->format('M d') }}</flux:text>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="8" class="px-6 py-16">
+                                        <div class="flex flex-col items-center justify-center text-center">
+                                            <flux:icon name="chart-bar" class="mb-4 size-12 text-zinc-300 dark:text-zinc-600" />
+                                            <flux:heading size="lg" class="font-semibold text-zinc-700 dark:text-zinc-300">Nothing to forecast</flux:heading>
+                                            <flux:text class="mt-1 max-w-sm text-sm text-zinc-500 dark:text-zinc-400">Add products or relax the filters to project future stock levels.</flux:text>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                        @if($rows->isNotEmpty())
+                            <tfoot>
+                                <tr class="border-t-2 border-zinc-300 bg-zinc-100 font-bold text-zinc-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-white">
+                                    <td class="px-4 py-4">TOTALS ({{ number_format($summary['product_count']) }} products)</td>
+                                    <td class="px-4 py-4">At risk: {{ number_format($summary['at_risk']) }}</td>
+                                    <td class="px-4 py-4">Critical: {{ number_format($summary['critical']) }}</td>
+                                    <td class="px-4 py-4"></td>
+                                    <td class="px-4 py-4 text-right">{{ number_format($summary['total_daily_usage'], 2) }}</td>
+                                    <td class="px-4 py-4"></td>
+                                    <td class="px-4 py-4 text-xs">No data: {{ number_format($summary['insufficient_data']) }}</td>
+                                    <td class="px-4 py-4 text-right">{{ number_format($summary['suggested_units']) }}</td>
                                 </tr>
                             </tfoot>
                         @endif

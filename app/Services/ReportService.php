@@ -33,6 +33,7 @@ class ReportService
         'purchase_orders' => 'Purchase Order Summary',
         'outstanding_orders' => 'Outstanding Orders',
         'supplier_purchases' => 'Supplier Purchase History',
+        'forecast' => 'Inventory Forecast',
     ];
 
     /**

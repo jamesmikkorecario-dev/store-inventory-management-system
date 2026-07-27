@@ -22,7 +22,10 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
  */
 class ReportExporter
 {
-    public function __construct(private readonly ReportService $reports) {}
+    public function __construct(
+        private readonly ReportService $reports,
+        private readonly ForecastService $forecasts,
+    ) {}
 
     /**
      * Human readable report title.
@@ -98,6 +101,18 @@ class ReportExporter
                 ['title' => 'Status'],
                 ['title' => 'Units Outstanding', 'class' => 'text-right'],
                 ['title' => 'Outstanding Value', 'class' => 'text-right'],
+            ],
+            'forecast' => [
+                ['title' => 'SKU'],
+                ['title' => 'Product Name'],
+                ['title' => 'Category'],
+                ['title' => 'Supplier'],
+                ['title' => 'Current Stock', 'class' => 'text-right'],
+                ['title' => 'Minimum Stock', 'class' => 'text-right'],
+                ['title' => 'Avg Daily Usage', 'class' => 'text-right'],
+                ['title' => 'Days Remaining', 'class' => 'text-right'],
+                ['title' => 'Forecasted Stockout'],
+                ['title' => 'Suggested Reorder Qty', 'class' => 'text-right'],
             ],
             'supplier_purchases' => [
                 ['title' => 'Supplier'],
@@ -240,6 +255,27 @@ class ReportExporter
 
                 break;
 
+            case 'forecast':
+                /** @var Product $product */
+                foreach ($this->forecasts->forecastQuery($filters)->lazy(500) as $product) {
+                    $forecast = $this->forecasts->forecastFor($product, $filters->forecastDays);
+
+                    yield [
+                        ['value' => $product->sku, 'class' => 'font-mono'],
+                        ['value' => $product->name],
+                        ['value' => $product->category->name ?? 'Uncategorized'],
+                        ['value' => $product->supplier->name ?? 'Unassigned'],
+                        ['value' => (string) $product->current_stock, 'class' => 'text-right font-semibold'],
+                        ['value' => (string) $product->minimum_stock, 'class' => 'text-right'],
+                        ['value' => $forecast['has_data'] ? number_format($forecast['average_daily_usage'], 2) : '-', 'class' => 'text-right'],
+                        ['value' => $forecast['days_remaining'] === null ? ForecastService::INSUFFICIENT_DATA : (string) (int) floor($forecast['days_remaining']), 'class' => 'text-right'],
+                        ['value' => $forecast['stockout_date']?->format('Y-m-d') ?? ForecastService::INSUFFICIENT_DATA],
+                        ['value' => (string) $forecast['suggested_reorder_quantity'], 'class' => 'text-right font-medium'],
+                    ];
+                }
+
+                break;
+
             case 'supplier_purchases':
                 /** @var Supplier $supplier */
                 foreach ($this->reports->supplierPurchaseQuery($filters)->get() as $supplier) {
@@ -366,6 +402,22 @@ class ReportExporter
                     ['value' => ''],
                     ['value' => (string) $summary['units_outstanding'], 'class' => 'text-right'],
                     ['value' => $this->money($summary['outstanding_value']), 'class' => 'text-right'],
+                ];
+
+            case 'forecast':
+                $summary = $this->forecasts->forecastSummary($filters);
+
+                return [
+                    ['value' => 'TOTALS ('.$summary['product_count'].' products)'],
+                    ['value' => 'At risk: '.$summary['at_risk']],
+                    ['value' => 'Critical: '.$summary['critical']],
+                    ['value' => 'Out of stock: '.$summary['out_of_stock']],
+                    ['value' => ''],
+                    ['value' => ''],
+                    ['value' => number_format($summary['total_daily_usage'], 2), 'class' => 'text-right'],
+                    ['value' => ForecastService::INSUFFICIENT_DATA.': '.$summary['insufficient_data'], 'class' => 'text-right'],
+                    ['value' => $this->money($summary['suggested_value']).' at cost'],
+                    ['value' => (string) $summary['suggested_units'], 'class' => 'text-right'],
                 ];
 
             case 'supplier_purchases':
@@ -543,6 +595,10 @@ class ReportExporter
     {
         if ($type === 'dead_stock') {
             return 'No movement in the last '.$filters->inactivityDays.' days';
+        }
+
+        if ($type === 'forecast') {
+            return 'Projected from the last '.$filters->forecastDays.' days of consumption';
         }
 
         if ($type === 'outstanding_orders' && $filters->startDate === null && $filters->endDate === null) {
