@@ -41,6 +41,7 @@
                 </flux:tooltip>
             </flux:navbar>
 
+            <livewire:notification-bell />
             <x-desktop-user-menu />
         </flux:header>
 

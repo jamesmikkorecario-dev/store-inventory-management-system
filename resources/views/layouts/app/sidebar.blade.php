@@ -83,6 +83,9 @@
                             {{ __('Alerts') }}
                             <livewire:sidebar-alerts-badge />
                         </flux:sidebar.item>
+                        <flux:sidebar.item icon="inbox" :href="route('notifications.index')" :current="request()->routeIs('notifications.index')" wire:navigate>
+                            {{ __('Notifications') }}
+                        </flux:sidebar.item>
                     @endif
                 </flux:sidebar.group>
             </flux:sidebar.nav>
@@ -109,6 +112,7 @@
             <flux:spacer />
 
             <div class="flex items-center gap-2">
+                <livewire:notification-bell />
                 <flux:dropdown position="top" align="end">
                 <flux:profile
                     :initials="auth()->user()->initials()"
