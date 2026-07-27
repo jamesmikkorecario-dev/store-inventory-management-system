@@ -40,6 +40,9 @@ Route::middleware(['auth', 'verified'])->group(function () {
      * supplier so a supplier can never reach another supplier's records.
      */
     Route::middleware('role:Supplier')->prefix('portal')->name('portal.')->group(function () {
+        // `/portal` is only a prefix, so send bare visits to the catalogue.
+        Route::redirect('/', '/portal/catalog')->name('index');
+
         Route::livewire('catalog', 'pages::portal-catalog')->name('catalog');
         Route::livewire('purchase-orders', 'pages::portal-orders')->name('orders.index');
         Route::livewire('purchase-orders/{purchaseOrder}', 'pages::portal-order')->name('orders.show');

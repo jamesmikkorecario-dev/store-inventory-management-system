@@ -379,6 +379,29 @@ test('a supplier gets a 404 for a purchase order that does not exist', function 
 
 // ─── Authorization: who may reach the portal ──────────────────────────────────
 
+test('the bare portal url redirects a supplier to their catalog', function () {
+    $this->actingAs($this->acme['user'])
+        ->get('/portal')
+        ->assertRedirect('/portal/catalog');
+
+    // Following it through lands on a working page.
+    $this->actingAs($this->acme['user'])
+        ->get('/portal')
+        ->assertRedirect(route('portal.catalog'));
+
+    $this->actingAs($this->acme['user'])
+        ->get(route('portal.index'))
+        ->assertRedirect(route('portal.catalog'));
+});
+
+test('the bare portal url is still closed to non suppliers', function () {
+    $this->get('/portal')->assertRedirect(route('login'));
+
+    foreach ([$this->admin, $this->staff] as $user) {
+        $this->actingAs($user)->get('/portal')->assertForbidden();
+    }
+});
+
 test('guests are redirected to login from every portal route', function () {
     foreach ([
         route('portal.catalog'),
