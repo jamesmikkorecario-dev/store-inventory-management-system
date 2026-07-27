@@ -222,7 +222,7 @@ new #[Title('Category Management')] class extends Component {
                         <tr class="border-b border-zinc-200 bg-zinc-50 text-xs font-semibold text-zinc-400 dark:border-zinc-800 dark:bg-zinc-950">
                             <th scope="col" class="px-6 py-4">Category Name</th>
                             <th scope="col" class="px-6 py-4">Description</th>
-                            <th scope="col" class="px-6 py-4">Linked Products</th>
+                            <th scope="col" class="px-6 py-4 whitespace-nowrap">Linked Products</th>
                             @if(!$isReadOnly)
                                 <th scope="col" class="px-6 py-4 text-center">Actions</th>
                             @endif
@@ -235,8 +235,8 @@ new #[Title('Category Management')] class extends Component {
                                 <td class="px-6 py-4 max-w-[400px] truncate" title="{{ $category->description }}">
                                     {{ $category->description ?: '-' }}
                                 </td>
-                                <td class="px-6 py-4">
-                                    <span class="rounded bg-zinc-100 px-2.5 py-0.5 text-xs font-semibold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="inline-block whitespace-nowrap rounded bg-zinc-100 px-2.5 py-0.5 text-xs font-semibold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
                                         {{ $category->products_count }} product(s)
                                     </span>
                                 </td>

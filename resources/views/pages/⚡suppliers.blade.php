@@ -265,7 +265,7 @@ new #[Title('Supplier Management')] class extends Component {
                             <th scope="col" class="px-6 py-4">Contact Person</th>
                             <th scope="col" class="px-6 py-4">Email</th>
                             <th scope="col" class="px-6 py-4">Phone</th>
-                            <th scope="col" class="px-6 py-4">Linked Products</th>
+                            <th scope="col" class="px-6 py-4 whitespace-nowrap">Linked Products</th>
                             <th scope="col" class="px-6 py-4 text-center">Status</th>
                             @if(!$isReadOnly)
                                 <th scope="col" class="px-6 py-4 text-center">Actions</th>
@@ -282,8 +282,8 @@ new #[Title('Supplier Management')] class extends Component {
                                 <td class="px-6 py-4">{{ $supplier->contact_person ?: '-' }}</td>
                                 <td class="px-6 py-4">{{ $supplier->email ?: '-' }}</td>
                                 <td class="px-6 py-4">{{ $supplier->phone ?: '-' }}</td>
-                                <td class="px-6 py-4">
-                                    <span class="rounded bg-zinc-100 px-2.5 py-0.5 text-xs font-semibold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="inline-block whitespace-nowrap rounded bg-zinc-100 px-2.5 py-0.5 text-xs font-semibold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
                                         {{ $supplier->products_count }} product(s)
                                     </span>
                                 </td>
