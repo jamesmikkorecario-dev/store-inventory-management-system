@@ -39,6 +39,10 @@ class DatabaseSeeder extends Seeder
             'import products',
             'bulk manage products',
             'export catalog',
+            'view purchase orders',
+            'manage purchase orders',
+            'approve purchase orders',
+            'receive purchase orders',
         ];
 
         foreach ($permissions as $permission) {
@@ -61,6 +65,9 @@ class DatabaseSeeder extends Seeder
             'import products',
             'bulk manage products',
             'export catalog',
+            'view purchase orders',
+            'manage purchase orders',
+            'receive purchase orders',
         ]);
 
         $supplierRole = Role::create(['name' => 'Supplier']);
@@ -983,5 +990,8 @@ class DatabaseSeeder extends Seeder
             $product->current_stock = $currentStock;
             $product->save();
         }
+
+        // 9. Seed a representative purchase order pipeline (one order per status).
+        $this->call(PurchaseOrderSeeder::class);
     }
 }

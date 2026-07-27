@@ -268,7 +268,7 @@ new #[Title('Supplier Management')] class extends Component {
                             <th scope="col" class="px-6 py-4">Linked Products</th>
                             <th scope="col" class="px-6 py-4">Status</th>
                             @if(!$isReadOnly)
-                                <th scope="col" class="px-6 py-4 text-right">Actions</th>
+                                <th scope="col" class="px-6 py-4 text-left">Actions</th>
                             @endif
                         </tr>
                     </thead>

@@ -264,7 +264,7 @@ new #[Title('User Management')] class extends Component {
                             <th scope="col" class="px-6 py-4">Role</th>
                             <th scope="col" class="px-6 py-4">Supplier Firm</th>
                             <th scope="col" class="px-6 py-4">Status</th>
-                            <th scope="col" class="px-6 py-4 text-right">Actions</th>
+                            <th scope="col" class="px-6 py-4 text-left">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">

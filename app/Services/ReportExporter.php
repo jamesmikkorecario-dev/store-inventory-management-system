@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Category;
 use App\Models\InventoryTransaction;
 use App\Models\Product;
+use App\Models\PurchaseOrder;
 use App\Models\Supplier;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Generator;
@@ -78,6 +79,35 @@ class ReportExporter
                 ['title' => 'Total Stock', 'class' => 'text-right'],
                 ['title' => 'Low Stock Products', 'class' => 'text-right'],
                 ['title' => 'Inventory Value', 'class' => 'text-right'],
+            ],
+            'purchase_orders' => [
+                ['title' => 'PO Number'],
+                ['title' => 'Supplier'],
+                ['title' => 'Order Date'],
+                ['title' => 'Expected Delivery'],
+                ['title' => 'Status'],
+                ['title' => 'Units Ordered', 'class' => 'text-right'],
+                ['title' => 'Units Received', 'class' => 'text-right'],
+                ['title' => 'Order Value', 'class' => 'text-right'],
+            ],
+            'outstanding_orders' => [
+                ['title' => 'PO Number'],
+                ['title' => 'Supplier'],
+                ['title' => 'Expected Delivery'],
+                ['title' => 'Days Late', 'class' => 'text-right'],
+                ['title' => 'Status'],
+                ['title' => 'Units Outstanding', 'class' => 'text-right'],
+                ['title' => 'Outstanding Value', 'class' => 'text-right'],
+            ],
+            'supplier_purchases' => [
+                ['title' => 'Supplier'],
+                ['title' => 'Contact Person'],
+                ['title' => 'Orders', 'class' => 'text-right'],
+                ['title' => 'Received Orders', 'class' => 'text-right'],
+                ['title' => 'Units Ordered', 'class' => 'text-right'],
+                ['title' => 'Units Received', 'class' => 'text-right'],
+                ['title' => 'Purchase Value', 'class' => 'text-right'],
+                ['title' => 'Last Order'],
             ],
             default => [
                 ['title' => 'SKU'],
@@ -175,6 +205,60 @@ class ReportExporter
 
                 break;
 
+            case 'purchase_orders':
+                /** @var PurchaseOrder $order */
+                foreach ($this->reports->purchaseOrderQuery($filters)->lazy(500) as $order) {
+                    yield [
+                        ['value' => $order->po_number, 'class' => 'font-mono'],
+                        ['value' => $order->supplier->name ?? 'Unassigned'],
+                        ['value' => $order->order_date->format('Y-m-d')],
+                        ['value' => $order->expected_delivery_date?->format('Y-m-d') ?? 'Not set'],
+                        ['value' => $order->statusLabel(), 'badge' => $this->purchaseOrderBadge($order->status)],
+                        ['value' => (string) (int) $order->units_ordered, 'class' => 'text-right'],
+                        ['value' => (string) (int) $order->units_received, 'class' => 'text-right'],
+                        ['value' => $this->money((float) $order->total_amount), 'class' => 'text-right font-medium'],
+                    ];
+                }
+
+                break;
+
+            case 'outstanding_orders':
+                /** @var PurchaseOrder $order */
+                foreach ($this->reports->outstandingOrderQuery($filters)->lazy(500) as $order) {
+                    $daysLate = $this->daysLate($order);
+
+                    yield [
+                        ['value' => $order->po_number, 'class' => 'font-mono'],
+                        ['value' => $order->supplier->name ?? 'Unassigned'],
+                        ['value' => $order->expected_delivery_date?->format('Y-m-d') ?? 'Not set'],
+                        ['value' => $daysLate === null ? '-' : (string) $daysLate, 'class' => 'text-right'],
+                        ['value' => $order->statusLabel(), 'badge' => $this->purchaseOrderBadge($order->status)],
+                        ['value' => (string) max((int) $order->units_ordered - (int) $order->units_received, 0), 'class' => 'text-right font-semibold'],
+                        ['value' => $this->money((float) $order->outstanding_value), 'class' => 'text-right font-medium'],
+                    ];
+                }
+
+                break;
+
+            case 'supplier_purchases':
+                /** @var Supplier $supplier */
+                foreach ($this->reports->supplierPurchaseQuery($filters)->get() as $supplier) {
+                    yield [
+                        ['value' => $supplier->name, 'class' => 'font-semibold'],
+                        ['value' => $supplier->contact_person ?: '-'],
+                        ['value' => (string) (int) $supplier->order_count, 'class' => 'text-right'],
+                        ['value' => (string) (int) $supplier->received_orders, 'class' => 'text-right'],
+                        ['value' => (string) (int) $supplier->units_ordered, 'class' => 'text-right'],
+                        ['value' => (string) (int) $supplier->units_received, 'class' => 'text-right'],
+                        ['value' => $this->money((float) $supplier->total_value), 'class' => 'text-right font-medium'],
+                        ['value' => $supplier->last_order_date
+                            ? Carbon::parse($supplier->last_order_date)->format('Y-m-d')
+                            : '-'],
+                    ];
+                }
+
+                break;
+
             default:
                 /** @var Product $product */
                 foreach ($this->reports->valuationQuery($filters)->lazy(500) as $product) {
@@ -255,6 +339,47 @@ class ReportExporter
                     ['value' => (string) $summary['total_units'], 'class' => 'text-right'],
                     ['value' => (string) $summary['low_stock_products'], 'class' => 'text-right'],
                     ['value' => $this->money($summary['total_value']), 'class' => 'text-right'],
+                ];
+
+            case 'purchase_orders':
+                $summary = $this->reports->purchaseOrderSummary($filters);
+
+                return [
+                    ['value' => 'TOTALS ('.$summary['order_count'].' orders)'],
+                    ['value' => 'Open: '.$summary['open_orders']],
+                    ['value' => 'Received: '.$summary['received_orders']],
+                    ['value' => 'Cancelled: '.$summary['cancelled_orders']],
+                    ['value' => 'Overdue: '.$summary['overdue_orders']],
+                    ['value' => (string) $summary['units_ordered'], 'class' => 'text-right'],
+                    ['value' => (string) $summary['units_received'], 'class' => 'text-right'],
+                    ['value' => $this->money($summary['total_value']), 'class' => 'text-right'],
+                ];
+
+            case 'outstanding_orders':
+                $summary = $this->reports->outstandingOrderSummary($filters);
+
+                return [
+                    ['value' => 'TOTALS ('.$summary['order_count'].' orders)'],
+                    ['value' => ''],
+                    ['value' => 'Due within 7 days: '.$summary['due_within_week']],
+                    ['value' => 'Overdue: '.$summary['overdue_orders'], 'class' => 'text-right'],
+                    ['value' => ''],
+                    ['value' => (string) $summary['units_outstanding'], 'class' => 'text-right'],
+                    ['value' => $this->money($summary['outstanding_value']), 'class' => 'text-right'],
+                ];
+
+            case 'supplier_purchases':
+                $summary = $this->reports->supplierPurchaseSummary($filters);
+
+                return [
+                    ['value' => 'TOTALS ('.$summary['supplier_count'].' suppliers)'],
+                    ['value' => ''],
+                    ['value' => (string) $summary['order_count'], 'class' => 'text-right'],
+                    ['value' => ''],
+                    ['value' => (string) $summary['units_ordered'], 'class' => 'text-right'],
+                    ['value' => (string) $summary['units_received'], 'class' => 'text-right'],
+                    ['value' => $this->money($summary['total_value']), 'class' => 'text-right'],
+                    ['value' => ''],
                 ];
 
             default:
@@ -390,6 +515,10 @@ class ReportExporter
             $applied[] = 'Product: '.$this->lookupName(Product::query(), $filters->productId);
         }
 
+        if ($filters->purchaseOrderStatus !== null) {
+            $applied[] = 'PO Status: '.(PurchaseOrder::STATUSES[$filters->purchaseOrderStatus] ?? $filters->purchaseOrderStatus);
+        }
+
         return $applied === [] ? 'None' : implode(', ', $applied);
     }
 
@@ -416,6 +545,10 @@ class ReportExporter
             return 'No movement in the last '.$filters->inactivityDays.' days';
         }
 
+        if ($type === 'outstanding_orders' && $filters->startDate === null && $filters->endDate === null) {
+            return 'All open orders with undelivered units';
+        }
+
         if ($filters->startDate === null && $filters->endDate === null) {
             return 'All time';
         }
@@ -426,6 +559,38 @@ class ReportExporter
     private function transactionTypeLabel(string $type): string
     {
         return strtoupper(str_replace('_', ' ', $type));
+    }
+
+    /**
+     * PDF badge variant matching a purchase order status.
+     */
+    private function purchaseOrderBadge(string $status): string
+    {
+        return match ($status) {
+            PurchaseOrder::STATUS_RECEIVED => 'success',
+            PurchaseOrder::STATUS_CANCELLED => 'danger',
+            PurchaseOrder::STATUS_PARTIALLY_RECEIVED => 'warning',
+            default => 'info',
+        };
+    }
+
+    /**
+     * Days past the expected delivery date, or null when not late / not scheduled.
+     */
+    private function daysLate(PurchaseOrder $order): ?int
+    {
+        if ($order->expected_delivery_date === null) {
+            return null;
+        }
+
+        $expected = $order->expected_delivery_date->startOfDay();
+        $today = Carbon::now()->startOfDay();
+
+        if (! $expected->isBefore($today)) {
+            return null;
+        }
+
+        return (int) $expected->diffInDays($today);
     }
 
     private function transactionBadge(string $type): string

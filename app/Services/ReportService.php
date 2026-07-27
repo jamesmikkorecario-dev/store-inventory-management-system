@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\InventoryTransaction;
 use App\Models\Product;
+use App\Models\PurchaseOrder;
 use App\Models\Supplier;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection as EloquentCollection;
@@ -29,6 +30,9 @@ class ReportService
         'dead_stock' => 'Dead Stock',
         'transactions' => 'Transaction Summary',
         'supplier_performance' => 'Supplier Performance',
+        'purchase_orders' => 'Purchase Order Summary',
+        'outstanding_orders' => 'Outstanding Orders',
+        'supplier_purchases' => 'Supplier Purchase History',
     ];
 
     /**
@@ -437,7 +441,226 @@ class ReportService
         ];
     }
 
+    // ─── Purchase Orders ──────────────────────────────────────────────────────
+
+    /**
+     * Purchase orders with per order unit and value aggregates.
+     *
+     * @return Builder<PurchaseOrder>
+     */
+    public function purchaseOrderQuery(ReportFilters $filters): Builder
+    {
+        return $this->purchaseOrderBaseQuery($filters)
+            ->with(['supplier', 'creator', 'approver'])
+            ->orderByDesc('purchase_orders.order_date')
+            ->orderByDesc('purchase_orders.id');
+    }
+
+    /**
+     * Headline purchase order figures for the filtered set.
+     *
+     * @return array{order_count: int, total_value: float, received_value: float, outstanding_value: float, units_ordered: int, units_received: int, open_orders: int, received_orders: int, cancelled_orders: int, overdue_orders: int}
+     */
+    public function purchaseOrderSummary(ReportFilters $filters): array
+    {
+        $openList = "'".implode("','", PurchaseOrder::OPEN_STATUSES)."'";
+        $today = Carbon::now()->startOfDay()->toDateString();
+
+        /** @var array<string, mixed> $row */
+        $row = (array) $this->purchaseOrderBaseQuery($filters)
+            ->toBase()
+            ->select([])
+            ->reorder()
+            ->selectRaw('COUNT(*) as order_count')
+            ->selectRaw('COALESCE(SUM(purchase_orders.total_amount), 0) as total_value')
+            ->selectRaw('COALESCE(SUM(po_items.received_value), 0) as received_value')
+            ->selectRaw('COALESCE(SUM(po_items.outstanding_value), 0) as outstanding_value')
+            ->selectRaw('COALESCE(SUM(po_items.units_ordered), 0) as units_ordered')
+            ->selectRaw('COALESCE(SUM(po_items.units_received), 0) as units_received')
+            ->selectRaw("COALESCE(SUM(CASE WHEN purchase_orders.status in ({$openList}) THEN 1 ELSE 0 END), 0) as open_orders")
+            ->selectRaw("COALESCE(SUM(CASE WHEN purchase_orders.status = '".PurchaseOrder::STATUS_RECEIVED."' THEN 1 ELSE 0 END), 0) as received_orders")
+            ->selectRaw("COALESCE(SUM(CASE WHEN purchase_orders.status = '".PurchaseOrder::STATUS_CANCELLED."' THEN 1 ELSE 0 END), 0) as cancelled_orders")
+            ->selectRaw("COALESCE(SUM(CASE WHEN purchase_orders.status in ({$openList}) and purchase_orders.expected_delivery_date is not null and purchase_orders.expected_delivery_date < ? THEN 1 ELSE 0 END), 0) as overdue_orders", [$today])
+            ->first();
+
+        return [
+            'order_count' => (int) ($row['order_count'] ?? 0),
+            'total_value' => round((float) ($row['total_value'] ?? 0), 2),
+            'received_value' => round((float) ($row['received_value'] ?? 0), 2),
+            'outstanding_value' => round((float) ($row['outstanding_value'] ?? 0), 2),
+            'units_ordered' => (int) ($row['units_ordered'] ?? 0),
+            'units_received' => (int) ($row['units_received'] ?? 0),
+            'open_orders' => (int) ($row['open_orders'] ?? 0),
+            'received_orders' => (int) ($row['received_orders'] ?? 0),
+            'cancelled_orders' => (int) ($row['cancelled_orders'] ?? 0),
+            'overdue_orders' => (int) ($row['overdue_orders'] ?? 0),
+        ];
+    }
+
+    /**
+     * Open purchase orders that still have undelivered units, soonest due first.
+     *
+     * @return Builder<PurchaseOrder>
+     */
+    public function outstandingOrderQuery(ReportFilters $filters): Builder
+    {
+        return $this->purchaseOrderBaseQuery($filters)
+            ->with(['supplier'])
+            ->whereIn('purchase_orders.status', PurchaseOrder::OPEN_STATUSES)
+            ->whereRaw('COALESCE(po_items.units_ordered, 0) > COALESCE(po_items.units_received, 0)')
+            ->orderByRaw('case when purchase_orders.expected_delivery_date is null then 1 else 0 end')
+            ->orderBy('purchase_orders.expected_delivery_date')
+            ->orderBy('purchase_orders.po_number');
+    }
+
+    /**
+     * Aggregates for the outstanding orders report.
+     *
+     * @return array{order_count: int, units_outstanding: int, outstanding_value: float, overdue_orders: int, due_within_week: int}
+     */
+    public function outstandingOrderSummary(ReportFilters $filters): array
+    {
+        $today = Carbon::now()->startOfDay()->toDateString();
+        $weekAhead = Carbon::now()->startOfDay()->addDays(7)->toDateString();
+
+        /** @var array<string, mixed> $row */
+        $row = (array) $this->outstandingOrderQuery($filters)
+            ->toBase()
+            ->select([])
+            ->reorder()
+            ->selectRaw('COUNT(*) as order_count')
+            ->selectRaw('COALESCE(SUM(COALESCE(po_items.units_ordered, 0) - COALESCE(po_items.units_received, 0)), 0) as units_outstanding')
+            ->selectRaw('COALESCE(SUM(po_items.outstanding_value), 0) as outstanding_value')
+            ->selectRaw('COALESCE(SUM(CASE WHEN purchase_orders.expected_delivery_date is not null and purchase_orders.expected_delivery_date < ? THEN 1 ELSE 0 END), 0) as overdue_orders', [$today])
+            ->selectRaw('COALESCE(SUM(CASE WHEN purchase_orders.expected_delivery_date between ? and ? THEN 1 ELSE 0 END), 0) as due_within_week', [$today, $weekAhead])
+            ->first();
+
+        return [
+            'order_count' => (int) ($row['order_count'] ?? 0),
+            'units_outstanding' => (int) ($row['units_outstanding'] ?? 0),
+            'outstanding_value' => round((float) ($row['outstanding_value'] ?? 0), 2),
+            'overdue_orders' => (int) ($row['overdue_orders'] ?? 0),
+            'due_within_week' => (int) ($row['due_within_week'] ?? 0),
+        ];
+    }
+
+    /**
+     * Purchase history rolled up per supplier.
+     *
+     * @return Builder<Supplier>
+     */
+    public function supplierPurchaseQuery(ReportFilters $filters): Builder
+    {
+        $orders = $this->purchaseOrderBaseQuery($filters)->toBase()->reorder();
+
+        $query = Supplier::query()
+            ->joinSub($orders, 'po', 'po.supplier_id', '=', 'suppliers.id')
+            ->select('suppliers.id', 'suppliers.name', 'suppliers.contact_person', 'suppliers.email', 'suppliers.status')
+            ->selectRaw('COUNT(po.id) as order_count')
+            ->selectRaw('COALESCE(SUM(po.total_amount), 0) as total_value')
+            ->selectRaw('COALESCE(SUM(po.received_value), 0) as received_value')
+            ->selectRaw('COALESCE(SUM(po.units_ordered), 0) as units_ordered')
+            ->selectRaw('COALESCE(SUM(po.units_received), 0) as units_received')
+            ->selectRaw("COALESCE(SUM(CASE WHEN po.status = '".PurchaseOrder::STATUS_RECEIVED."' THEN 1 ELSE 0 END), 0) as received_orders")
+            ->selectRaw("COALESCE(SUM(CASE WHEN po.status = '".PurchaseOrder::STATUS_CANCELLED."' THEN 1 ELSE 0 END), 0) as cancelled_orders")
+            ->selectRaw('MAX(po.order_date) as last_order_date')
+            ->groupBy('suppliers.id', 'suppliers.name', 'suppliers.contact_person', 'suppliers.email', 'suppliers.status');
+
+        return $query->orderByDesc('total_value')->orderBy('suppliers.name');
+    }
+
+    /**
+     * Aggregates for the supplier purchase history report.
+     *
+     * @return array{supplier_count: int, order_count: int, total_value: float, received_value: float, units_ordered: int, units_received: int, top_supplier: string|null}
+     */
+    public function supplierPurchaseSummary(ReportFilters $filters): array
+    {
+        $subQuery = $this->supplierPurchaseQuery($filters)->toBase()->reorder();
+
+        /** @var array<string, mixed> $row */
+        $row = (array) DB::query()
+            ->fromSub($subQuery, 'supplier_purchases')
+            ->selectRaw('COUNT(*) as supplier_count')
+            ->selectRaw('COALESCE(SUM(order_count), 0) as order_count')
+            ->selectRaw('COALESCE(SUM(total_value), 0) as total_value')
+            ->selectRaw('COALESCE(SUM(received_value), 0) as received_value')
+            ->selectRaw('COALESCE(SUM(units_ordered), 0) as units_ordered')
+            ->selectRaw('COALESCE(SUM(units_received), 0) as units_received')
+            ->first();
+
+        /** @var Supplier|null $top */
+        $top = $this->supplierPurchaseQuery($filters)->first();
+
+        return [
+            'supplier_count' => (int) ($row['supplier_count'] ?? 0),
+            'order_count' => (int) ($row['order_count'] ?? 0),
+            'total_value' => round((float) ($row['total_value'] ?? 0), 2),
+            'received_value' => round((float) ($row['received_value'] ?? 0), 2),
+            'units_ordered' => (int) ($row['units_ordered'] ?? 0),
+            'units_received' => (int) ($row['units_received'] ?? 0),
+            'top_supplier' => $top?->name,
+        ];
+    }
+
     // ─── Shared query building ────────────────────────────────────────────────
+
+    /**
+     * Base purchase order query joined against per order line item aggregates.
+     *
+     * @return Builder<PurchaseOrder>
+     */
+    private function purchaseOrderBaseQuery(ReportFilters $filters): Builder
+    {
+        $itemTotals = DB::table('purchase_order_items')
+            ->select('purchase_order_id')
+            ->selectRaw('COUNT(*) as line_count')
+            ->selectRaw('COALESCE(SUM(quantity_ordered), 0) as units_ordered')
+            ->selectRaw('COALESCE(SUM(quantity_received), 0) as units_received')
+            ->selectRaw('COALESCE(SUM(quantity_received * unit_cost), 0) as received_value')
+            ->selectRaw('COALESCE(SUM((quantity_ordered - quantity_received) * unit_cost), 0) as outstanding_value')
+            ->groupBy('purchase_order_id');
+
+        $query = PurchaseOrder::query()
+            ->leftJoinSub($itemTotals, 'po_items', 'po_items.purchase_order_id', '=', 'purchase_orders.id')
+            ->select('purchase_orders.*')
+            ->selectRaw('COALESCE(po_items.line_count, 0) as line_count')
+            ->selectRaw('COALESCE(po_items.units_ordered, 0) as units_ordered')
+            ->selectRaw('COALESCE(po_items.units_received, 0) as units_received')
+            ->selectRaw('COALESCE(po_items.received_value, 0) as received_value')
+            ->selectRaw('COALESCE(po_items.outstanding_value, 0) as outstanding_value');
+
+        if ($filters->supplierId) {
+            $query->where('purchase_orders.supplier_id', $filters->supplierId);
+        }
+
+        if ($filters->purchaseOrderStatus !== null && array_key_exists($filters->purchaseOrderStatus, PurchaseOrder::STATUSES)) {
+            $query->where('purchase_orders.status', $filters->purchaseOrderStatus);
+        }
+
+        if ($filters->startDate) {
+            $query->where('purchase_orders.order_date', '>=', Carbon::parse($filters->startDate)->toDateString());
+        }
+
+        if ($filters->endDate) {
+            $query->where('purchase_orders.order_date', '<=', Carbon::parse($filters->endDate)->toDateString());
+        }
+
+        if ($filters->productId) {
+            $query->whereHas('items', fn (Builder $items) => $items->where('product_id', $filters->productId));
+        }
+
+        if ($filters->search) {
+            $term = '%'.$filters->search.'%';
+            $query->where(function (Builder $searchQuery) use ($term) {
+                $searchQuery->where('purchase_orders.po_number', 'like', $term)
+                    ->orWhere('purchase_orders.notes', 'like', $term)
+                    ->orWhereHas('supplier', fn (Builder $supplier) => $supplier->where('name', 'like', $term));
+            });
+        }
+
+        return $query;
+    }
 
     /**
      * Base product query with the product oriented filters applied.
