@@ -7,6 +7,7 @@ use App\Models\InventoryTransaction;
 use App\Services\ForecastService;
 use App\Services\InventoryAnalyticsService;
 use App\Services\PurchaseOrderService;
+use App\Services\SupplierPortalService;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\On;
@@ -43,6 +44,11 @@ new #[Title('Dashboard')] class extends Component {
     public bool $showForecasts = false;
     public int $forecastPeriod = 30;
     public $forecastedStockouts = [];
+
+    // Supplier portal (Supplier role only)
+    public array $supplierMetrics = [];
+    public array $supplierPerformance = [];
+    public $supplierRecentOrders = [];
 
     // Analytics properties
     public int $analyticsPeriod = 30;
@@ -138,6 +144,29 @@ new #[Title('Dashboard')] class extends Component {
 
         $this->loadPurchaseOrderMetrics();
         $this->loadForecasts();
+        $this->loadSupplierPortal();
+    }
+
+    /**
+     * Supplier-scoped portal metrics for users linked to a supplier.
+     */
+    public function loadSupplierPortal(): void
+    {
+        $supplier = $this->isSupplier ? Auth::user()?->supplier : null;
+
+        if ($supplier === null) {
+            $this->supplierMetrics = [];
+            $this->supplierPerformance = [];
+            $this->supplierRecentOrders = [];
+
+            return;
+        }
+
+        $portal = app(SupplierPortalService::class);
+
+        $this->supplierMetrics = $portal->dashboardMetrics($supplier);
+        $this->supplierPerformance = $portal->performanceSummary($supplier);
+        $this->supplierRecentOrders = $portal->recentPurchaseOrders($supplier, 5);
     }
 
     /**
@@ -405,6 +434,147 @@ new #[Title('Dashboard')] class extends Component {
                             @endforelse
                         </tbody>
                     </table>
+                </div>
+            </div>
+        @endif
+
+        @if($isSupplier && $supplierMetrics !== [])
+            <!-- ═══════════════════════════════════════════════════ -->
+            <!-- SUPPLIER PORTAL SUMMARY                            -->
+            <!-- ═══════════════════════════════════════════════════ -->
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div class="flex items-center gap-2">
+                    <flux:icon name="briefcase" class="size-5 text-indigo-500" />
+                    <flux:heading size="lg" class="font-semibold">My Supply Overview</flux:heading>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <flux:button variant="filled" size="sm" icon="rectangle-stack" href="{{ route('portal.catalog') }}" wire:navigate>My Catalog</flux:button>
+                    <flux:button variant="filled" size="sm" icon="clipboard-document-list" href="{{ route('portal.orders.index') }}" wire:navigate>My Purchase Orders</flux:button>
+                    <flux:button variant="filled" size="sm" icon="chart-bar" href="{{ route('portal.performance') }}" wire:navigate>My Performance</flux:button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <x-report-stat-card
+                    label="Products Supplied"
+                    icon="archive-box"
+                    icon-class="text-indigo-500"
+                    :value="number_format($supplierMetrics['total_products'])"
+                    :hint="number_format($supplierMetrics['active_products']) . ' active'"
+                    data-test="supplier-products"
+                />
+                <x-report-stat-card
+                    label="Low Stock Products"
+                    icon="exclamation-triangle"
+                    :icon-class="$supplierMetrics['low_stock_products'] > 0 ? 'text-amber-500' : 'text-zinc-400'"
+                    :value="number_format($supplierMetrics['low_stock_products'])"
+                    :hint="number_format($supplierMetrics['out_of_stock_products']) . ' out of stock'"
+                    :hint-class="$supplierMetrics['low_stock_products'] > 0 ? 'text-amber-500' : 'text-zinc-500'"
+                />
+                <x-report-stat-card
+                    label="Open Purchase Orders"
+                    icon="clipboard-document-list"
+                    icon-class="text-sky-500"
+                    :value="number_format($supplierMetrics['open_purchase_orders'])"
+                    :hint="number_format($supplierMetrics['pending_deliveries']) . ' awaiting delivery'"
+                    data-test="supplier-open-orders"
+                />
+                <x-report-stat-card
+                    label="Inventory Value"
+                    icon="banknotes"
+                    icon-class="text-emerald-500"
+                    :value="'$' . number_format($supplierMetrics['inventory_value'], 2)"
+                    :hint="number_format($supplierMetrics['total_units']) . ' units on hand'"
+                />
+            </div>
+
+            <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">
+                <!-- Recent purchase orders -->
+                <div class="overflow-hidden rounded-2xl border border-zinc-200 bg-white shadow-sm lg:col-span-2 dark:border-zinc-700 dark:bg-zinc-900">
+                    <div class="flex items-center justify-between border-b border-zinc-150 px-6 py-4 dark:border-zinc-800">
+                        <div class="flex items-center gap-2">
+                            <flux:icon name="clipboard-document-list" class="size-5 text-zinc-500 dark:text-zinc-400" />
+                            <flux:heading size="lg" class="font-semibold">Recent Purchase Orders</flux:heading>
+                        </div>
+                        <flux:button variant="subtle" size="sm" href="{{ route('portal.orders.index') }}" wire:navigate>View all</flux:button>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full min-w-[640px] table-fixed text-left text-sm text-zinc-600 dark:text-zinc-400">
+                            <thead>
+                                <tr class="border-b border-zinc-200 bg-zinc-50 text-xs font-semibold text-zinc-400 dark:border-zinc-800 dark:bg-zinc-950">
+                                    <th scope="col" class="px-4 py-3 w-[22%]">PO Number</th>
+                                    <th scope="col" class="px-4 py-3 w-[20%]">Ordered</th>
+                                    <th scope="col" class="px-4 py-3 w-[18%]">Delivered</th>
+                                    <th scope="col" class="px-4 py-3 w-[20%]">Value</th>
+                                    <th scope="col" class="px-4 py-3 w-[20%] text-center">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
+                                @forelse($supplierRecentOrders as $order)
+                                    <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-800/30" wire:key="sup-po-{{ $order->id }}">
+                                        <td class="px-4 py-3.5 whitespace-nowrap">
+                                            <a href="{{ route('portal.orders.show', $order) }}" wire:navigate class="font-mono text-xs font-semibold text-indigo-600 hover:underline dark:text-indigo-400">{{ $order->po_number }}</a>
+                                        </td>
+                                        <td class="px-4 py-3.5 whitespace-nowrap text-xs">{{ $order->order_date->format('M d, Y') }}</td>
+                                        <td class="px-4 py-3.5 text-xs">{{ number_format((int) ($order->received_units ?? 0)) }}/{{ number_format((int) ($order->ordered_units ?? 0)) }}</td>
+                                        <td class="px-4 py-3.5 whitespace-nowrap font-semibold text-zinc-900 dark:text-white">${{ number_format((float) $order->total_amount, 2) }}</td>
+                                        <td class="px-4 py-3.5 text-center">
+                                            <flux:badge :color="$order->statusColor()" size="sm" class="whitespace-nowrap">{{ $order->statusLabel() }}</flux:badge>
+                                        </td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="5" class="px-6 py-12">
+                                            <div class="flex flex-col items-center justify-center text-center">
+                                                <flux:icon name="clipboard-document-list" class="mb-3 size-10 text-zinc-300 dark:text-zinc-600" />
+                                                <flux:text class="font-medium text-zinc-900 dark:text-zinc-100">No purchase orders yet</flux:text>
+                                                <flux:text class="mt-1 text-sm text-zinc-500 dark:text-zinc-400">Orders raised with you will appear here.</flux:text>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Performance summary -->
+                <div class="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+                    <div class="flex items-center gap-2 border-b border-zinc-150 pb-4 dark:border-zinc-800">
+                        <flux:icon name="chart-bar" class="size-5 text-emerald-500" />
+                        <flux:heading size="lg" class="font-semibold">Performance</flux:heading>
+                    </div>
+                    <div class="mt-4 space-y-4">
+                        <div class="flex items-baseline justify-between">
+                            <flux:text class="text-sm text-zinc-500 dark:text-zinc-400">Total orders</flux:text>
+                            <flux:text class="font-bold text-zinc-900 dark:text-white">{{ number_format($supplierPerformance['order_count']) }}</flux:text>
+                        </div>
+                        <div class="flex items-baseline justify-between">
+                            <flux:text class="text-sm text-zinc-500 dark:text-zinc-400">Units supplied</flux:text>
+                            <flux:text class="font-bold text-zinc-900 dark:text-white">{{ number_format($supplierPerformance['units_received']) }}</flux:text>
+                        </div>
+                        <div class="flex items-baseline justify-between">
+                            <flux:text class="text-sm text-zinc-500 dark:text-zinc-400">Purchase value</flux:text>
+                            <flux:text class="font-bold text-zinc-900 dark:text-white">${{ number_format($supplierPerformance['purchase_value'], 2) }}</flux:text>
+                        </div>
+                        <div class="flex items-baseline justify-between">
+                            <flux:text class="text-sm text-zinc-500 dark:text-zinc-400">Units outstanding</flux:text>
+                            <flux:text class="font-bold text-amber-600 dark:text-amber-500">{{ number_format($supplierPerformance['outstanding_units']) }}</flux:text>
+                        </div>
+
+                        <div>
+                            <div class="flex items-baseline justify-between">
+                                <flux:text class="text-sm text-zinc-500 dark:text-zinc-400">Fulfilment rate</flux:text>
+                                <flux:text class="font-bold text-emerald-600 dark:text-emerald-500">{{ $supplierPerformance['fulfilment_rate'] }}%</flux:text>
+                            </div>
+                            <div class="mt-2 h-2 w-full overflow-hidden rounded-full bg-zinc-100 dark:bg-zinc-800">
+                                <div class="h-full rounded-full bg-emerald-500" style="width: {{ min(100, $supplierPerformance['fulfilment_rate']) }}%"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mt-5">
+                        <flux:button variant="subtle" class="w-full" href="{{ route('portal.performance') }}" wire:navigate>Full performance</flux:button>
+                    </div>
                 </div>
             </div>
         @endif
