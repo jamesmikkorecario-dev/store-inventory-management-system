@@ -9,6 +9,7 @@ use App\Services\InventoryAnalyticsService;
 use App\Services\PurchaseOrderService;
 use App\Services\SupplierPortalService;
 use Illuminate\Support\Facades\Auth;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -22,7 +23,11 @@ new #[Title('Dashboard')] class extends Component {
     public $lowStockItems = [];
     public $latestAlerts = [];
     public $recentTransactions = [];
+
+    #[Locked]
     public bool $isSupplier = false;
+
+    #[Locked]
     public ?int $supplierId = null;
 
     public int $totalStockUnits = 0;
@@ -32,6 +37,7 @@ new #[Title('Dashboard')] class extends Component {
     public $recentSuppliers = [];
 
     // Purchase order metrics (Admin/Staff only)
+    #[Locked]
     public bool $showPurchaseOrders = false;
     public int $openPurchaseOrders = 0;
     public float $openPurchaseOrderValue = 0.0;
@@ -41,6 +47,7 @@ new #[Title('Dashboard')] class extends Component {
     public $recentlyReceivedOrders = [];
 
     // Forecasting (Admin/Staff only)
+    #[Locked]
     public bool $showForecasts = false;
     public int $forecastPeriod = 30;
     public $forecastedStockouts = [];

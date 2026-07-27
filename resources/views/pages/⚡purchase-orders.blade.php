@@ -7,6 +7,7 @@ use App\Services\ForecastService;
 use App\Services\PurchaseOrderService;
 use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\On;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -48,9 +49,16 @@ new #[Title('Purchase Orders')] class extends Component {
     public array $selectedRecommendations = [];
 
     // Permissions
+    #[Locked]
     public bool $canViewForecasts = false;
+
+    #[Locked]
     public bool $canManage = false;
+
+    #[Locked]
     public bool $canApprove = false;
+
+    #[Locked]
     public bool $canReceive = false;
 
     public function mount(): void
