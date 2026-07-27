@@ -20,7 +20,10 @@ use RuntimeException;
  */
 class PurchaseOrderService
 {
-    public function __construct(private readonly InventoryService $inventory) {}
+    public function __construct(
+        private readonly InventoryService $inventory,
+        private readonly NotificationService $notifications,
+    ) {}
 
     /**
      * Next sequential purchase order number for the given month (PO-YYYYMM-0001).
@@ -146,7 +149,11 @@ class PurchaseOrderService
             'submitted_at' => Carbon::now(),
         ]);
 
-        return $order->refresh();
+        $order->refresh();
+
+        $this->notifications->purchaseOrderSubmitted($order);
+
+        return $order;
     }
 
     /**
@@ -181,7 +188,11 @@ class PurchaseOrderService
             'approved_at' => Carbon::now(),
         ]);
 
-        return $order->refresh();
+        $order->refresh();
+
+        $this->notifications->purchaseOrderApproved($order);
+
+        return $order;
     }
 
     /**
@@ -205,7 +216,11 @@ class PurchaseOrderService
             'notes' => $notes,
         ]);
 
-        return $order->refresh();
+        $order->refresh();
+
+        $this->notifications->purchaseOrderCancelled($order);
+
+        return $order;
     }
 
     /**
@@ -286,7 +301,13 @@ class PurchaseOrderService
 
             $this->syncReceivingStatus($locked);
 
-            return $locked->refresh()->load(['items.product', 'supplier', 'creator', 'approver']);
+            $received = $locked->refresh()->load(['items.product', 'supplier', 'creator', 'approver']);
+
+            // Notify the buyer who raised the order. Dispatched inside the
+            // transaction so a failed receipt never leaves a stray notification.
+            $this->notifications->purchaseOrderReceived($received, array_sum($planned));
+
+            return $received;
         });
     }
 

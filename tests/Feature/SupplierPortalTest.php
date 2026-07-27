@@ -584,7 +584,7 @@ test('purchase order items belonging to the order are the only ones shown', func
     $foreignItem = PurchaseOrderItem::factory()->create([
         'purchase_order_id' => $this->rival['orders']->first()->id,
         'product_id' => $foreignProduct->id,
-        'quantity_ordered' => 99,
+        'quantity_ordered' => 987654,
         'unit_cost' => 5.00,
         'line_total' => 495.00,
     ]);
@@ -592,5 +592,5 @@ test('purchase order items belonging to the order are the only ones shown', func
     Livewire::actingAs($this->acme['user'])
         ->test('pages::portal-order', ['purchaseOrder' => $order->id])
         ->assertDontSee('Rival Secret Component')
-        ->assertDontSee((string) $foreignItem->quantity_ordered);
+        ->assertDontSee('987654');
 });

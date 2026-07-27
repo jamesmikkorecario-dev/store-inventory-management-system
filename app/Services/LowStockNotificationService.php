@@ -14,6 +14,10 @@ class LowStockNotificationService
      */
     public function handleProductStockUpdate(Product $product): void
     {
+        if (! $product->trashed()) {
+            app(NotificationService::class)->forecastStockout($product);
+        }
+
         $activeNotification = LowStockNotification::where('product_id', $product->id)
             ->whereNull('resolved_at')
             ->first();
@@ -29,6 +33,10 @@ class LowStockNotificationService
 
         // Stock is low or critical
         $severity = $product->current_stock <= 0 ? 'critical' : 'low';
+
+        // Raise a user-facing database notification for Admin/Staff. The service
+        // suppresses duplicates while an earlier notification is still unread.
+        app(NotificationService::class)->lowStock($product);
 
         if ($activeNotification) {
             // Update existing active notification

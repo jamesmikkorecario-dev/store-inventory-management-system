@@ -50,6 +50,9 @@ new #[Title('Dashboard')] class extends Component {
     public array $supplierPerformance = [];
     public $supplierRecentOrders = [];
 
+    // Notifications summary (Phase 3.4)
+    public array $notificationSummary = [];
+
     // Analytics properties
     public int $analyticsPeriod = 30;
     public array $stockMovementTrend = ['labels' => [], 'stock_in' => [], 'stock_out' => []];
@@ -140,6 +143,10 @@ new #[Title('Dashboard')] class extends Component {
             $this->recentSuppliers = Supplier::latest()->limit(5)->get();
             
             $this->latestAlerts = app(\App\Services\LowStockNotificationService::class)->getLatestActiveAlerts(5);
+        }
+
+        if (! $this->isSupplier && Auth::user()) {
+            $this->notificationSummary = app(\App\Services\NotificationService::class)->summaryFor(Auth::user());
         }
 
         $this->loadPurchaseOrderMetrics();
@@ -273,6 +280,62 @@ new #[Title('Dashboard')] class extends Component {
             @endif
         </div>
 
+        @if(!$isSupplier && !empty($notificationSummary))
+            <!-- Notification Summary Widgets (Phase 3.4) -->
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5" data-test="notification-summary-widgets">
+                <!-- Unread Notifications -->
+                <div class="flex items-center gap-4 rounded-xl border border-zinc-200 bg-white p-4 shadow-xs dark:border-zinc-700 dark:bg-zinc-900">
+                    <flux:icon name="bell" class="size-6 shrink-0 text-indigo-600 dark:text-indigo-400" />
+                    <div>
+                        <flux:text class="text-xs font-medium text-zinc-500 dark:text-zinc-400">Unread Alerts</flux:text>
+                        <flux:heading size="lg" class="font-bold text-zinc-900 dark:text-white" data-test="widget-unread">{{ number_format($notificationSummary['unread'] ?? 0) }}</flux:heading>
+                    </div>
+                </div>
+
+                <!-- Critical Low Stock Alerts -->
+                <div class="flex items-center gap-4 rounded-xl border border-zinc-200 bg-white p-4 shadow-xs dark:border-zinc-700 dark:bg-zinc-900 {{ ($notificationSummary['critical_low_stock'] ?? 0) > 0 ? 'ring-1 ring-rose-500/50' : '' }}">
+                    <flux:icon name="exclamation-triangle" class="size-6 shrink-0 text-rose-600 dark:text-rose-400" />
+                    <div>
+                        <flux:text class="text-xs font-medium text-zinc-500 dark:text-zinc-400">Critical Stock</flux:text>
+                        <flux:heading size="lg" class="font-bold text-zinc-900 dark:text-white" data-test="widget-critical-stock">{{ number_format($notificationSummary['critical_low_stock'] ?? 0) }}</flux:heading>
+                    </div>
+                </div>
+
+                <!-- Forecasted Stockouts -->
+                @if(($notificationSummary['forecast_stockouts'] ?? null) !== null)
+                <div class="flex items-center gap-4 rounded-xl border border-zinc-200 bg-white p-4 shadow-xs dark:border-zinc-700 dark:bg-zinc-900">
+                    <flux:icon name="chart-bar" class="size-6 shrink-0 text-amber-600 dark:text-amber-400" />
+                    <div>
+                        <flux:text class="text-xs font-medium text-zinc-500 dark:text-zinc-400">30d Stockouts</flux:text>
+                        <flux:heading size="lg" class="font-bold text-zinc-900 dark:text-white" data-test="widget-forecast-stockouts">{{ number_format($notificationSummary['forecast_stockouts']) }}</flux:heading>
+                    </div>
+                </div>
+                @endif
+
+                <!-- Pending Purchase Order Approvals -->
+                @if(($notificationSummary['pending_approvals'] ?? null) !== null)
+                <div class="flex items-center gap-4 rounded-xl border border-zinc-200 bg-white p-4 shadow-xs dark:border-zinc-700 dark:bg-zinc-900">
+                    <flux:icon name="clipboard-document-check" class="size-6 shrink-0 text-sky-600 dark:text-sky-400" />
+                    <div>
+                        <flux:text class="text-xs font-medium text-zinc-500 dark:text-zinc-400">Pending Approvals</flux:text>
+                        <flux:heading size="lg" class="font-bold text-zinc-900 dark:text-white" data-test="widget-pending-approvals">{{ number_format($notificationSummary['pending_approvals']) }}</flux:heading>
+                    </div>
+                </div>
+                @endif
+
+                <!-- Overdue Purchase Orders -->
+                @if(($notificationSummary['overdue_orders'] ?? null) !== null)
+                <div class="flex items-center gap-4 rounded-xl border border-zinc-200 bg-white p-4 shadow-xs dark:border-zinc-700 dark:bg-zinc-900 {{ ($notificationSummary['overdue_orders'] ?? 0) > 0 ? 'ring-1 ring-amber-500/50' : '' }}">
+                    <flux:icon name="clock" class="size-6 shrink-0 text-purple-600 dark:text-purple-400" />
+                    <div>
+                        <flux:text class="text-xs font-medium text-zinc-500 dark:text-zinc-400">Overdue POs</flux:text>
+                        <flux:heading size="lg" class="font-bold text-zinc-900 dark:text-white" data-test="widget-overdue-orders">{{ number_format($notificationSummary['overdue_orders']) }}</flux:heading>
+                    </div>
+                </div>
+                @endif
+            </div>
+        @endif
+
         <!-- Metrics Cards -->
         <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
             <!-- Products Card -->
@@ -357,36 +420,49 @@ new #[Title('Dashboard')] class extends Component {
             </div>
 
             <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
-                <x-report-stat-card
-                    label="Open Purchase Orders"
-                    icon="clipboard-document-list"
-                    icon-class="text-indigo-500"
-                    :value="number_format($openPurchaseOrders)"
-                    :hint="'$' . number_format($openPurchaseOrderValue, 2) . ' committed'"
-                    data-test="dashboard-open-pos"
-                />
-                <x-report-stat-card
-                    label="Awaiting Approval"
-                    icon="clock"
-                    icon-class="text-sky-500"
-                    :value="number_format($purchaseOrdersAwaitingApproval)"
-                    hint="Submitted orders"
-                />
-                <x-report-stat-card
-                    label="Pending Deliveries"
-                    icon="truck"
-                    icon-class="text-amber-500"
-                    :value="number_format($pendingDeliveries)"
-                    hint="Approved, not fully received"
-                />
-                <x-report-stat-card
-                    label="Overdue Deliveries"
-                    icon="exclamation-triangle"
-                    :icon-class="$overdueDeliveries > 0 ? 'text-rose-500' : 'text-zinc-400'"
-                    :value="number_format($overdueDeliveries)"
-                    :hint="$overdueDeliveries > 0 ? 'Past expected date' : 'On schedule'"
-                    :hint-class="$overdueDeliveries > 0 ? 'text-rose-500' : 'text-zinc-500'"
-                />
+                <div class="flex flex-col justify-between overflow-hidden rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-900" data-test="dashboard-open-pos">
+                    <div class="flex items-center justify-between">
+                        <flux:text class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Open Purchase Orders</flux:text>
+                        <flux:icon name="clipboard-document-list" class="size-6 text-indigo-500" />
+                    </div>
+                    <div class="mt-4 flex items-baseline justify-between">
+                        <flux:heading size="xl" class="font-bold text-zinc-900 dark:text-white">{{ number_format($openPurchaseOrders) }}</flux:heading>
+                        <span class="text-xs text-zinc-500">${{ number_format($openPurchaseOrderValue, 2) }} committed</span>
+                    </div>
+                </div>
+
+                <div class="flex flex-col justify-between overflow-hidden rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+                    <div class="flex items-center justify-between">
+                        <flux:text class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Awaiting Approval</flux:text>
+                        <flux:icon name="clock" class="size-6 text-sky-500" />
+                    </div>
+                    <div class="mt-4 flex items-baseline justify-between">
+                        <flux:heading size="xl" class="font-bold text-zinc-900 dark:text-white">{{ number_format($purchaseOrdersAwaitingApproval) }}</flux:heading>
+                        <span class="text-xs text-zinc-500">Submitted orders</span>
+                    </div>
+                </div>
+
+                <div class="flex flex-col justify-between overflow-hidden rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+                    <div class="flex items-center justify-between">
+                        <flux:text class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Pending Deliveries</flux:text>
+                        <flux:icon name="truck" class="size-6 text-amber-500" />
+                    </div>
+                    <div class="mt-4 flex items-baseline justify-between">
+                        <flux:heading size="xl" class="font-bold text-zinc-900 dark:text-white">{{ number_format($pendingDeliveries) }}</flux:heading>
+                        <span class="text-xs text-zinc-500">Approved, not fully received</span>
+                    </div>
+                </div>
+
+                <div class="flex flex-col justify-between overflow-hidden rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+                    <div class="flex items-center justify-between">
+                        <flux:text class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Overdue Deliveries</flux:text>
+                        <flux:icon name="exclamation-triangle" class="size-6 {{ $overdueDeliveries > 0 ? 'text-rose-500' : 'text-zinc-400' }}" />
+                    </div>
+                    <div class="mt-4 flex items-baseline justify-between">
+                        <flux:heading size="xl" class="font-bold text-zinc-900 dark:text-white">{{ number_format($overdueDeliveries) }}</flux:heading>
+                        <span class="text-xs {{ $overdueDeliveries > 0 ? 'text-rose-500' : 'text-zinc-500' }}">{{ $overdueDeliveries > 0 ? 'Past expected date' : 'On schedule' }}</span>
+                    </div>
+                </div>
             </div>
 
             <!-- Recently Received Orders -->
@@ -455,37 +531,49 @@ new #[Title('Dashboard')] class extends Component {
             </div>
 
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                <x-report-stat-card
-                    label="Products Supplied"
-                    icon="archive-box"
-                    icon-class="text-indigo-500"
-                    :value="number_format($supplierMetrics['total_products'])"
-                    :hint="number_format($supplierMetrics['active_products']) . ' active'"
-                    data-test="supplier-products"
-                />
-                <x-report-stat-card
-                    label="Low Stock Products"
-                    icon="exclamation-triangle"
-                    :icon-class="$supplierMetrics['low_stock_products'] > 0 ? 'text-amber-500' : 'text-zinc-400'"
-                    :value="number_format($supplierMetrics['low_stock_products'])"
-                    :hint="number_format($supplierMetrics['out_of_stock_products']) . ' out of stock'"
-                    :hint-class="$supplierMetrics['low_stock_products'] > 0 ? 'text-amber-500' : 'text-zinc-500'"
-                />
-                <x-report-stat-card
-                    label="Open Purchase Orders"
-                    icon="clipboard-document-list"
-                    icon-class="text-sky-500"
-                    :value="number_format($supplierMetrics['open_purchase_orders'])"
-                    :hint="number_format($supplierMetrics['pending_deliveries']) . ' awaiting delivery'"
-                    data-test="supplier-open-orders"
-                />
-                <x-report-stat-card
-                    label="Inventory Value"
-                    icon="banknotes"
-                    icon-class="text-emerald-500"
-                    :value="'$' . number_format($supplierMetrics['inventory_value'], 2)"
-                    :hint="number_format($supplierMetrics['total_units']) . ' units on hand'"
-                />
+                <div class="flex flex-col justify-between overflow-hidden rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-900" data-test="supplier-products">
+                    <div class="flex items-center justify-between">
+                        <flux:text class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Products Supplied</flux:text>
+                        <flux:icon name="archive-box" class="size-6 text-indigo-500" />
+                    </div>
+                    <div class="mt-4 flex items-baseline justify-between">
+                        <flux:heading size="xl" class="font-bold text-zinc-900 dark:text-white">{{ number_format($supplierMetrics['total_products']) }}</flux:heading>
+                        <span class="text-xs text-zinc-500">{{ number_format($supplierMetrics['active_products']) }} active</span>
+                    </div>
+                </div>
+
+                <div class="flex flex-col justify-between overflow-hidden rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+                    <div class="flex items-center justify-between">
+                        <flux:text class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Low Stock Products</flux:text>
+                        <flux:icon name="exclamation-triangle" class="size-6 {{ $supplierMetrics['low_stock_products'] > 0 ? 'text-amber-500' : 'text-zinc-400' }}" />
+                    </div>
+                    <div class="mt-4 flex items-baseline justify-between">
+                        <flux:heading size="xl" class="font-bold text-zinc-900 dark:text-white">{{ number_format($supplierMetrics['low_stock_products']) }}</flux:heading>
+                        <span class="text-xs {{ $supplierMetrics['low_stock_products'] > 0 ? 'text-amber-500' : 'text-zinc-500' }}">{{ number_format($supplierMetrics['out_of_stock_products']) }} out of stock</span>
+                    </div>
+                </div>
+
+                <div class="flex flex-col justify-between overflow-hidden rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-900" data-test="supplier-open-orders">
+                    <div class="flex items-center justify-between">
+                        <flux:text class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Open Purchase Orders</flux:text>
+                        <flux:icon name="clipboard-document-list" class="size-6 text-sky-500" />
+                    </div>
+                    <div class="mt-4 flex items-baseline justify-between">
+                        <flux:heading size="xl" class="font-bold text-zinc-900 dark:text-white">{{ number_format($supplierMetrics['open_purchase_orders']) }}</flux:heading>
+                        <span class="text-xs text-zinc-500">{{ number_format($supplierMetrics['pending_deliveries']) }} awaiting delivery</span>
+                    </div>
+                </div>
+
+                <div class="flex flex-col justify-between overflow-hidden rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+                    <div class="flex items-center justify-between">
+                        <flux:text class="text-sm font-medium text-zinc-500 dark:text-zinc-400">Inventory Value</flux:text>
+                        <flux:icon name="banknotes" class="size-6 text-emerald-500" />
+                    </div>
+                    <div class="mt-4 flex items-baseline justify-between">
+                        <flux:heading size="xl" class="font-bold text-zinc-900 dark:text-white">${{ number_format($supplierMetrics['inventory_value'], 2) }}</flux:heading>
+                        <span class="text-xs text-zinc-500">{{ number_format($supplierMetrics['total_units']) }} units on hand</span>
+                    </div>
+                </div>
             </div>
 
             <div class="grid grid-cols-1 gap-6 lg:grid-cols-3">

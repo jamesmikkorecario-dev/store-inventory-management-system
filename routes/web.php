@@ -19,6 +19,7 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::livewire('products', 'pages::products')->name('products.index')->middleware('role_or_permission:Supplier|view products');
 
     Route::get('/alerts', Index::class)->name('alerts.index')->middleware('role:Admin|Staff');
+    Route::livewire('notifications', 'pages::notifications')->name('notifications.index');
 
     Route::get('/products/{product}/print-label', function (Product $product, Request $request, ProductIdentificationService $service) {
         $type = $request->query('type', 'both');
