@@ -198,6 +198,7 @@ new class extends Component {
                             label:sr-only
                             class="mx-auto"
                         />
+                        <flux:error name="code" class="!mt-0.5 text-center text-xs font-medium" />
                     </div>
 
                     <div class="flex items-center space-x-3">

@@ -1,10 +1,16 @@
 <?php
 
 use App\Models\Category;
+use App\Services\CatalogExporter;
+use App\Services\CatalogFilters;
+use App\Services\CatalogService;
 use Livewire\Attributes\Title;
+use Livewire\Attributes\Locked;
+use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\Auth;
+use Symfony\Component\HttpFoundation\StreamedResponse;
 use Flux\Flux;
 
 new #[Title('Category Management')] class extends Component {
@@ -19,21 +25,29 @@ new #[Title('Category Management')] class extends Component {
 
     public bool $showFormModal = false;
     public bool $showDeleteModal = false;
+    #[Locked]
     public bool $isReadOnly = true;
+
+    #[Locked]
+    public bool $canExportCatalog = false;
 
     public function mount(): void
     {
         $user = Auth::user();
-        if (!$user->can('view categories')) {
-            abort(403, 'Unauthorized.');
-        }
-
+        // View authorization handled by route middleware
         $this->isReadOnly = !$user->can('manage categories');
+        $this->canExportCatalog = !$user->hasRole('Supplier') && $user->can('export catalog');
     }
 
     public function updatedSearch(): void
     {
         $this->resetPage();
+    }
+
+    #[On('categories-updated')]
+    public function refreshData(): void
+    {
+        // Component will re-render
     }
 
     public function openCreateModal(): void
@@ -64,7 +78,12 @@ new #[Title('Category Management')] class extends Component {
             'description' => 'nullable|string|max:1000',
         ];
 
-        $validated = $this->validate($rules);
+        $messages = [
+            'name.required' => 'Category name is required.',
+            'name.unique' => 'Category name has already been taken.',
+        ];
+
+        $validated = $this->validate($rules, $messages);
 
         if ($this->categoryId) {
             $category = Category::findOrFail($this->categoryId);
@@ -72,13 +91,19 @@ new #[Title('Category Management')] class extends Component {
                 'name' => $this->name,
                 'description' => $this->description,
             ]);
-            Flux::toast(variant: 'success', text: __('Category updated successfully.'));
+            $this->dispatch('categories-updated');
+            $this->dispatch('products-updated');
+            $this->dispatch('dashboard-updated');
+            Flux::toast(variant: 'success', text: 'Updated successfully.');
         } else {
             Category::create([
                 'name' => $this->name,
                 'description' => $this->description,
             ]);
-            Flux::toast(variant: 'success', text: __('Category created successfully.'));
+            $this->dispatch('categories-updated');
+            $this->dispatch('products-updated');
+            $this->dispatch('dashboard-updated');
+            Flux::toast(variant: 'success', text: 'Created successfully.');
         }
 
         $this->showFormModal = false;
@@ -99,10 +124,10 @@ new #[Title('Category Management')] class extends Component {
         $category = Category::findOrFail($this->categoryId);
 
         // Prevent soft deleting if category has products
-        if ($category->products()->count() > 0) {
+        if ($category->products()->withTrashed()->count() > 0) {
             Flux::toast(
                 variant: 'danger', 
-                text: __('Cannot delete category. There are ' . $category->products()->count() . ' products cataloged under it.')
+                text: __('Cannot delete category. There are ' . $category->products()->withTrashed()->count() . ' products cataloged under it.')
             );
             $this->showDeleteModal = false;
             return;
@@ -110,7 +135,11 @@ new #[Title('Category Management')] class extends Component {
 
         $category->delete();
 
-        Flux::toast(variant: 'success', text: __('Category deleted successfully.'));
+        $this->dispatch('categories-updated');
+        $this->dispatch('products-updated');
+        $this->dispatch('dashboard-updated');
+
+        Flux::toast(variant: 'success', text: 'Deleted successfully.');
         $this->showDeleteModal = false;
         $this->resetForm();
     }
@@ -124,51 +153,78 @@ new #[Title('Category Management')] class extends Component {
 
     public function with(): array
     {
-        $query = Category::withCount('products');
-
-        if ($this->search) {
-            $query->where(function ($q) {
-                $q->where('name', 'like', '%' . $this->search . '%')
-                  ->orWhere('description', 'like', '%' . $this->search . '%');
-            });
-        }
-
         return [
-            'categories' => $query->latest()->paginate(10),
+            'categories' => app(CatalogService::class)->categoryQuery($this->filters())->paginate(10),
         ];
+    }
+
+    /**
+     * Export the currently filtered category list.
+     */
+    public function exportCsv(): StreamedResponse
+    {
+        $user = Auth::user();
+
+        abort_unless(
+            $this->canExportCatalog && $user !== null && !$user->hasRole('Supplier') && $user->can('export catalog'),
+            403
+        );
+
+        return app(CatalogExporter::class)->csv('categories', $this->filters());
+    }
+
+    /**
+     * Current filter state, shared by the table and the CSV export.
+     */
+    protected function filters(): CatalogFilters
+    {
+        return CatalogFilters::fromArray([
+            'search' => $this->search,
+        ]);
     }
 }; ?>
 
     <div class="space-y-6">
         <!-- Heading -->
-        <div class="flex items-center justify-between">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <flux:heading size="xl" class="font-bold">Category Management</flux:heading>
                 <flux:subheading>Manage stock categories to classify products, structure catalog filters, and filter reports.</flux:subheading>
             </div>
-            @if(!$isReadOnly)
-                <flux:button wire:click="openCreateModal" variant="primary" icon="plus">Add Category</flux:button>
-            @endif
+            <div class="flex flex-wrap items-center gap-2">
+                @if($canExportCatalog)
+                    <flux:button wire:click="exportCsv" icon="arrow-down-tray" size="sm" class="w-full sm:w-auto" data-test="export-categories">Export CSV</flux:button>
+                @endif
+                @if(!$isReadOnly)
+                    <flux:button wire:click="openCreateModal" variant="primary" icon="plus" size="sm" class="w-full sm:w-auto">Add Category</flux:button>
+                @endif
+            </div>
         </div>
 
         <!-- Search Bar -->
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between bg-white dark:bg-zinc-900 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700">
-            <div class="flex-1 max-w-sm">
-                <flux:input wire:model.live.debounce.300ms="search" placeholder="Search by name, description..." icon="magnifying-glass" />
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-end bg-white dark:bg-zinc-900 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700">
+            <div class="w-full relative">
+                <flux:input wire:model.live.debounce.300ms="search" label="Search Category" placeholder="Search by name, description..." icon="magnifying-glass" />
+                <div wire:loading wire:target="search" class="absolute right-3 top-9">
+                    <flux:icon name="arrow-path" class="size-4 animate-spin text-zinc-400" />
+                </div>
             </div>
         </div>
 
         <!-- Categories Table -->
-        <div class="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
+        <div wire:loading wire:target="search, sortBy, gotoPage, nextPage, previousPage" class="flex justify-center py-4 w-full">
+            <flux:icon name="arrow-path" class="size-5 animate-spin text-zinc-400" />
+        </div>
+        <div class="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900" wire:loading.class="opacity-50 pointer-events-none" wire:target="search, sortBy, gotoPage, nextPage, previousPage">
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-sm text-zinc-600 dark:text-zinc-400">
                     <thead>
                         <tr class="border-b border-zinc-200 bg-zinc-50 text-xs font-semibold text-zinc-400 dark:border-zinc-800 dark:bg-zinc-950">
-                            <th class="px-6 py-4">Category Name</th>
-                            <th class="px-6 py-4">Description</th>
-                            <th class="px-6 py-4">Seeded Products</th>
+                            <th scope="col" class="px-6 py-4">Category Name</th>
+                            <th scope="col" class="px-6 py-4">Description</th>
+                            <th scope="col" class="px-6 py-4 whitespace-nowrap">Linked Products</th>
                             @if(!$isReadOnly)
-                                <th class="px-6 py-4 text-right">Actions</th>
+                                <th scope="col" class="px-6 py-4 text-center">Actions</th>
                             @endif
                         </tr>
                     </thead>
@@ -179,23 +235,32 @@ new #[Title('Category Management')] class extends Component {
                                 <td class="px-6 py-4 max-w-[400px] truncate" title="{{ $category->description }}">
                                     {{ $category->description ?: '-' }}
                                 </td>
-                                <td class="px-6 py-4">
-                                    <span class="rounded bg-zinc-100 px-2.5 py-0.5 text-xs font-semibold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
+                                <td class="px-6 py-4 whitespace-nowrap">
+                                    <span class="inline-block whitespace-nowrap rounded bg-zinc-100 px-2.5 py-0.5 text-xs font-semibold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300">
                                         {{ $category->products_count }} product(s)
                                     </span>
                                 </td>
                                 @if(!$isReadOnly)
-                                    <td class="px-6 py-4 text-right">
+                                    <td class="px-6 py-4 text-center">
                                         <div class="inline-flex items-center gap-2">
-                                            <flux:button wire:click="openEditModal({{ $category->id }})" size="sm" icon="pencil-square" variant="ghost" />
-                                            <flux:button wire:click="confirmDelete({{ $category->id }})" size="sm" icon="trash" variant="ghost" class="text-rose-600 hover:text-rose-700" />
+                                            <flux:button wire:click="openEditModal({{ $category->id }})" size="sm" icon="pencil-square" variant="ghost" aria-label="Edit" />
+                                            <flux:button wire:click="confirmDelete({{ $category->id }})" size="sm" icon="trash" variant="ghost" aria-label="Delete" class="text-rose-600 hover:text-rose-700" />
                                         </div>
                                     </td>
                                 @endif
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="4" class="px-6 py-8 text-center text-zinc-500">No categories found.</td>
+                                <td colspan="4" class="px-6 py-16">
+                                    <div class="flex flex-col items-center justify-center text-center">
+                                        <flux:icon name="tag" class="size-12 text-zinc-300 dark:text-zinc-600 mb-4" />
+                                        <flux:heading size="lg" class="font-semibold text-zinc-700 dark:text-zinc-300">No Categories Yet</flux:heading>
+                                        <flux:text class="mt-1 text-sm text-zinc-500 dark:text-zinc-400 max-w-sm">Create a category to organize your products.</flux:text>
+                                        @if(!$isReadOnly)
+                                            <flux:button variant="primary" size="sm" class="mt-4" wire:click="openCreateModal">Add Category</flux:button>
+                                        @endif
+                                    </div>
+                                </td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -210,20 +275,35 @@ new #[Title('Category Management')] class extends Component {
 
         <!-- Add/Edit Modal -->
         @if($showFormModal)
-            <flux:modal wire:model="showFormModal" class="min-w-[500px]">
-                <div class="space-y-6">
+            <flux:modal wire:model="showFormModal" class="w-full max-w-lg">
+                <div class="space-y-4">
                     <div>
                         <flux:heading size="lg">{{ $categoryId ? 'Edit Category details' : 'Add new Category' }}</flux:heading>
                         <flux:subheading>Manage stock categories to classify system inventory items.</flux:subheading>
                     </div>
 
-                    <form wire:submit.prevent="saveCategory" class="space-y-4">
-                        <flux:input wire:model="name" label="Category Name" required placeholder="Electronics, Stationery" />
-                        <flux:textarea wire:model="description" label="Description" placeholder="Optional description detailing what products belong to this category" rows="4" />
+                    <form wire:submit.prevent="saveCategory" class="space-y-0" novalidate>
+                        <flux:field class="mb-4">
+                            <flux:label class="mb-1">Category Name <span class="text-rose-500">*</span></flux:label>
+                            <flux:input wire:model="name" required placeholder="Electronics, Stationery" />
+                            <flux:error name="name" class="!mt-0.5 text-xs font-medium" />
+                        </flux:field>
 
-                        <div class="flex justify-end gap-3 mt-6">
+                        <flux:field class="mb-5">
+                            <flux:label class="mb-1">Description</flux:label>
+                            <flux:textarea wire:model="description" placeholder="Optional description detailing what products belong to this category" rows="4" />
+                            <flux:error name="description" class="!mt-0.5 text-xs font-medium" />
+                        </flux:field>
+
+                        <div class="flex justify-end gap-3">
                             <flux:button wire:click="$set('showFormModal', false)" variant="ghost">Cancel</flux:button>
-                            <flux:button type="submit" variant="primary">Save Changes</flux:button>
+                            <flux:button type="submit" variant="primary" wire:loading.attr="disabled">
+                                <span wire:loading.remove wire:target="saveCategory">Save Changes</span>
+                                <span wire:loading wire:target="saveCategory" class="flex items-center gap-2">
+                                    <flux:icon name="arrow-path" class="size-4 animate-spin" />
+                                    Saving...
+                                </span>
+                            </flux:button>
                         </div>
                     </form>
                 </div>
@@ -240,7 +320,13 @@ new #[Title('Category Management')] class extends Component {
                     </div>
                     <div class="flex justify-end gap-3">
                         <flux:button wire:click="$set('showDeleteModal', false)" variant="ghost">Cancel</flux:button>
-                        <flux:button wire:click="deleteCategory" variant="danger">Delete Category</flux:button>
+                        <flux:button wire:click="deleteCategory" variant="danger" wire:loading.attr="disabled">
+                            <span wire:loading.remove wire:target="deleteCategory">Delete Category</span>
+                            <span wire:loading wire:target="deleteCategory" class="flex items-center gap-2">
+                                <flux:icon name="arrow-path" class="size-4 animate-spin" />
+                                Deleting...
+                            </span>
+                        </flux:button>
                     </div>
                 </div>
             </flux:modal>

@@ -4,6 +4,7 @@ use App\Models\User;
 use App\Models\Supplier;
 use Spatie\Permission\Models\Role;
 use Livewire\Attributes\Title;
+use Livewire\Attributes\On;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\Auth;
@@ -31,9 +32,7 @@ new #[Title('User Management')] class extends Component {
 
     public function mount(): void
     {
-        if (!Auth::user()->can('manage users')) {
-            abort(403, 'Unauthorized action.');
-        }
+        // Handled by route middleware
     }
 
     public function updatedSearch(): void
@@ -49,6 +48,12 @@ new #[Title('User Management')] class extends Component {
     public function updatedFilterStatus(): void
     {
         $this->resetPage();
+    }
+
+    #[On('users-updated')]
+    public function refreshData(): void
+    {
+        // Component will re-render
     }
 
     public function openCreateModal(): void
@@ -73,6 +78,7 @@ new #[Title('User Management')] class extends Component {
 
     public function saveUser(): void
     {
+        if (!Auth::user()->can('manage users')) abort(403);
         $rules = [
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users,email,' . ($this->userId ?: 'NULL'),
@@ -87,7 +93,21 @@ new #[Title('User Management')] class extends Component {
             $rules['password'] = 'nullable|string|min:8';
         }
 
-        $validated = $this->validate($rules);
+        $messages = [
+            'name.required' => 'Name is required.',
+            'email.required' => 'Email address is required.',
+            'email.email' => 'Email address is invalid.',
+            'email.unique' => 'Email address has already been taken.',
+            'roleName.required' => 'Role is required.',
+            'roleName.exists' => 'Selected role is invalid.',
+            'supplierId.required_if' => 'Supplier Partner is required for Supplier role.',
+            'supplierId.exists' => 'Selected supplier is invalid.',
+            'password.required' => 'Password is required.',
+            'password.min' => 'Password must be at least 8 characters.',
+            'status.required' => 'Status is required.',
+        ];
+
+        $validated = $this->validate($rules, $messages);
 
         if ($this->userId) {
             $user = User::findOrFail($this->userId);
@@ -105,7 +125,10 @@ new #[Title('User Management')] class extends Component {
             $user->save();
             $user->syncRoles([$this->roleName]);
 
-            Flux::toast(variant: 'success', text: __('User updated successfully.'));
+            $this->dispatch('users-updated');
+            $this->dispatch('dashboard-updated');
+
+            Flux::toast(variant: 'success', text: 'Updated successfully.');
         } else {
             $user = User::create([
                 'name' => $this->name,
@@ -117,7 +140,10 @@ new #[Title('User Management')] class extends Component {
 
             $user->assignRole($this->roleName);
 
-            Flux::toast(variant: 'success', text: __('User created successfully.'));
+            $this->dispatch('users-updated');
+            $this->dispatch('dashboard-updated');
+
+            Flux::toast(variant: 'success', text: 'Created successfully.');
         }
 
         $this->showFormModal = false;
@@ -132,6 +158,7 @@ new #[Title('User Management')] class extends Component {
 
     public function deleteUser(): void
     {
+        if (!Auth::user()->can('manage users')) abort(403);
         $user = User::findOrFail($this->userId);
 
         if ($user->id === Auth::id()) {
@@ -142,7 +169,10 @@ new #[Title('User Management')] class extends Component {
 
         $user->delete();
 
-        Flux::toast(variant: 'success', text: __('User deleted successfully.'));
+        $this->dispatch('users-updated');
+        $this->dispatch('dashboard-updated');
+
+        Flux::toast(variant: 'success', text: 'Deleted successfully.');
         $this->showDeleteModal = false;
         $this->resetForm();
     }
@@ -187,7 +217,7 @@ new #[Title('User Management')] class extends Component {
 
     <div class="space-y-6">
         <!-- Heading -->
-        <div class="flex items-center justify-between">
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <flux:heading size="xl" class="font-bold">User Management</flux:heading>
                 <flux:subheading>Manage employee system logins, supplier accounts, and portal access permissions.</flux:subheading>
@@ -196,18 +226,23 @@ new #[Title('User Management')] class extends Component {
         </div>
 
         <!-- Filters Bar -->
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between bg-white dark:bg-zinc-900 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700">
-            <div class="flex-1 max-w-sm">
-                <flux:input wire:model.live.debounce.300ms="search" placeholder="Search by name or email..." icon="magnifying-glass" />
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-end bg-white dark:bg-zinc-900 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700">
+            <div class="flex-1 relative">
+                <flux:input wire:model.live.debounce.300ms="search" label="Search User" placeholder="Search by name or email..." icon="magnifying-glass" />
+                <div wire:loading wire:target="search" class="absolute right-3 top-9">
+                    <flux:icon name="arrow-path" class="size-4 animate-spin text-zinc-400" />
+                </div>
             </div>
-            <div class="flex flex-wrap gap-3">
-                <flux:select wire:model.live="filterRole" class="min-w-[150px]">
+            <div class="w-full sm:w-56">
+                <flux:select wire:model.live="filterRole" label="Role">
                     <option value="">All Roles</option>
                     @foreach($roles as $role)
                         <option value="{{ $role->name }}">{{ $role->name }}</option>
                     @endforeach
                 </flux:select>
-                <flux:select wire:model.live="filterStatus" class="min-w-[150px]">
+            </div>
+            <div class="w-full sm:w-48">
+                <flux:select wire:model.live="filterStatus" label="Status">
                     <option value="">All Statuses</option>
                     <option value="active">Active</option>
                     <option value="inactive">Inactive</option>
@@ -216,17 +251,20 @@ new #[Title('User Management')] class extends Component {
         </div>
 
         <!-- Users Table -->
-        <div class="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
+        <div wire:loading wire:target="search, filterRole, filterStatus, sortBy, gotoPage, nextPage, previousPage" class="flex justify-center py-4 w-full">
+            <flux:icon name="arrow-path" class="size-5 animate-spin text-zinc-400" />
+        </div>
+        <div class="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900" wire:loading.class="opacity-50 pointer-events-none" wire:target="search, filterRole, filterStatus, sortBy, gotoPage, nextPage, previousPage">
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-sm text-zinc-600 dark:text-zinc-400">
                     <thead>
                         <tr class="border-b border-zinc-200 bg-zinc-50 text-xs font-semibold text-zinc-400 dark:border-zinc-800 dark:bg-zinc-950">
-                            <th class="px-6 py-4">Name</th>
-                            <th class="px-6 py-4">Email</th>
-                            <th class="px-6 py-4">Role</th>
-                            <th class="px-6 py-4">Supplier Firm</th>
-                            <th class="px-6 py-4">Status</th>
-                            <th class="px-6 py-4 text-right">Actions</th>
+                            <th scope="col" class="px-6 py-4">Name</th>
+                            <th scope="col" class="px-6 py-4">Email</th>
+                            <th scope="col" class="px-6 py-4">Role</th>
+                            <th scope="col" class="px-6 py-4">Supplier Firm</th>
+                            <th scope="col" class="px-6 py-4 text-center">Status</th>
+                            <th scope="col" class="px-6 py-4 text-center">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
@@ -249,7 +287,7 @@ new #[Title('User Management')] class extends Component {
                                 <td class="px-6 py-4 text-zinc-500">
                                     {{ $user->supplier->name ?? '-' }}
                                 </td>
-                                <td class="px-6 py-4">
+                                <td class="px-6 py-4 text-center">
                                     @if($user->status === 'active')
                                         <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400">
                                             <span class="size-1.5 rounded-full bg-emerald-600 dark:bg-emerald-400"></span> Active
@@ -260,18 +298,25 @@ new #[Title('User Management')] class extends Component {
                                         </span>
                                     @endif
                                 </td>
-                                <td class="px-6 py-4 text-right">
+                                <td class="px-6 py-4 text-center">
                                     <div class="inline-flex items-center gap-2">
-                                        <flux:button wire:click="openEditModal({{ $user->id }})" size="sm" icon="pencil-square" variant="ghost" />
+                                        <flux:button wire:click="openEditModal({{ $user->id }})" size="sm" icon="pencil-square" variant="ghost" aria-label="Edit" />
                                         @if($user->id !== auth()->id())
-                                            <flux:button wire:click="confirmDelete({{ $user->id }})" size="sm" icon="trash" variant="ghost" class="text-rose-600 hover:text-rose-700" />
+                                            <flux:button wire:click="confirmDelete({{ $user->id }})" size="sm" icon="trash" variant="ghost" aria-label="Delete" class="text-rose-600 hover:text-rose-700" />
                                         @endif
                                     </div>
                                 </td>
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="6" class="px-6 py-8 text-center text-zinc-500">No users found.</td>
+                                <td colspan="6" class="px-6 py-16">
+                                    <div class="flex flex-col items-center justify-center text-center">
+                                        <flux:icon name="users" class="size-12 text-zinc-300 dark:text-zinc-600 mb-4" />
+                                        <flux:heading size="lg" class="font-semibold text-zinc-700 dark:text-zinc-300">No Users Yet</flux:heading>
+                                        <flux:text class="mt-1 text-sm text-zinc-500 dark:text-zinc-400 max-w-sm">Invite team members to collaborate on inventory management.</flux:text>
+                                        <flux:button variant="primary" size="sm" class="mt-4" wire:click="openCreateModal">Add User</flux:button>
+                                    </div>
+                                </td>
                             </tr>
                         @endforelse
                     </tbody>
@@ -286,43 +331,74 @@ new #[Title('User Management')] class extends Component {
 
         <!-- Add/Edit Modal -->
         @if($showFormModal)
-            <flux:modal wire:model="showFormModal" class="min-w-[500px]">
-                <div class="space-y-6">
+            <flux:modal wire:model="showFormModal" class="w-full max-w-lg">
+                <div class="space-y-4">
                     <div>
                         <flux:heading size="lg">{{ $userId ? 'Edit User details' : 'Create new User' }}</flux:heading>
                         <flux:subheading>Provide the user profile details, credentials, and system role access.</flux:subheading>
                     </div>
 
-                    <form wire:submit.prevent="saveUser" class="space-y-4">
-                        <flux:input wire:model="name" label="Name" required placeholder="Full Name" />
-                        <flux:input wire:model="email" label="Email Address" type="email" required placeholder="email@example.com" />
+                    <form wire:submit.prevent="saveUser" class="space-y-0" novalidate>
+                        <flux:field class="mb-4">
+                            <flux:label class="mb-1">Name <span class="text-rose-500">*</span></flux:label>
+                            <flux:input wire:model="name" required placeholder="Full Name" />
+                            <flux:error name="name" class="!mt-0.5 text-xs font-medium" />
+                        </flux:field>
+
+                        <flux:field class="mb-4">
+                            <flux:label class="mb-1">Email Address <span class="text-rose-500">*</span></flux:label>
+                            <flux:input wire:model="email" type="email" required placeholder="email@example.com" />
+                            <flux:error name="email" class="!mt-0.5 text-xs font-medium" />
+                        </flux:field>
                         
-                        <flux:input wire:model="password" label="{{ $userId ? 'Password (Leave empty to keep current)' : 'Password' }}" type="password" placeholder="Min. 8 characters" :required="!$userId" />
+                        <flux:field class="mb-4">
+                            <flux:label class="mb-1">{{ $userId ? 'Password (Leave empty to keep current)' : 'Password' }} @if(!$userId)<span class="text-rose-500">*</span>@endif</flux:label>
+                            <flux:input wire:model="password" type="password" placeholder="Min. 8 characters" :required="!$userId" />
+                            <flux:error name="password" class="!mt-0.5 text-xs font-medium" />
+                        </flux:field>
 
-                        <flux:select wire:model.live="roleName" label="Access Role" required>
-                            <option value="">Select Role</option>
-                            @foreach($roles as $role)
-                                <option value="{{ $role->name }}">{{ $role->name }}</option>
-                            @endforeach
-                        </flux:select>
-
-                        @if($roleName === 'Supplier')
-                            <flux:select wire:model="supplierId" label="Linked Supplier Firm" required>
-                                <option value="">Select Supplier</option>
-                                @foreach($suppliers as $supplier)
-                                    <option value="{{ $supplier->id }}">{{ $supplier->name }}</option>
+                        <flux:field class="mb-4">
+                            <flux:label class="mb-1">Access Role <span class="text-rose-500">*</span></flux:label>
+                            <flux:select wire:model.live="roleName" required>
+                                <option value="">Select Role</option>
+                                @foreach($roles as $role)
+                                    <option value="{{ $role->name }}">{{ $role->name }}</option>
                                 @endforeach
                             </flux:select>
+                            <flux:error name="roleName" class="!mt-0.5 text-xs font-medium" />
+                        </flux:field>
+
+                        @if($roleName === 'Supplier')
+                            <flux:field class="mb-4">
+                                <flux:label class="mb-1">Linked Supplier Firm <span class="text-rose-500">*</span></flux:label>
+                                <flux:select wire:model="supplierId" required>
+                                    <option value="">Select Supplier</option>
+                                    @foreach($suppliers as $supplier)
+                                        <option value="{{ $supplier->id }}">{{ $supplier->name }}</option>
+                                    @endforeach
+                                </flux:select>
+                                <flux:error name="supplierId" class="!mt-0.5 text-xs font-medium" />
+                            </flux:field>
                         @endif
 
-                        <flux:select wire:model="status" label="Status" required>
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
-                        </flux:select>
+                        <flux:field class="mb-5">
+                            <flux:label class="mb-1">Status <span class="text-rose-500">*</span></flux:label>
+                            <flux:select wire:model="status" required>
+                                <option value="active">Active</option>
+                                <option value="inactive">Inactive</option>
+                            </flux:select>
+                            <flux:error name="status" class="!mt-0.5 text-xs font-medium" />
+                        </flux:field>
 
-                        <div class="flex justify-end gap-3 mt-6">
+                        <div class="flex justify-end gap-3">
                             <flux:button wire:click="$set('showFormModal', false)" variant="ghost">Cancel</flux:button>
-                            <flux:button type="submit" variant="primary">Save Changes</flux:button>
+                            <flux:button type="submit" variant="primary" wire:loading.attr="disabled">
+                                <span wire:loading.remove wire:target="saveUser">Save Changes</span>
+                                <span wire:loading wire:target="saveUser" class="flex items-center gap-2">
+                                    <flux:icon name="arrow-path" class="size-4 animate-spin" />
+                                    Saving...
+                                </span>
+                            </flux:button>
                         </div>
                     </form>
                 </div>
@@ -339,7 +415,13 @@ new #[Title('User Management')] class extends Component {
                     </div>
                     <div class="flex justify-end gap-3">
                         <flux:button wire:click="$set('showDeleteModal', false)" variant="ghost">Cancel</flux:button>
-                        <flux:button wire:click="deleteUser" variant="danger">Delete User</flux:button>
+                        <flux:button wire:click="deleteUser" variant="danger" wire:loading.attr="disabled">
+                            <span wire:loading.remove wire:target="deleteUser">Delete User</span>
+                            <span wire:loading wire:target="deleteUser" class="flex items-center gap-2">
+                                <flux:icon name="arrow-path" class="size-4 animate-spin" />
+                                Deleting...
+                            </span>
+                        </flux:button>
                     </div>
                 </div>
             </flux:modal>

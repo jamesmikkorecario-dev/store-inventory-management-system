@@ -15,9 +15,7 @@ new #[Title('Audit Trail')] class extends Component {
 
     public function mount(): void
     {
-        if (!Auth::user()->can('view audit trail')) {
-            abort(403, 'Unauthorized.');
-        }
+        // View authorization handled by route middleware
     }
 
     public function updatedSearch(): void
@@ -123,18 +121,23 @@ new #[Title('Audit Trail')] class extends Component {
         </div>
 
         <!-- Filters -->
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between bg-white dark:bg-zinc-900 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700">
-            <div class="flex-1 max-w-sm">
-                <flux:input wire:model.live.debounce.300ms="search" placeholder="Search causer user, event description..." icon="magnifying-glass" />
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-end bg-white dark:bg-zinc-900 p-4 rounded-xl border border-zinc-200 dark:border-zinc-700">
+            <div class="flex-1 relative">
+                <flux:input wire:model.live.debounce.300ms="search" label="Search Audit Log" placeholder="Search causer user, event description..." icon="magnifying-glass" />
+                <div wire:loading wire:target="search" class="absolute right-3 top-9">
+                    <flux:icon name="arrow-path" class="size-4 animate-spin text-zinc-400" />
+                </div>
             </div>
-            <div class="flex flex-wrap gap-3">
-                <flux:select wire:model.live="filterSubject" class="min-w-[200px]">
+            <div class="w-full sm:w-64">
+                <flux:select wire:model.live="filterSubject" label="Subject">
                     <option value="">All Subjects</option>
                     @foreach($subjectTypes as $class => $label)
                         <option value="{{ $class }}">{{ $label }}</option>
                     @endforeach
                 </flux:select>
-                <flux:select wire:model.live="filterEvent" class="min-w-[150px]">
+            </div>
+            <div class="w-full sm:w-48">
+                <flux:select wire:model.live="filterEvent" label="Event">
                     <option value="">All Events</option>
                     <option value="created">Created</option>
                     <option value="updated">Updated</option>
@@ -144,26 +147,29 @@ new #[Title('Audit Trail')] class extends Component {
         </div>
 
         <!-- Audit Table -->
-        <div class="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900">
+        <div wire:loading wire:target="search, filterEvent, filterSubject, sortBy, gotoPage, nextPage, previousPage" class="flex justify-center py-4 w-full">
+            <flux:icon name="arrow-path" class="size-5 animate-spin text-zinc-400" />
+        </div>
+        <div class="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900" wire:loading.class="opacity-50 pointer-events-none" wire:target="search, filterEvent, filterSubject, sortBy, gotoPage, nextPage, previousPage">
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-sm text-zinc-600 dark:text-zinc-400">
                     <thead>
                         <tr class="border-b border-zinc-200 bg-zinc-50 text-xs font-semibold text-zinc-400 dark:border-zinc-800 dark:bg-zinc-950">
-                            <th class="px-6 py-4" style="width: 180px;">Timestamp</th>
-                            <th class="px-6 py-4" style="width: 150px;">Causer User</th>
-                            <th class="px-6 py-4" style="width: 120px;">Event Action</th>
-                            <th class="px-6 py-4" style="width: 180px;">Subject (Entity)</th>
-                            <th class="px-6 py-4">Attribute Changes (Old &rarr; New)</th>
+                            <th scope="col" class="px-6 py-4 w-px whitespace-nowrap">Timestamp</th>
+                            <th scope="col" class="px-6 py-4 w-px whitespace-nowrap">Causer User</th>
+                            <th scope="col" class="px-6 py-4 w-px whitespace-nowrap">Event Action</th>
+                            <th scope="col" class="px-6 py-4 w-px whitespace-nowrap">Subject (Entity)</th>
+                            <th scope="col" class="px-6 py-4 w-full">Attribute Changes (Old &rarr; New)</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
                         @forelse($activities as $act)
                             <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-800/30">
-                                <td class="px-6 py-4 text-zinc-700 dark:text-zinc-300 font-medium">
+                                <td class="px-6 py-4 text-zinc-700 dark:text-zinc-300 font-medium whitespace-nowrap">
                                     {{ $act->created_at->format('Y-m-d H:i:s') }}
                                     <flux:text class="block text-[10px] text-zinc-400">{{ $act->created_at->diffForHumans() }}</flux:text>
                                 </td>
-                                <td class="px-6 py-4">
+                                <td class="px-6 py-4 whitespace-nowrap">
                                     <flux:text class="font-semibold text-zinc-900 dark:text-white">
                                         {{ $act->causer->name ?? 'System Process' }}
                                     </flux:text>
@@ -171,7 +177,7 @@ new #[Title('Audit Trail')] class extends Component {
                                         {{ $act->causer->email ?? 'CRON/Automated' }}
                                     </flux:text>
                                 </td>
-                                <td class="px-6 py-4">
+                                <td class="px-6 py-4 whitespace-nowrap">
                                     @if($act->event === 'created')
                                         <span class="rounded bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400">Created</span>
                                     @elseif($act->event === 'updated')
@@ -182,7 +188,7 @@ new #[Title('Audit Trail')] class extends Component {
                                         <span class="rounded bg-zinc-100 px-2 py-0.5 text-xs font-semibold text-zinc-700 dark:bg-zinc-800 dark:text-zinc-400">{{ strtoupper($act->event) }}</span>
                                     @endif
                                 </td>
-                                <td class="px-6 py-4">
+                                <td class="px-6 py-4 whitespace-nowrap">
                                     <flux:text class="font-medium text-zinc-800 dark:text-zinc-200">
                                         {{ class_basename($act->subject_type) ?: 'None' }}
                                     </flux:text>
@@ -196,7 +202,13 @@ new #[Title('Audit Trail')] class extends Component {
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="5" class="px-6 py-8 text-center text-zinc-500">No activity logs recorded.</td>
+                                <td colspan="5" class="px-6 py-16">
+                                    <div class="flex flex-col items-center justify-center text-center">
+                                        <flux:icon name="shield-check" class="size-12 text-zinc-300 dark:text-zinc-600 mb-4" />
+                                        <flux:heading size="lg" class="font-semibold text-zinc-700 dark:text-zinc-300">No Audit Logs Yet</flux:heading>
+                                        <flux:text class="mt-1 text-sm text-zinc-500 dark:text-zinc-400 max-w-sm">Activity logs will appear here once actions are performed.</flux:text>
+                                    </div>
+                                </td>
                             </tr>
                         @endforelse
                     </tbody>

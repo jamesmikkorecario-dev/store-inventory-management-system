@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use Database\Factories\CategoryFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -17,11 +19,13 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
+ * @property int|null $products_count
  */
 #[Fillable(['name', 'description'])]
 class Category extends Model
 {
-    use LogsActivity, SoftDeletes;
+    /** @use HasFactory<CategoryFactory> */
+    use HasFactory, LogsActivity, SoftDeletes;
 
     /**
      * Products in this category

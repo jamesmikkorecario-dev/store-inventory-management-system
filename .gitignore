@@ -25,3 +25,13 @@ yarn-error.log
 .agents/
 .claude/
 .codex/
+/scratch
+/scratch_*
+/test-results/
+/playwright-report/
+/blob-report/
+.playwright/
+*.log
+!/storage/logs/.gitignore
+*_output.txt
+.mcp.json

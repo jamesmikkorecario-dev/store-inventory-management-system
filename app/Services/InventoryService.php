@@ -15,12 +15,13 @@ class InventoryService
      *
      * @param  string  $type  (stock_in, stock_out, adjustment)
      * @param  int  $quantity  (positive for stock_in/out, signed for adjustment)
+     * @param  float|null  $unitCost  overrides the product cost snapshot (e.g. the agreed purchase order cost)
      *
      * @throws Exception
      */
-    public function logTransaction(int $productId, int $userId, string $type, int $quantity, ?string $remarks = null): InventoryTransaction
+    public function logTransaction(int $productId, int $userId, string $type, int $quantity, ?string $remarks = null, ?float $unitCost = null): InventoryTransaction
     {
-        return DB::transaction(function () use ($productId, $userId, $type, $quantity, $remarks) {
+        return DB::transaction(function () use ($productId, $userId, $type, $quantity, $remarks, $unitCost) {
             // Lock the product row for update to prevent concurrent updates
             $product = Product::lockForUpdate()->findOrFail($productId);
 
@@ -59,7 +60,7 @@ class InventoryService
                 'user_id' => $userId,
                 'type' => $type,
                 'quantity' => $quantity,
-                'unit_cost' => $product->cost_price,
+                'unit_cost' => $unitCost ?? $product->cost_price,
                 'unit_price' => $product->selling_price,
                 'remarks' => $remarks,
                 'transaction_date' => now(),

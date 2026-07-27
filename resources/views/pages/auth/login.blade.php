@@ -7,42 +7,50 @@
 
         <x-passkey-verify />
 
-        <form method="POST" action="{{ route('login.store') }}" class="flex flex-col gap-6">
+        <form method="POST" action="{{ route('login.store') }}" class="flex flex-col gap-0" novalidate>
             @csrf
 
             <!-- Email Address -->
-            <flux:input
-                name="email"
-                :label="__('Email address')"
-                :value="old('email')"
-                type="email"
-                required
-                autofocus
-                autocomplete="email"
-                placeholder="email@example.com"
-            />
+            <flux:field class="mb-4">
+                <flux:label class="mb-1">{{ __('Email address') }} <span class="text-rose-500">*</span></flux:label>
+                <flux:input
+                    name="email"
+                    :value="old('email')"
+                    type="email"
+                    required
+                    autofocus
+                    autocomplete="email"
+                    placeholder="email@example.com"
+                />
+                <flux:error name="email" class="!mt-0.5 text-xs font-medium" />
+            </flux:field>
 
             <!-- Password -->
-            <div class="relative">
+            <flux:field class="mb-4">
+                <div class="flex justify-between items-baseline mb-1">
+                    <flux:label>{{ __('Password') }} <span class="text-rose-500">*</span></flux:label>
+                    @if (Route::has('password.request'))
+                        <flux:link class="text-xs" :href="route('password.request')" wire:navigate>
+                            {{ __('Forgot your password?') }}
+                        </flux:link>
+                    @endif
+                </div>
                 <flux:input
                     name="password"
-                    :label="__('Password')"
                     type="password"
                     required
                     autocomplete="current-password"
                     :placeholder="__('Password')"
                     viewable
                 />
-
-                @if (Route::has('password.request'))
-                    <flux:link class="absolute top-0 text-sm end-0" :href="route('password.request')" wire:navigate>
-                        {{ __('Forgot your password?') }}
-                    </flux:link>
-                @endif
-            </div>
+                <flux:error name="password" class="!mt-0.5 text-xs font-medium" />
+            </flux:field>
 
             <!-- Remember Me -->
-            <flux:checkbox name="remember" :label="__('Remember me')" :checked="old('remember')" />
+            <div class="flex items-center gap-2 mb-6">
+                <flux:checkbox name="remember" id="remember" :checked="old('remember')" />
+                <flux:label for="remember" class="!mb-0 cursor-pointer">{{ __('Remember me') }}</flux:label>
+            </div>
 
             <div class="flex items-center justify-end">
                 <flux:button variant="primary" type="submit" class="w-full" data-test="login-button">

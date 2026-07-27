@@ -2,12 +2,17 @@
 
 namespace App\Models;
 
+use App\Services\LowStockNotificationService;
+use Database\Factories\ProductFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Spatie\Activitylog\Models\Concerns\LogsActivity;
 use Spatie\Activitylog\Support\LogOptions;
 
@@ -16,8 +21,10 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property int $supplier_id
  * @property int $category_id
  * @property string $sku
+ * @property string $identifier
  * @property string $name
  * @property string|null $description
+ * @property string|null $image_path
  * @property float $cost_price
  * @property float $selling_price
  * @property int $current_stock
@@ -26,13 +33,27 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
+ * @property int|null $total_movements
+ * @property string|null $last_transaction_date
+ * @property int|null $days_since_last_transaction
+ * @property float|null $inventory_value
+ * @property float|null $retail_value
+ * @property int|null $stock_shortfall
+ * @property int|null $inventory_transactions_count
+ * @property int|null $usage_units
+ * @property int|null $usage_events
+ * @property float|null $avg_daily_usage
+ * @property float|null $days_remaining
+ * @property string|null $last_movement_at
  */
 #[Fillable([
     'supplier_id',
     'category_id',
     'sku',
+    'identifier',
     'name',
     'description',
+    'image_path',
     'cost_price',
     'selling_price',
     'current_stock',
@@ -41,7 +62,44 @@ use Spatie\Activitylog\Support\LogOptions;
 ])]
 class Product extends Model
 {
-    use LogsActivity, SoftDeletes;
+    /** @use HasFactory<ProductFactory> */
+    use HasFactory, LogsActivity, SoftDeletes;
+
+    protected static function booted(): void
+    {
+        static::creating(function (Product $product) {
+            if (empty($product->identifier)) {
+                $product->identifier = self::generateUniqueIdentifier();
+            }
+        });
+
+        static::created(function (Product $product) {
+            app(LowStockNotificationService::class)->handleProductStockUpdate($product);
+        });
+
+        static::updated(function (Product $product) {
+            if ($product->wasChanged(['current_stock', 'minimum_stock'])) {
+                app(LowStockNotificationService::class)->handleProductStockUpdate($product);
+            }
+        });
+
+        static::deleted(function (Product $product) {
+            app(LowStockNotificationService::class)->handleProductStockUpdate($product);
+        });
+
+        static::restored(function (Product $product) {
+            app(LowStockNotificationService::class)->handleProductStockUpdate($product);
+        });
+    }
+
+    public static function generateUniqueIdentifier(): string
+    {
+        do {
+            $identifier = 'PRD'.str_pad((string) mt_rand(1, 999999), 6, '0', STR_PAD_LEFT);
+        } while (self::where('identifier', $identifier)->exists());
+
+        return $identifier;
+    }
 
     /**
      * Get the attributes that should be cast.
@@ -105,5 +163,17 @@ class Product extends Model
             ->logFillable()
             ->logOnlyDirty()
             ->dontLogEmptyChanges();
+    }
+
+    /**
+     * Get the product image URL or a placeholder
+     */
+    public function imageUrl(): string
+    {
+        if ($this->image_path) {
+            return Storage::disk('public')->url($this->image_path);
+        }
+
+        return 'https://placehold.co/400x400/f4f4f5/a1a1aa?text='.urlencode(Str::limit($this->name, 10));
     }
 }

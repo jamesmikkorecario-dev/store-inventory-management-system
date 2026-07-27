@@ -28,6 +28,26 @@
                         </flux:sidebar.item>
                     @endif
 
+                    @role('Supplier')
+                        <flux:sidebar.item icon="rectangle-stack" :href="route('portal.catalog')" :current="request()->routeIs('portal.catalog')" wire:navigate>
+                            {{ __('My Catalog') }}
+                        </flux:sidebar.item>
+
+                        <flux:sidebar.item icon="clipboard-document-list" :href="route('portal.orders.index')" :current="request()->routeIs('portal.orders.*')" wire:navigate>
+                            {{ __('My Purchase Orders') }}
+                        </flux:sidebar.item>
+
+                        <flux:sidebar.item icon="chart-bar" :href="route('portal.performance')" :current="request()->routeIs('portal.performance')" wire:navigate>
+                            {{ __('My Performance') }}
+                        </flux:sidebar.item>
+                    @endrole
+
+                    @can('view purchase orders')
+                        <flux:sidebar.item icon="clipboard-document-list" :href="route('purchase-orders.index')" :current="request()->routeIs('purchase-orders.*')" wire:navigate>
+                            {{ __('Purchase Orders') }}
+                        </flux:sidebar.item>
+                    @endcan
+
                     @can('view suppliers')
                         <flux:sidebar.item icon="truck" :href="route('suppliers.index')" :current="request()->routeIs('suppliers.index')" wire:navigate>
                             {{ __('Suppliers') }}
@@ -57,6 +77,16 @@
                             {{ __('Audit Trail') }}
                         </flux:sidebar.item>
                     @endcan
+
+                    @if(auth()->user()->hasAnyRole(['Admin', 'Staff']))
+                        <flux:sidebar.item icon="bell" :href="route('alerts.index')" :current="request()->routeIs('alerts.index')" wire:navigate>
+                            {{ __('Alerts') }}
+                            <livewire:sidebar-alerts-badge />
+                        </flux:sidebar.item>
+                        <flux:sidebar.item icon="inbox" :href="route('notifications.index')" :current="request()->routeIs('notifications.index')" wire:navigate>
+                            {{ __('Notifications') }}
+                        </flux:sidebar.item>
+                    @endif
                 </flux:sidebar.group>
             </flux:sidebar.nav>
 
@@ -76,12 +106,14 @@
         </flux:sidebar>
 
         <!-- Mobile User Menu -->
-        <flux:header class="lg:hidden">
-            <flux:sidebar.toggle class="lg:hidden" icon="bars-2" inset="left" />
+        <flux:header sticky class="lg:hidden bg-white dark:bg-zinc-900 border-b border-zinc-200 dark:border-zinc-700 z-50">
+            <flux:sidebar.toggle class="lg:hidden" icon="bars-2" />
 
             <flux:spacer />
 
-            <flux:dropdown position="top" align="end">
+            <div class="flex items-center gap-2">
+                <livewire:notification-bell />
+                <flux:dropdown position="top" align="end">
                 <flux:profile
                     :initials="auth()->user()->initials()"
                     icon-trailing="chevron-down"
@@ -128,6 +160,7 @@
                     </form>
                 </flux:menu>
             </flux:dropdown>
+            </div>
         </flux:header>
 
         {{ $slot }}

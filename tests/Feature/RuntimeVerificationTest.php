@@ -26,6 +26,7 @@ beforeEach(function () {
     Permission::create(['name' => 'manage products']);
     Permission::create(['name' => 'manage inventory']);
     Permission::create(['name' => 'view reports']);
+    Permission::create(['name' => 'export reports']);
 
     $adminRole->givePermissionTo(Permission::all());
 
@@ -92,7 +93,7 @@ test('runtime verification - supplier crud actions', function () {
         ->set('name', 'Intel Corp')
         ->set('contactPerson', 'Gordon Moore')
         ->set('email', 'intel@test.com')
-        ->set('phone', '12345678')
+        ->set('phone', '+639171234567')
         ->set('address', 'California')
         ->set('status', 'active')
         ->call('saveSupplier')
@@ -257,7 +258,7 @@ test('runtime verification - reports exports', function () {
     // 1. CSV Download
     $csvResponse = Livewire::test('pages::reports')
         ->set('reportType', 'valuation')
-        ->call('exportExcel');
+        ->call('exportCsv');
 
     $csvResponse->assertStatus(200);
     $csvResponse->assertFileDownloaded();
@@ -269,4 +270,34 @@ test('runtime verification - reports exports', function () {
 
     $pdfResponse->assertStatus(200);
     $pdfResponse->assertFileDownloaded();
+});
+
+test('runtime verification - supplier phone number validation rules', function () {
+    $this->actingAs($this->adminUser);
+
+    // 1. Valid phone numbers should pass (E.164 format: + followed by 7 to 15 digits)
+    $validPhones = ['+639171234567', '+15551234567', '+442079460192', '+63281234567'];
+    foreach ($validPhones as $idx => $phone) {
+        Livewire::test('pages::suppliers')
+            ->call('openCreateModal')
+            ->set('name', "Valid Supplier {$idx}")
+            ->set('email', "validphone{$idx}@test.com")
+            ->set('phone', $phone)
+            ->set('status', 'active')
+            ->call('saveSupplier')
+            ->assertHasNoErrors();
+    }
+
+    // 2. Invalid phone numbers (missing +, containing letters, hyphens, spaces, parentheses, or symbols) should fail
+    $invalidPhones = ['12345678', '+1-555-1234', '(555) 123 4567', '+63 (2) 8123-4567', '123-abc-4567', 'phone123', '+123@456'];
+    foreach ($invalidPhones as $idx => $phone) {
+        Livewire::test('pages::suppliers')
+            ->call('openCreateModal')
+            ->set('name', "Invalid Supplier {$idx}")
+            ->set('email', "invalidphone{$idx}@test.com")
+            ->set('phone', $phone)
+            ->set('status', 'active')
+            ->call('saveSupplier')
+            ->assertHasErrors(['phone']);
+    }
 });

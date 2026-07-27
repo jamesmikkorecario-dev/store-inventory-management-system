@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use Database\Factories\SupplierFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
@@ -21,11 +23,24 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property Carbon|null $deleted_at
+ * @property int|null $products_supplied
+ * @property int|null $total_units
+ * @property float|null $total_value
+ * @property int|null $low_stock_products
+ * @property int|null $products_count
+ * @property int|null $order_count
+ * @property int|null $received_orders
+ * @property int|null $cancelled_orders
+ * @property int|null $units_ordered
+ * @property int|null $units_received
+ * @property float|null $received_value
+ * @property string|null $last_order_date
  */
 #[Fillable(['name', 'contact_person', 'email', 'phone', 'address', 'status'])]
 class Supplier extends Model
 {
-    use LogsActivity, SoftDeletes;
+    /** @use HasFactory<SupplierFactory> */
+    use HasFactory, LogsActivity, SoftDeletes;
 
     /**
      * Users associated with this supplier
@@ -45,6 +60,16 @@ class Supplier extends Model
     public function products(): HasMany
     {
         return $this->hasMany(Product::class);
+    }
+
+    /**
+     * Purchase orders raised with this supplier
+     *
+     * @return HasMany<PurchaseOrder, $this>
+     */
+    public function purchaseOrders(): HasMany
+    {
+        return $this->hasMany(PurchaseOrder::class);
     }
 
     /**

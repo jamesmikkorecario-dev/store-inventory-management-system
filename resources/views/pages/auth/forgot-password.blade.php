@@ -5,18 +5,21 @@
         <!-- Session Status -->
         <x-auth-session-status class="text-center" :status="session('status')" />
 
-        <form method="POST" action="{{ route('password.email') }}" class="flex flex-col gap-6">
+        <form method="POST" action="{{ route('password.email') }}" class="flex flex-col gap-0" novalidate>
             @csrf
 
             <!-- Email Address -->
-            <flux:input
-                name="email"
-                :label="__('Email address')"
-                type="email"
-                required
-                autofocus
-                placeholder="email@example.com"
-            />
+            <flux:field class="mb-5">
+                <flux:label class="mb-1">{{ __('Email address') }} <span class="text-rose-500">*</span></flux:label>
+                <flux:input
+                    name="email"
+                    type="email"
+                    required
+                    autofocus
+                    placeholder="email@example.com"
+                />
+                <flux:error name="email" class="!mt-0.5 text-xs font-medium" />
+            </flux:field>
 
             <flux:button variant="primary" type="submit" class="w-full" data-test="email-password-reset-link-button">
                 {{ __('Email password reset link') }}
