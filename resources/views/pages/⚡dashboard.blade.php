@@ -5,6 +5,7 @@ use App\Models\Supplier;
 use App\Models\User;
 use App\Models\InventoryTransaction;
 use App\Services\InventoryAnalyticsService;
+use App\Services\PurchaseOrderService;
 use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\On;
@@ -27,6 +28,15 @@ new #[Title('Dashboard')] class extends Component {
     public int $inactiveProducts = 0;
     public int $outOfStockCount = 0;
     public $recentSuppliers = [];
+
+    // Purchase order metrics (Admin/Staff only)
+    public bool $showPurchaseOrders = false;
+    public int $openPurchaseOrders = 0;
+    public float $openPurchaseOrderValue = 0.0;
+    public int $purchaseOrdersAwaitingApproval = 0;
+    public int $pendingDeliveries = 0;
+    public int $overdueDeliveries = 0;
+    public $recentlyReceivedOrders = [];
 
     // Analytics properties
     public int $analyticsPeriod = 30;
@@ -56,6 +66,7 @@ new #[Title('Dashboard')] class extends Component {
     #[On('alerts-updated')]
     #[On('users-updated')]
     #[On('inventory-updated')]
+    #[On('purchase-orders-updated')]
     #[On('dashboard-updated')]
     public function loadStatistics(): void
     {
@@ -118,6 +129,29 @@ new #[Title('Dashboard')] class extends Component {
             
             $this->latestAlerts = app(\App\Services\LowStockNotificationService::class)->getLatestActiveAlerts(5);
         }
+
+        $this->loadPurchaseOrderMetrics();
+    }
+
+    /**
+     * Purchase order pipeline metrics, shown to users who can see purchase orders.
+     */
+    public function loadPurchaseOrderMetrics(): void
+    {
+        $this->showPurchaseOrders = (bool) Auth::user()?->can('view purchase orders');
+
+        if (! $this->showPurchaseOrders) {
+            return;
+        }
+
+        $metrics = app(PurchaseOrderService::class)->dashboardMetrics();
+
+        $this->openPurchaseOrders = $metrics['open_orders'];
+        $this->openPurchaseOrderValue = $metrics['open_value'];
+        $this->purchaseOrdersAwaitingApproval = $metrics['awaiting_approval'];
+        $this->pendingDeliveries = $metrics['pending_deliveries'];
+        $this->overdueDeliveries = $metrics['overdue_deliveries'];
+        $this->recentlyReceivedOrders = $metrics['recently_received'];
     }
 
     public function loadAnalytics(): void
@@ -167,6 +201,9 @@ new #[Title('Dashboard')] class extends Component {
             @if(!$isSupplier)
                 <flux:button variant="primary" size="sm" icon="plus" href="{{ route('products.index') }}" wire:navigate>New Product</flux:button>
                 <flux:button variant="filled" size="sm" icon="arrows-right-left" href="{{ route('transactions.index') }}" wire:navigate>Record Transaction</flux:button>
+                @if($showPurchaseOrders)
+                    <flux:button variant="filled" size="sm" icon="clipboard-document-list" href="{{ route('purchase-orders.index') }}" wire:navigate>Purchase Orders</flux:button>
+                @endif
                 <flux:button variant="filled" size="sm" icon="arrow-trending-up" href="{{ route('reports.index') }}" wire:navigate>View Reports</flux:button>
             @else
                 <flux:button variant="primary" size="sm" icon="archive-box" href="{{ route('products.index') }}" wire:navigate>View Products</flux:button>
@@ -245,10 +282,103 @@ new #[Title('Dashboard')] class extends Component {
             @endif
         </div>
 
+        @if($showPurchaseOrders)
+            <!-- ═══════════════════════════════════════════════════ -->
+            <!-- PURCHASE ORDER PIPELINE                            -->
+            <!-- ═══════════════════════════════════════════════════ -->
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <flux:icon name="clipboard-document-list" class="size-5 text-indigo-500" />
+                    <flux:heading size="lg" class="font-semibold">Purchase Orders</flux:heading>
+                </div>
+                <flux:button variant="subtle" size="sm" href="{{ route('purchase-orders.index') }}" wire:navigate>View all</flux:button>
+            </div>
+
+            <div class="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+                <x-report-stat-card
+                    label="Open Purchase Orders"
+                    icon="clipboard-document-list"
+                    icon-class="text-indigo-500"
+                    :value="number_format($openPurchaseOrders)"
+                    :hint="'$' . number_format($openPurchaseOrderValue, 2) . ' committed'"
+                    data-test="dashboard-open-pos"
+                />
+                <x-report-stat-card
+                    label="Awaiting Approval"
+                    icon="clock"
+                    icon-class="text-sky-500"
+                    :value="number_format($purchaseOrdersAwaitingApproval)"
+                    hint="Submitted orders"
+                />
+                <x-report-stat-card
+                    label="Pending Deliveries"
+                    icon="truck"
+                    icon-class="text-amber-500"
+                    :value="number_format($pendingDeliveries)"
+                    hint="Approved, not fully received"
+                />
+                <x-report-stat-card
+                    label="Overdue Deliveries"
+                    icon="exclamation-triangle"
+                    :icon-class="$overdueDeliveries > 0 ? 'text-rose-500' : 'text-zinc-400'"
+                    :value="number_format($overdueDeliveries)"
+                    :hint="$overdueDeliveries > 0 ? 'Past expected date' : 'On schedule'"
+                    :hint-class="$overdueDeliveries > 0 ? 'text-rose-500' : 'text-zinc-500'"
+                />
+            </div>
+
+            <!-- Recently Received Orders -->
+            <div class="flex flex-col rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-900">
+                <div class="flex items-center justify-between border-b border-zinc-150 pb-4 dark:border-zinc-800">
+                    <div class="flex items-center gap-2">
+                        <flux:icon name="truck" class="size-5 text-zinc-500 dark:text-zinc-400" />
+                        <flux:heading size="lg" class="font-semibold">Recently Received Orders</flux:heading>
+                    </div>
+                </div>
+                <div class="mt-4 flex-1 overflow-x-auto">
+                    <table class="w-full text-left text-sm text-zinc-600 dark:text-zinc-400">
+                        <thead>
+                            <tr class="border-b border-zinc-200 text-[11px] font-semibold uppercase tracking-wider text-zinc-500 dark:border-zinc-700 dark:text-zinc-400">
+                                <th scope="col" class="pb-3 pt-2 font-medium">PO Number</th>
+                                <th scope="col" class="pb-3 pt-2 font-medium">Supplier</th>
+                                <th scope="col" class="pb-3 pt-2 font-medium">Status</th>
+                                <th scope="col" class="pb-3 pt-2 text-right font-medium">Total</th>
+                                <th scope="col" class="pb-3 pt-2 text-right font-medium">Received</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800/70">
+                            @forelse($recentlyReceivedOrders as $order)
+                                <tr class="transition-colors hover:bg-zinc-50 dark:hover:bg-zinc-800/40" wire:key="recv-po-{{ $order->id }}">
+                                    <td class="py-4 align-middle pr-4">
+                                        <a href="{{ route('purchase-orders.show', $order) }}" wire:navigate class="font-mono text-sm font-semibold text-indigo-600 hover:underline dark:text-indigo-400">{{ $order->po_number }}</a>
+                                    </td>
+                                    <td class="py-4 align-middle pr-4">{{ $order->supplier->name ?? 'Unassigned' }}</td>
+                                    <td class="py-4 align-middle pr-4">
+                                        <flux:badge :color="$order->statusColor()" size="sm">{{ $order->statusLabel() }}</flux:badge>
+                                    </td>
+                                    <td class="py-4 align-middle pr-4 text-right font-semibold text-zinc-900 dark:text-white">${{ number_format((float) $order->total_amount, 2) }}</td>
+                                    <td class="py-4 align-middle text-right text-[11px] font-medium uppercase tracking-wider text-zinc-400">
+                                        {{ $order->received_at?->diffForHumans() ?? '—' }}
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="5" class="py-10 text-center">
+                                        <flux:icon name="truck" class="size-10 text-zinc-300 dark:text-zinc-600 mx-auto mb-3" />
+                                        <flux:text class="font-medium text-zinc-900 dark:text-zinc-100">No deliveries received yet</flux:text>
+                                        <flux:text class="text-sm text-zinc-500 mt-1">Received purchase orders will appear here.</flux:text>
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        @endif
+
         <!-- ═══════════════════════════════════════════════════ -->
         <!-- INVENTORY ANALYTICS SECTION                        -->
         <!-- ═══════════════════════════════════════════════════ -->
-
         <!-- Period Filter -->
         <div class="flex items-center justify-between">
             <div class="flex items-center gap-2">

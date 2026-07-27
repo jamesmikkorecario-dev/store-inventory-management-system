@@ -26,6 +26,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     })->name('products.print-label')->middleware('role_or_permission:Supplier|view products');
 
     Route::livewire('transactions', 'pages::transactions')->name('transactions.index')->middleware('role_or_permission:Supplier|view transactions');
+    Route::livewire('purchase-orders', 'pages::purchase-orders')->name('purchase-orders.index')->middleware('permission:view purchase orders');
+    Route::livewire('purchase-orders/{purchaseOrder}', 'pages::purchase-order')->name('purchase-orders.show')->middleware('permission:view purchase orders');
     Route::livewire('reports', 'pages::reports')->name('reports.index')->middleware('permission:view reports');
     Route::livewire('audit', 'pages::audit')->name('audit.index')->middleware('permission:view audit trail');
 });

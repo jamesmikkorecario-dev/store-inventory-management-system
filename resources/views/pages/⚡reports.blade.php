@@ -1,6 +1,7 @@
 <?php
 
 use App\Models\Category;
+use App\Models\PurchaseOrder;
 use App\Models\Supplier;
 use App\Services\ReportExporter;
 use App\Services\ReportFilters;
@@ -27,6 +28,7 @@ new #[Title('Advanced Reports')] class extends Component {
     public int $inactivityDays = 30;
     public string $transactionType = '';
     public string $productId = '';
+    public string $purchaseOrderStatus = '';
     public int $perPage = 15;
 
     /**
@@ -44,6 +46,7 @@ new #[Title('Advanced Reports')] class extends Component {
         'inactivityDays',
         'transactionType',
         'productId',
+        'purchaseOrderStatus',
         'perPage',
     ];
 
@@ -79,6 +82,7 @@ new #[Title('Advanced Reports')] class extends Component {
             'severity',
             'transactionType',
             'productId',
+            'purchaseOrderStatus',
         ]);
 
         $this->inactivityDays = 30;
@@ -113,6 +117,7 @@ new #[Title('Advanced Reports')] class extends Component {
             'inactivityPeriods' => ReportService::INACTIVITY_PERIODS,
             'categories' => Category::orderBy('name')->get(),
             'suppliers' => Supplier::orderBy('name')->get(),
+            'purchaseOrderStatuses' => PurchaseOrder::STATUSES,
             'canExport' => Auth::user()?->can('export reports') ?? false,
             'hasActiveFilters' => $filters->hasAny(),
             'reportService' => $reports,
@@ -138,6 +143,21 @@ new #[Title('Advanced Reports')] class extends Component {
                 ...$shared,
                 'summary' => $reports->supplierPerformanceSummary($filters),
                 'rows' => $reports->supplierPerformanceQuery($filters)->paginate($this->perPage),
+            ],
+            'purchase_orders' => [
+                ...$shared,
+                'summary' => $reports->purchaseOrderSummary($filters),
+                'rows' => $reports->purchaseOrderQuery($filters)->paginate($this->perPage),
+            ],
+            'outstanding_orders' => [
+                ...$shared,
+                'summary' => $reports->outstandingOrderSummary($filters),
+                'rows' => $reports->outstandingOrderQuery($filters)->paginate($this->perPage),
+            ],
+            'supplier_purchases' => [
+                ...$shared,
+                'summary' => $reports->supplierPurchaseSummary($filters),
+                'rows' => $reports->supplierPurchaseQuery($filters)->paginate($this->perPage),
             ],
             default => [
                 ...$shared,
@@ -165,6 +185,7 @@ new #[Title('Advanced Reports')] class extends Component {
             'inactivityDays' => $this->inactivityDays,
             'transactionType' => $this->transactionType,
             'productId' => $this->productId,
+            'purchaseOrderStatus' => $this->purchaseOrderStatus,
         ]);
     }
 
@@ -175,7 +196,9 @@ new #[Title('Advanced Reports')] class extends Component {
 }; ?>
 
 @php
-    $loadingTargets = 'reportType, selectReport, search, startDate, endDate, categoryId, supplierId, severity, inactivityDays, transactionType, productId, perPage, resetFilters, gotoPage, nextPage, previousPage';
+    $loadingTargets = 'reportType, selectReport, search, startDate, endDate, categoryId, supplierId, severity, inactivityDays, transactionType, productId, purchaseOrderStatus, perPage, resetFilters, gotoPage, nextPage, previousPage';
+    $purchaseOrderReports = ['purchase_orders', 'outstanding_orders', 'supplier_purchases'];
+    $isPurchaseOrderReport = in_array($reportType, $purchaseOrderReports, true);
 @endphp
 
 <div class="space-y-6">
@@ -183,7 +206,7 @@ new #[Title('Advanced Reports')] class extends Component {
     <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
             <flux:heading size="xl" class="font-bold">Advanced Reports</flux:heading>
-            <flux:subheading>Inventory valuation, stock risk, dead stock, movement and supplier performance analytics.</flux:subheading>
+            <flux:subheading>Inventory valuation, stock risk, dead stock, movement, supplier performance and purchase order analytics.</flux:subheading>
         </div>
         @if($canExport)
             <div class="flex items-center gap-2">
@@ -220,7 +243,7 @@ new #[Title('Advanced Reports')] class extends Component {
             <flux:input
                 wire:model.live.debounce.300ms="search"
                 label="Search"
-                placeholder="{{ $reportType === 'supplier_performance' ? 'Search supplier, contact, email...' : 'Search product name, SKU, identifier...' }}"
+                placeholder="{{ $reportType === 'supplier_performance' ? 'Search supplier, contact, email...' : ($isPurchaseOrderReport ? 'Search PO number, supplier, notes...' : 'Search product name, SKU, identifier...') }}"
                 icon="magnifying-glass"
             />
             <div wire:loading wire:target="search" class="absolute right-3 top-9">
@@ -232,18 +255,18 @@ new #[Title('Advanced Reports')] class extends Component {
             <flux:input
                 wire:model.live="startDate"
                 type="date"
-                :label="$reportType === 'transactions' ? 'Transactions From' : 'Records From'"
+                :label="$reportType === 'transactions' ? 'Transactions From' : ($isPurchaseOrderReport ? 'Ordered From' : 'Records From')"
             />
         </div>
         <div>
             <flux:input
                 wire:model.live="endDate"
                 type="date"
-                :label="$reportType === 'transactions' ? 'Transactions To' : 'Records To'"
+                :label="$reportType === 'transactions' ? 'Transactions To' : ($isPurchaseOrderReport ? 'Ordered To' : 'Records To')"
             />
         </div>
 
-        <div>
+        <div @class(['hidden' => $isPurchaseOrderReport])>
             <flux:select wire:model.live="categoryId" label="Category">
                 <option value="">All Categories</option>
                 @foreach($categories as $category)
@@ -288,6 +311,17 @@ new #[Title('Advanced Reports')] class extends Component {
                     <option value="stock_in">Stock In</option>
                     <option value="stock_out">Stock Out</option>
                     <option value="adjustment">Adjustment</option>
+                </flux:select>
+            </div>
+        @endif
+
+        @if($reportType === 'purchase_orders' || $reportType === 'supplier_purchases')
+            <div>
+                <flux:select wire:model.live="purchaseOrderStatus" label="Order Status">
+                    <option value="">All Statuses</option>
+                    @foreach($purchaseOrderStatuses as $value => $label)
+                        <option value="{{ $value }}">{{ $label }}</option>
+                    @endforeach
                 </flux:select>
             </div>
         @endif
@@ -424,6 +458,41 @@ new #[Title('Advanced Reports')] class extends Component {
                     :value="($summary['net_movement'] > 0 ? '+' : '') . number_format($summary['net_movement'])"
                     :hint="number_format($summary['transaction_count']) . ' transactions'"
                 />
+            </div>
+        @elseif($reportType === 'purchase_orders')
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <x-report-stat-card label="Purchase Orders" icon="clipboard-document-list" icon-class="text-indigo-500" :value="number_format($summary['order_count'])" :hint="number_format($summary['open_orders']) . ' still open'" />
+                <x-report-stat-card label="Total Order Value" icon="banknotes" icon-class="text-emerald-500" :value="'$' . number_format($summary['total_value'], 2)" :hint="'$' . number_format($summary['received_value'], 2) . ' received'" />
+                <x-report-stat-card label="Units Ordered" icon="cube" icon-class="text-amber-500" :value="number_format($summary['units_ordered'])" :hint="number_format($summary['units_received']) . ' received'" />
+                <x-report-stat-card
+                    label="Overdue Orders"
+                    icon="exclamation-triangle"
+                    :icon-class="$summary['overdue_orders'] > 0 ? 'text-rose-500' : 'text-zinc-400'"
+                    :value="number_format($summary['overdue_orders'])"
+                    :hint="number_format($summary['cancelled_orders']) . ' cancelled'"
+                    :hint-class="$summary['overdue_orders'] > 0 ? 'text-rose-500' : 'text-zinc-500'"
+                />
+            </div>
+        @elseif($reportType === 'outstanding_orders')
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <x-report-stat-card label="Outstanding Orders" icon="clock" icon-class="text-amber-500" :value="number_format($summary['order_count'])" hint="Awaiting delivery" />
+                <x-report-stat-card label="Units Outstanding" icon="cube" icon-class="text-indigo-500" :value="number_format($summary['units_outstanding'])" hint="Not yet received" />
+                <x-report-stat-card label="Outstanding Value" icon="banknotes" icon-class="text-emerald-500" :value="'$' . number_format($summary['outstanding_value'], 2)" hint="At agreed cost" />
+                <x-report-stat-card
+                    label="Overdue"
+                    icon="exclamation-triangle"
+                    :icon-class="$summary['overdue_orders'] > 0 ? 'text-rose-500' : 'text-zinc-400'"
+                    :value="number_format($summary['overdue_orders'])"
+                    :hint="number_format($summary['due_within_week']) . ' due within 7 days'"
+                    :hint-class="$summary['overdue_orders'] > 0 ? 'text-rose-500' : 'text-zinc-500'"
+                />
+            </div>
+        @elseif($reportType === 'supplier_purchases')
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                <x-report-stat-card label="Suppliers Purchased From" icon="truck" icon-class="text-pink-500" :value="number_format($summary['supplier_count'])" :hint="$summary['top_supplier'] ? 'Top: ' . $summary['top_supplier'] : null" />
+                <x-report-stat-card label="Purchase Orders" icon="clipboard-document-list" icon-class="text-indigo-500" :value="number_format($summary['order_count'])" hint="Across all suppliers" />
+                <x-report-stat-card label="Purchase Value" icon="banknotes" icon-class="text-emerald-500" :value="'$' . number_format($summary['total_value'], 2)" :hint="'$' . number_format($summary['received_value'], 2) . ' delivered'" />
+                <x-report-stat-card label="Units Ordered" icon="cube" icon-class="text-amber-500" :value="number_format($summary['units_ordered'])" :hint="number_format($summary['units_received']) . ' received'" />
             </div>
         @else
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -687,6 +756,176 @@ new #[Title('Advanced Reports')] class extends Component {
                                         {{ $summary['net_movement'] > 0 ? '+' : '' }}{{ number_format($summary['net_movement']) }}
                                     </td>
                                     <td class="px-6 py-4"></td>
+                                    <td class="px-6 py-4"></td>
+                                </tr>
+                            </tfoot>
+                        @endif
+                    @elseif($reportType === 'purchase_orders')
+                        <thead>
+                            <tr class="border-b border-zinc-200 bg-zinc-50 text-xs font-semibold text-zinc-400 dark:border-zinc-800 dark:bg-zinc-950">
+                                <th scope="col" class="px-6 py-4">PO Number</th>
+                                <th scope="col" class="px-6 py-4">Supplier</th>
+                                <th scope="col" class="px-6 py-4">Order Date</th>
+                                <th scope="col" class="px-6 py-4">Expected Delivery</th>
+                                <th scope="col" class="px-6 py-4">Status</th>
+                                <th scope="col" class="px-6 py-4 text-right">Ordered</th>
+                                <th scope="col" class="px-6 py-4 text-right">Received</th>
+                                <th scope="col" class="px-6 py-4 text-right">Order Value</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
+                            @forelse($rows as $order)
+                                <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-800/30" wire:key="po-row-{{ $order->id }}">
+                                    <td class="px-6 py-3.5">
+                                        <a href="{{ route('purchase-orders.show', $order) }}" wire:navigate class="font-mono text-xs font-semibold text-indigo-600 hover:underline dark:text-indigo-400">{{ $order->po_number }}</a>
+                                    </td>
+                                    <td class="px-6 py-3.5">{{ $order->supplier->name ?? 'Unassigned' }}</td>
+                                    <td class="px-6 py-3.5 whitespace-nowrap">{{ $order->order_date->format('Y-m-d') }}</td>
+                                    <td class="px-6 py-3.5 whitespace-nowrap {{ $order->isOverdue() ? 'font-semibold text-rose-600 dark:text-rose-400' : '' }}">
+                                        {{ $order->expected_delivery_date?->format('Y-m-d') ?? 'Not set' }}
+                                    </td>
+                                    <td class="px-6 py-3.5">
+                                        <flux:badge :color="$order->statusColor()" size="sm" class="whitespace-nowrap">{{ $order->statusLabel() }}</flux:badge>
+                                    </td>
+                                    <td class="px-6 py-3.5 text-right">{{ number_format((int) $order->units_ordered) }}</td>
+                                    <td class="px-6 py-3.5 text-right font-semibold">{{ number_format((int) $order->units_received) }}</td>
+                                    <td class="px-6 py-3.5 text-right font-medium text-zinc-900 dark:text-white">${{ number_format((float) $order->total_amount, 2) }}</td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="8" class="px-6 py-16">
+                                        <div class="flex flex-col items-center justify-center text-center">
+                                            <flux:icon name="clipboard-document-list" class="mb-4 size-12 text-zinc-300 dark:text-zinc-600" />
+                                            <flux:heading size="lg" class="font-semibold text-zinc-700 dark:text-zinc-300">No purchase orders</flux:heading>
+                                            <flux:text class="mt-1 max-w-sm text-sm text-zinc-500 dark:text-zinc-400">Raise a purchase order or relax the filters to see procurement activity.</flux:text>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                        @if($rows->isNotEmpty())
+                            <tfoot>
+                                <tr class="border-t-2 border-zinc-300 bg-zinc-100 font-bold text-zinc-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-white">
+                                    <td class="px-6 py-4">TOTALS ({{ number_format($summary['order_count']) }} orders)</td>
+                                    <td class="px-6 py-4">Open: {{ number_format($summary['open_orders']) }}</td>
+                                    <td class="px-6 py-4">Received: {{ number_format($summary['received_orders']) }}</td>
+                                    <td class="px-6 py-4">Cancelled: {{ number_format($summary['cancelled_orders']) }}</td>
+                                    <td class="px-6 py-4">Overdue: {{ number_format($summary['overdue_orders']) }}</td>
+                                    <td class="px-6 py-4 text-right">{{ number_format($summary['units_ordered']) }}</td>
+                                    <td class="px-6 py-4 text-right">{{ number_format($summary['units_received']) }}</td>
+                                    <td class="px-6 py-4 text-right">${{ number_format($summary['total_value'], 2) }}</td>
+                                </tr>
+                            </tfoot>
+                        @endif
+                    @elseif($reportType === 'outstanding_orders')
+                        <thead>
+                            <tr class="border-b border-zinc-200 bg-zinc-50 text-xs font-semibold text-zinc-400 dark:border-zinc-800 dark:bg-zinc-950">
+                                <th scope="col" class="px-6 py-4">PO Number</th>
+                                <th scope="col" class="px-6 py-4">Supplier</th>
+                                <th scope="col" class="px-6 py-4">Expected Delivery</th>
+                                <th scope="col" class="px-6 py-4">Status</th>
+                                <th scope="col" class="px-6 py-4 text-right">Ordered</th>
+                                <th scope="col" class="px-6 py-4 text-right">Outstanding</th>
+                                <th scope="col" class="px-6 py-4 text-right">Outstanding Value</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
+                            @forelse($rows as $order)
+                                <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-800/30" wire:key="outstanding-row-{{ $order->id }}">
+                                    <td class="px-6 py-3.5">
+                                        <a href="{{ route('purchase-orders.show', $order) }}" wire:navigate class="font-mono text-xs font-semibold text-indigo-600 hover:underline dark:text-indigo-400">{{ $order->po_number }}</a>
+                                    </td>
+                                    <td class="px-6 py-3.5">{{ $order->supplier->name ?? 'Unassigned' }}</td>
+                                    <td class="px-6 py-3.5 whitespace-nowrap">
+                                        {{ $order->expected_delivery_date?->format('Y-m-d') ?? 'Not set' }}
+                                        @if($order->isOverdue())
+                                            <span class="ml-1 rounded bg-rose-50 px-2 py-0.5 text-[10px] font-semibold text-rose-700 dark:bg-rose-950/30 dark:text-rose-400">OVERDUE</span>
+                                        @endif
+                                    </td>
+                                    <td class="px-6 py-3.5">
+                                        <flux:badge :color="$order->statusColor()" size="sm" class="whitespace-nowrap">{{ $order->statusLabel() }}</flux:badge>
+                                    </td>
+                                    <td class="px-6 py-3.5 text-right">{{ number_format((int) $order->units_ordered) }}</td>
+                                    <td class="px-6 py-3.5 text-right font-bold text-amber-600 dark:text-amber-400">{{ number_format(max((int) $order->units_ordered - (int) $order->units_received, 0)) }}</td>
+                                    <td class="px-6 py-3.5 text-right font-medium text-zinc-900 dark:text-white">${{ number_format((float) $order->outstanding_value, 2) }}</td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="7" class="px-6 py-16">
+                                        <div class="flex flex-col items-center justify-center text-center">
+                                            <flux:icon name="check-badge" class="mb-4 size-12 text-emerald-400 dark:text-emerald-500/70" />
+                                            <flux:heading size="lg" class="font-semibold text-zinc-700 dark:text-zinc-300">Nothing outstanding</flux:heading>
+                                            <flux:text class="mt-1 max-w-sm text-sm text-zinc-500 dark:text-zinc-400">Every purchase order in scope has been fully received.</flux:text>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                        @if($rows->isNotEmpty())
+                            <tfoot>
+                                <tr class="border-t-2 border-zinc-300 bg-zinc-100 font-bold text-zinc-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-white">
+                                    <td class="px-6 py-4">TOTALS ({{ number_format($summary['order_count']) }} orders)</td>
+                                    <td class="px-6 py-4"></td>
+                                    <td class="px-6 py-4">Due in 7 days: {{ number_format($summary['due_within_week']) }}</td>
+                                    <td class="px-6 py-4">Overdue: {{ number_format($summary['overdue_orders']) }}</td>
+                                    <td class="px-6 py-4"></td>
+                                    <td class="px-6 py-4 text-right">{{ number_format($summary['units_outstanding']) }}</td>
+                                    <td class="px-6 py-4 text-right">${{ number_format($summary['outstanding_value'], 2) }}</td>
+                                </tr>
+                            </tfoot>
+                        @endif
+                    @elseif($reportType === 'supplier_purchases')
+                        <thead>
+                            <tr class="border-b border-zinc-200 bg-zinc-50 text-xs font-semibold text-zinc-400 dark:border-zinc-800 dark:bg-zinc-950">
+                                <th scope="col" class="px-6 py-4">Supplier</th>
+                                <th scope="col" class="px-6 py-4">Contact</th>
+                                <th scope="col" class="px-6 py-4 text-right">Orders</th>
+                                <th scope="col" class="px-6 py-4 text-right">Received Orders</th>
+                                <th scope="col" class="px-6 py-4 text-right">Units Ordered</th>
+                                <th scope="col" class="px-6 py-4 text-right">Units Received</th>
+                                <th scope="col" class="px-6 py-4 text-right">Purchase Value</th>
+                                <th scope="col" class="px-6 py-4">Last Order</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
+                            @forelse($rows as $supplier)
+                                <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-800/30" wire:key="supplier-purchase-{{ $supplier->id }}">
+                                    <td class="px-6 py-3.5">
+                                        <flux:text class="font-semibold text-zinc-900 dark:text-white">{{ $supplier->name }}</flux:text>
+                                        <flux:text class="block text-[11px] text-zinc-400">{{ $supplier->email ?: 'No email' }}</flux:text>
+                                    </td>
+                                    <td class="px-6 py-3.5">{{ $supplier->contact_person ?: '-' }}</td>
+                                    <td class="px-6 py-3.5 text-right">{{ number_format((int) $supplier->order_count) }}</td>
+                                    <td class="px-6 py-3.5 text-right">{{ number_format((int) $supplier->received_orders) }}</td>
+                                    <td class="px-6 py-3.5 text-right">{{ number_format((int) $supplier->units_ordered) }}</td>
+                                    <td class="px-6 py-3.5 text-right font-semibold">{{ number_format((int) $supplier->units_received) }}</td>
+                                    <td class="px-6 py-3.5 text-right font-medium text-zinc-900 dark:text-white">${{ number_format((float) $supplier->total_value, 2) }}</td>
+                                    <td class="px-6 py-3.5 whitespace-nowrap">
+                                        {{ $supplier->last_order_date ? \Illuminate\Support\Carbon::parse($supplier->last_order_date)->format('Y-m-d') : '-' }}
+                                    </td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="8" class="px-6 py-16">
+                                        <div class="flex flex-col items-center justify-center text-center">
+                                            <flux:icon name="truck" class="mb-4 size-12 text-zinc-300 dark:text-zinc-600" />
+                                            <flux:heading size="lg" class="font-semibold text-zinc-700 dark:text-zinc-300">No purchase history</flux:heading>
+                                            <flux:text class="mt-1 max-w-sm text-sm text-zinc-500 dark:text-zinc-400">No supplier has purchase orders inside the selected filters.</flux:text>
+                                        </div>
+                                    </td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                        @if($rows->isNotEmpty())
+                            <tfoot>
+                                <tr class="border-t-2 border-zinc-300 bg-zinc-100 font-bold text-zinc-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-white">
+                                    <td class="px-6 py-4">TOTALS ({{ number_format($summary['supplier_count']) }} suppliers)</td>
+                                    <td class="px-6 py-4"></td>
+                                    <td class="px-6 py-4 text-right">{{ number_format($summary['order_count']) }}</td>
+                                    <td class="px-6 py-4"></td>
+                                    <td class="px-6 py-4 text-right">{{ number_format($summary['units_ordered']) }}</td>
+                                    <td class="px-6 py-4 text-right">{{ number_format($summary['units_received']) }}</td>
+                                    <td class="px-6 py-4 text-right">${{ number_format($summary['total_value'], 2) }}</td>
                                     <td class="px-6 py-4"></td>
                                 </tr>
                             </tfoot>

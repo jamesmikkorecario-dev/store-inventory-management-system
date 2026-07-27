@@ -28,6 +28,13 @@ use Spatie\Activitylog\Support\LogOptions;
  * @property float|null $total_value
  * @property int|null $low_stock_products
  * @property int|null $products_count
+ * @property int|null $order_count
+ * @property int|null $received_orders
+ * @property int|null $cancelled_orders
+ * @property int|null $units_ordered
+ * @property int|null $units_received
+ * @property float|null $received_value
+ * @property string|null $last_order_date
  */
 #[Fillable(['name', 'contact_person', 'email', 'phone', 'address', 'status'])]
 class Supplier extends Model
@@ -53,6 +60,16 @@ class Supplier extends Model
     public function products(): HasMany
     {
         return $this->hasMany(Product::class);
+    }
+
+    /**
+     * Purchase orders raised with this supplier
+     *
+     * @return HasMany<PurchaseOrder, $this>
+     */
+    public function purchaseOrders(): HasMany
+    {
+        return $this->hasMany(PurchaseOrder::class);
     }
 
     /**
