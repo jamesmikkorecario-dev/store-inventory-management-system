@@ -98,9 +98,7 @@ new #[Title('Dashboard')] class extends Component {
             $this->totalProducts = (clone $productQuery)->count();
             
             // Value of supplier's inventory
-            $this->inventoryValue = (clone $productQuery)->get()->sum(function ($p) {
-                return $p->current_stock * $p->cost_price;
-            });
+            $this->inventoryValue = (float) (clone $productQuery)->selectRaw('COALESCE(SUM(current_stock * cost_price), 0) as total')->value('total');
 
             // Low stock products from this supplier
             $lowStockQuery = (clone $productQuery)->whereColumn('current_stock', '<=', 'minimum_stock');
@@ -127,9 +125,7 @@ new #[Title('Dashboard')] class extends Component {
             $this->totalSuppliers = Supplier::count();
             $this->totalUsers = User::count();
 
-            $this->inventoryValue = Product::get()->sum(function ($p) {
-                return $p->current_stock * $p->cost_price;
-            });
+            $this->inventoryValue = (float) Product::selectRaw('COALESCE(SUM(current_stock * cost_price), 0) as total')->value('total');
 
             $this->lowStockCount = Product::whereColumn('current_stock', '<=', 'minimum_stock')->count();
             $this->lowStockItems = Product::with(['supplier', 'category'])
