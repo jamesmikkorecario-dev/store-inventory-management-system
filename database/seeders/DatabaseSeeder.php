@@ -990,5 +990,8 @@ class DatabaseSeeder extends Seeder
             $product->current_stock = $currentStock;
             $product->save();
         }
+
+        // 9. Seed a representative purchase order pipeline (one order per status).
+        $this->call(PurchaseOrderSeeder::class);
     }
 }

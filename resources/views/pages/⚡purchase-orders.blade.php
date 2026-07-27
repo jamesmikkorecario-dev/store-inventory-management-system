@@ -400,17 +400,17 @@ new #[Title('Purchase Orders')] class extends Component {
     <div class="overflow-hidden rounded-xl border border-zinc-200 bg-white dark:border-zinc-700 dark:bg-zinc-900"
          wire:loading.class="opacity-50 pointer-events-none" wire:target="{{ $loadingTargets }}">
         <div class="overflow-x-auto">
-            <table class="w-full text-left text-sm text-zinc-600 dark:text-zinc-400">
+            <table class="w-full min-w-[940px] table-fixed text-left text-sm text-zinc-600 dark:text-zinc-400">
                 <thead>
                     <tr class="border-b border-zinc-200 bg-zinc-50 text-xs font-semibold text-zinc-400 dark:border-zinc-800 dark:bg-zinc-950">
-                        <th scope="col" class="px-6 py-4">PO Number</th>
-                        <th scope="col" class="px-6 py-4">Supplier</th>
-                        <th scope="col" class="px-6 py-4">Dates</th>
-                        <th scope="col" class="px-6 py-4 text-left">Items</th>
-                        <th scope="col" class="px-6 py-4">Received</th>
-                        <th scope="col" class="px-6 py-4 text-left">Total</th>
-                        <th scope="col" class="px-6 py-4">Status</th>
-                        <th scope="col" class="px-6 py-4 text-left">Actions</th>
+                        <th scope="col" class="px-4 py-4 w-[14%]">PO Number</th>
+                        <th scope="col" class="px-4 py-4 w-[17%]">Supplier</th>
+                        <th scope="col" class="px-4 py-4 w-[17%]">Dates</th>
+                        <th scope="col" class="px-4 py-4 text-left w-[8%]">Items</th>
+                        <th scope="col" class="px-4 py-4 w-[10%]">Received</th>
+                        <th scope="col" class="px-4 py-4 text-left w-[11%]">Total</th>
+                        <th scope="col" class="px-4 py-4 w-[15%]">Status</th>
+                        <th scope="col" class="px-4 py-4 text-left w-[8%]">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
@@ -421,24 +421,27 @@ new #[Title('Purchase Orders')] class extends Component {
                             $progress = $ordered > 0 ? min(100, (int) round($received / $ordered * 100)) : 0;
                         @endphp
                         <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-800/30" wire:key="po-{{ $order->id }}">
-                            <td class="px-6 py-4">
-                                <a href="{{ route('purchase-orders.show', $order) }}" wire:navigate class="font-mono text-sm font-semibold text-indigo-600 hover:underline dark:text-indigo-400">
+                            <td class="px-4 py-4 whitespace-nowrap">
+                                <a href="{{ route('purchase-orders.show', $order) }}" wire:navigate class="font-mono text-sm font-semibold tracking-tight text-indigo-600 hover:underline dark:text-indigo-400">
                                     {{ $order->po_number }}
                                 </a>
-                                <flux:text class="block text-[10px] text-zinc-400">by {{ $order->creator->name ?? 'Unknown' }}</flux:text>
+                                <flux:text class="block truncate text-[10px] text-zinc-400" title="{{ $order->creator->name ?? 'Unknown' }}">by {{ $order->creator->name ?? 'Unknown' }}</flux:text>
                             </td>
-                            <td class="px-6 py-4">
-                                <flux:text class="font-medium text-zinc-900 dark:text-white">{{ $order->supplier->name ?? 'Unassigned' }}</flux:text>
+                            <td class="px-4 py-4">
+                                <flux:text
+                                    class="block truncate overflow-hidden text-ellipsis font-medium text-zinc-900 dark:text-white"
+                                    title="{{ $order->supplier->name ?? 'Unassigned' }}"
+                                >{{ $order->supplier->name ?? 'Unassigned' }}</flux:text>
                             </td>
-                            <td class="px-6 py-4 whitespace-nowrap">
+                            <td class="px-4 py-4 whitespace-nowrap">
                                 <flux:text class="text-xs">Ordered: {{ $order->order_date->format('M d, Y') }}</flux:text>
                                 <flux:text class="block text-xs {{ $order->isOverdue() ? 'font-semibold text-rose-600 dark:text-rose-400' : 'text-zinc-500' }}">
                                     Expected: {{ $order->expected_delivery_date?->format('M d, Y') ?? '—' }}
                                     @if($order->isOverdue()) (overdue) @endif
                                 </flux:text>
                             </td>
-                            <td class="px-6 py-4 text-right">{{ number_format($order->items_count) }}</td>
-                            <td class="px-6 py-4">
+                            <td class="px-4 py-4 text-right">{{ number_format($order->items_count) }}</td>
+                            <td class="px-4 py-4">
                                 <div class="flex items-center gap-2">
                                     <div class="h-1.5 w-20 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-700">
                                         <div class="h-full rounded-full {{ $progress === 100 ? 'bg-emerald-500' : 'bg-amber-500' }}" style="width: {{ $progress }}%"></div>
@@ -446,22 +449,69 @@ new #[Title('Purchase Orders')] class extends Component {
                                     <span class="text-xs whitespace-nowrap">{{ number_format($received) }}/{{ number_format($ordered) }}</span>
                                 </div>
                             </td>
-                            <td class="px-6 py-4 text-right font-semibold text-zinc-900 dark:text-white">${{ number_format((float) $order->total_amount, 2) }}</td>
-                            <td class="px-6 py-4">
+                            <td class="px-4 py-4 text-right font-semibold whitespace-nowrap text-zinc-900 dark:text-white">${{ number_format((float) $order->total_amount, 2) }}</td>
+                            <td class="px-4 py-4">
                                 <flux:badge :color="$order->statusColor()" size="sm" class="whitespace-nowrap">{{ $order->statusLabel() }}</flux:badge>
                             </td>
-                            <td class="px-6 py-4">
-                                <div class="flex items-center justify-end gap-1">
-                                    <flux:button size="xs" variant="ghost" icon="eye" href="{{ route('purchase-orders.show', $order) }}" wire:navigate>View</flux:button>
-                                    @if($canManage && $order->isEditable())
-                                        <flux:button size="xs" variant="ghost" icon="pencil-square" wire:click="openEditModal({{ $order->id }})">Edit</flux:button>
-                                        <flux:button size="xs" variant="ghost" icon="paper-airplane" wire:click="submitOrder({{ $order->id }})" data-test="submit-{{ $order->id }}">Submit</flux:button>
-                                    @endif
-                                    @if($canApprove && $order->status === \App\Models\PurchaseOrder::STATUS_SUBMITTED)
-                                        <flux:button size="xs" variant="primary" icon="check" wire:click="approveOrder({{ $order->id }})" data-test="approve-{{ $order->id }}">Approve</flux:button>
-                                    @endif
-                                    @if($canManage && $order->isOpen())
-                                        <flux:button size="xs" variant="ghost" icon="x-mark" wire:click="cancelOrder({{ $order->id }})" wire:confirm="Cancel this purchase order?" data-test="cancel-{{ $order->id }}">Cancel</flux:button>
+                            <td class="px-4 py-4">
+                                @php
+                                    $isSubmitted = $order->status === \App\Models\PurchaseOrder::STATUS_SUBMITTED;
+                                    $canEditRow = $canManage && $order->isEditable();
+                                    $canApproveRow = $canApprove && $isSubmitted;
+                                    $canReceiveRow = $canReceive && $order->isReceivable();
+                                    $canCancelRow = $canManage && $order->isOpen();
+                                    $hasRowActions = $canEditRow || $canApproveRow || $canReceiveRow || $canCancelRow;
+                                @endphp
+                                <div class="flex items-center gap-1">
+                                    <flux:button
+                                        size="sm"
+                                        variant="ghost"
+                                        icon="eye"
+                                        href="{{ route('purchase-orders.show', $order) }}"
+                                        wire:navigate
+                                        title="View purchase order"
+                                        aria-label="View purchase order {{ $order->po_number }}"
+                                    />
+
+                                    @if($hasRowActions)
+                                        <flux:dropdown position="bottom" align="end">
+                                            <flux:button
+                                                size="sm"
+                                                variant="ghost"
+                                                icon="ellipsis-vertical"
+                                                title="More actions"
+                                                aria-label="More actions for purchase order {{ $order->po_number }}"
+                                                data-test="row-menu-{{ $order->id }}"
+                                            />
+
+                                            <flux:menu>
+                                                @if($canEditRow)
+                                                    <flux:menu.item icon="pencil-square" wire:click="openEditModal({{ $order->id }})">Edit</flux:menu.item>
+                                                    <flux:menu.item icon="paper-airplane" wire:click="submitOrder({{ $order->id }})" data-test="submit-{{ $order->id }}">Submit for Approval</flux:menu.item>
+                                                @endif
+
+                                                @if($canApproveRow)
+                                                    <flux:menu.item icon="check" wire:click="approveOrder({{ $order->id }})" data-test="approve-{{ $order->id }}">Approve</flux:menu.item>
+                                                @endif
+
+                                                @if($canReceiveRow)
+                                                    <flux:menu.item icon="truck" href="{{ route('purchase-orders.show', $order) }}" wire:navigate>Receive Goods</flux:menu.item>
+                                                @endif
+
+                                                @if($canCancelRow)
+                                                    @if($canEditRow || $canApproveRow || $canReceiveRow)
+                                                        <flux:menu.separator />
+                                                    @endif
+                                                    <flux:menu.item
+                                                        icon="x-mark"
+                                                        variant="danger"
+                                                        wire:click="cancelOrder({{ $order->id }})"
+                                                        wire:confirm="Cancel this purchase order?"
+                                                        data-test="cancel-{{ $order->id }}"
+                                                    >Cancel Order</flux:menu.item>
+                                                @endif
+                                            </flux:menu>
+                                        </flux:dropdown>
                                     @endif
                                 </div>
                             </td>
