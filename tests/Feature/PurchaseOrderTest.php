@@ -595,10 +595,17 @@ test('the dashboard exposes purchase order metrics to admins', function () {
 });
 
 test('the dashboard hides purchase order metrics from suppliers', function () {
+    // Suppliers must not see the organisation-wide purchase order pipeline. Since
+    // Phase 3.3 they do see their own supplier-scoped open order count, so this
+    // asserts on the internal-only widgets rather than the shared card label.
     Livewire::actingAs(makeSupplierUser($this->supplier))
         ->test('pages::dashboard')
         ->assertSet('showPurchaseOrders', false)
-        ->assertDontSee('Open Purchase Orders');
+        ->assertSet('openPurchaseOrders', 0)
+        ->assertSet('purchaseOrdersAwaitingApproval', 0)
+        ->assertDontSee('Recently Received Orders')
+        ->assertDontSee('committed')
+        ->assertDontSee('Approved, not fully received');
 });
 
 // ─── Reports ──────────────────────────────────────────────────────────────────

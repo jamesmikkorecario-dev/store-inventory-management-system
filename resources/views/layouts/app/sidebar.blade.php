@@ -28,6 +28,20 @@
                         </flux:sidebar.item>
                     @endif
 
+                    @role('Supplier')
+                        <flux:sidebar.item icon="rectangle-stack" :href="route('portal.catalog')" :current="request()->routeIs('portal.catalog')" wire:navigate>
+                            {{ __('My Catalog') }}
+                        </flux:sidebar.item>
+
+                        <flux:sidebar.item icon="clipboard-document-list" :href="route('portal.orders.index')" :current="request()->routeIs('portal.orders.*')" wire:navigate>
+                            {{ __('My Purchase Orders') }}
+                        </flux:sidebar.item>
+
+                        <flux:sidebar.item icon="chart-bar" :href="route('portal.performance')" :current="request()->routeIs('portal.performance')" wire:navigate>
+                            {{ __('My Performance') }}
+                        </flux:sidebar.item>
+                    @endrole
+
                     @can('view purchase orders')
                         <flux:sidebar.item icon="clipboard-document-list" :href="route('purchase-orders.index')" :current="request()->routeIs('purchase-orders.*')" wire:navigate>
                             {{ __('Purchase Orders') }}
