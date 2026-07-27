@@ -342,8 +342,8 @@ new #[Title('Dashboard')] class extends Component {
                                 <th scope="col" class="pb-3 pt-2 font-medium">PO Number</th>
                                 <th scope="col" class="pb-3 pt-2 font-medium">Supplier</th>
                                 <th scope="col" class="pb-3 pt-2 font-medium">Status</th>
-                                <th scope="col" class="pb-3 pt-2 text-right font-medium">Total</th>
-                                <th scope="col" class="pb-3 pt-2 text-right font-medium">Received</th>
+                                <th scope="col" class="pb-3 pt-2 text-left font-medium">Total</th>
+                                <th scope="col" class="pb-3 pt-2 text-left font-medium">Received</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800/70">
@@ -681,7 +681,7 @@ new #[Title('Dashboard')] class extends Component {
                                 <th scope="col" class="pb-3 pt-2 font-medium">Quantity</th>
                                 <th scope="col" class="pb-3 pt-2 font-medium">Remarks</th>
                                 <th scope="col" class="pb-3 pt-2 font-medium">User</th>
-                                <th scope="col" class="pb-3 pt-2 text-right font-medium">Date</th>
+                                <th scope="col" class="pb-3 pt-2 text-left font-medium">Date</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-zinc-100 dark:divide-zinc-800/70">

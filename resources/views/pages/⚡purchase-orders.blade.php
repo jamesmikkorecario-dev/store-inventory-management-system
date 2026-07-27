@@ -406,11 +406,11 @@ new #[Title('Purchase Orders')] class extends Component {
                         <th scope="col" class="px-6 py-4">PO Number</th>
                         <th scope="col" class="px-6 py-4">Supplier</th>
                         <th scope="col" class="px-6 py-4">Dates</th>
-                        <th scope="col" class="px-6 py-4 text-right">Items</th>
+                        <th scope="col" class="px-6 py-4 text-left">Items</th>
                         <th scope="col" class="px-6 py-4">Received</th>
-                        <th scope="col" class="px-6 py-4 text-right">Total</th>
+                        <th scope="col" class="px-6 py-4 text-left">Total</th>
                         <th scope="col" class="px-6 py-4">Status</th>
-                        <th scope="col" class="px-6 py-4 text-right">Actions</th>
+                        <th scope="col" class="px-6 py-4 text-left">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">

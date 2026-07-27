@@ -807,7 +807,7 @@ new #[Title('Product Management')] class extends Component {
                             <th scope="col" class="px-6 py-4 w-[15%]">Stock Level</th>
                             <th scope="col" class="px-6 py-4 w-[10%]">Status</th>
                             @if(!$isReadOnly)
-                                <th scope="col" class="px-6 py-4 text-right w-[5%]">Actions</th>
+                                <th scope="col" class="px-6 py-4 text-left w-[5%]">Actions</th>
                             @endif
                         </tr>
                     </thead>

@@ -224,7 +224,7 @@ new #[Title('Category Management')] class extends Component {
                             <th scope="col" class="px-6 py-4">Description</th>
                             <th scope="col" class="px-6 py-4">Linked Products</th>
                             @if(!$isReadOnly)
-                                <th scope="col" class="px-6 py-4 text-right">Actions</th>
+                                <th scope="col" class="px-6 py-4 text-left">Actions</th>
                             @endif
                         </tr>
                     </thead>

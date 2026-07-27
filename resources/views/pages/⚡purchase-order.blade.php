@@ -227,11 +227,11 @@ new #[Title('Purchase Order')] class extends Component {
                     <thead>
                         <tr class="border-b border-zinc-200 bg-zinc-50 text-xs font-semibold text-zinc-400 dark:border-zinc-800 dark:bg-zinc-950">
                             <th scope="col" class="px-6 py-4">Product</th>
-                            <th scope="col" class="px-6 py-4 text-right">Ordered</th>
-                            <th scope="col" class="px-6 py-4 text-right">Received</th>
-                            <th scope="col" class="px-6 py-4 text-right">Outstanding</th>
-                            <th scope="col" class="px-6 py-4 text-right">Unit Cost</th>
-                            <th scope="col" class="px-6 py-4 text-right">Line Total</th>
+                            <th scope="col" class="px-6 py-4 text-left">Ordered</th>
+                            <th scope="col" class="px-6 py-4 text-left">Received</th>
+                            <th scope="col" class="px-6 py-4 text-left">Outstanding</th>
+                            <th scope="col" class="px-6 py-4 text-left">Unit Cost</th>
+                            <th scope="col" class="px-6 py-4 text-left">Line Total</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
@@ -343,9 +343,9 @@ new #[Title('Purchase Order')] class extends Component {
                             <thead>
                                 <tr class="border-b border-zinc-200 bg-zinc-50 text-xs font-semibold text-zinc-400 dark:border-zinc-800 dark:bg-zinc-950">
                                     <th scope="col" class="px-4 py-3">Product</th>
-                                    <th scope="col" class="px-4 py-3 text-right">Ordered</th>
-                                    <th scope="col" class="px-4 py-3 text-right">Outstanding</th>
-                                    <th scope="col" class="px-4 py-3 text-right">Receive Now</th>
+                                    <th scope="col" class="px-4 py-3 text-left">Ordered</th>
+                                    <th scope="col" class="px-4 py-3 text-left">Outstanding</th>
+                                    <th scope="col" class="px-4 py-3 text-left">Receive Now</th>
                                 </tr>
                             </thead>
                             <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">

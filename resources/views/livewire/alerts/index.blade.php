@@ -99,11 +99,11 @@
                     <tr class="border-b border-zinc-200 bg-zinc-50 text-xs font-semibold text-zinc-400 dark:border-zinc-800 dark:bg-zinc-950">
                         <th scope="col" class="px-6 py-4 whitespace-nowrap">Time</th>
                         <th scope="col" class="px-6 py-4 whitespace-nowrap">Product</th>
-                        <th scope="col" class="px-6 py-4 whitespace-nowrap text-center">Current Stock</th>
-                        <th scope="col" class="px-6 py-4 whitespace-nowrap text-center">Min Stock</th>
-                        <th scope="col" class="px-6 py-4 whitespace-nowrap text-center">Severity</th>
-                        <th scope="col" class="px-6 py-4 whitespace-nowrap text-center">Status</th>
-                        <th scope="col" class="px-6 py-4 whitespace-nowrap text-right">Actions</th>
+                        <th scope="col" class="px-6 py-4 whitespace-nowrap text-left">Current Stock</th>
+                        <th scope="col" class="px-6 py-4 whitespace-nowrap text-left">Min Stock</th>
+                        <th scope="col" class="px-6 py-4 whitespace-nowrap text-left">Severity</th>
+                        <th scope="col" class="px-6 py-4 whitespace-nowrap text-left">Status</th>
+                        <th scope="col" class="px-6 py-4 whitespace-nowrap text-left">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">

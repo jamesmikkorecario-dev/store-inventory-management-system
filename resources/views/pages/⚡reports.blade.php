@@ -381,9 +381,9 @@ new #[Title('Advanced Reports')] class extends Component {
                                 <thead>
                                     <tr class="border-b border-zinc-200 bg-zinc-50/50 text-xs font-semibold text-zinc-400 dark:border-zinc-800 dark:bg-zinc-950/40">
                                         <th scope="col" class="px-6 py-3">Name</th>
-                                        <th scope="col" class="px-6 py-3 text-right">Products</th>
-                                        <th scope="col" class="px-6 py-3 text-right">Units</th>
-                                        <th scope="col" class="px-6 py-3 text-right">Value</th>
+                                        <th scope="col" class="px-6 py-3 text-left">Products</th>
+                                        <th scope="col" class="px-6 py-3 text-left">Units</th>
+                                        <th scope="col" class="px-6 py-3 text-left">Value</th>
                                     </tr>
                                 </thead>
                                 <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
@@ -518,10 +518,10 @@ new #[Title('Advanced Reports')] class extends Component {
                                 <th scope="col" class="px-6 py-4">SKU / Product</th>
                                 <th scope="col" class="px-6 py-4">Category</th>
                                 <th scope="col" class="px-6 py-4">Supplier</th>
-                                <th scope="col" class="px-6 py-4 text-right">Cost / Selling</th>
-                                <th scope="col" class="px-6 py-4 text-right">Stock</th>
-                                <th scope="col" class="px-6 py-4 text-right">Cost Value</th>
-                                <th scope="col" class="px-6 py-4 text-right">Retail Value</th>
+                                <th scope="col" class="px-6 py-4 text-left">Cost / Selling</th>
+                                <th scope="col" class="px-6 py-4 text-left">Stock</th>
+                                <th scope="col" class="px-6 py-4 text-left">Cost Value</th>
+                                <th scope="col" class="px-6 py-4 text-left">Retail Value</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
@@ -569,9 +569,9 @@ new #[Title('Advanced Reports')] class extends Component {
                                 <th scope="col" class="px-6 py-4">SKU / Product</th>
                                 <th scope="col" class="px-6 py-4">Category</th>
                                 <th scope="col" class="px-6 py-4">Supplier</th>
-                                <th scope="col" class="px-6 py-4 text-right">Current Stock</th>
-                                <th scope="col" class="px-6 py-4 text-right">Minimum Stock</th>
-                                <th scope="col" class="px-6 py-4 text-right">Shortfall</th>
+                                <th scope="col" class="px-6 py-4 text-left">Current Stock</th>
+                                <th scope="col" class="px-6 py-4 text-left">Minimum Stock</th>
+                                <th scope="col" class="px-6 py-4 text-left">Shortfall</th>
                                 <th scope="col" class="px-6 py-4">Status</th>
                             </tr>
                         </thead>
@@ -627,10 +627,10 @@ new #[Title('Advanced Reports')] class extends Component {
                                 <th scope="col" class="px-6 py-4">SKU / Product</th>
                                 <th scope="col" class="px-6 py-4">Category</th>
                                 <th scope="col" class="px-6 py-4">Supplier</th>
-                                <th scope="col" class="px-6 py-4 text-right">Current Stock</th>
-                                <th scope="col" class="px-6 py-4 text-right">Stock Value</th>
+                                <th scope="col" class="px-6 py-4 text-left">Current Stock</th>
+                                <th scope="col" class="px-6 py-4 text-left">Stock Value</th>
                                 <th scope="col" class="px-6 py-4">Last Transaction</th>
-                                <th scope="col" class="px-6 py-4 text-right">Days Since Movement</th>
+                                <th scope="col" class="px-6 py-4 text-left">Days Since Movement</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
@@ -693,7 +693,7 @@ new #[Title('Advanced Reports')] class extends Component {
                                 <th scope="col" class="px-6 py-4">Category</th>
                                 <th scope="col" class="px-6 py-4">Supplier</th>
                                 <th scope="col" class="px-6 py-4">Type</th>
-                                <th scope="col" class="px-6 py-4 text-right">Quantity</th>
+                                <th scope="col" class="px-6 py-4 text-left">Quantity</th>
                                 <th scope="col" class="px-6 py-4">Operator</th>
                                 <th scope="col" class="px-6 py-4">Remarks</th>
                             </tr>
@@ -768,9 +768,9 @@ new #[Title('Advanced Reports')] class extends Component {
                                 <th scope="col" class="px-6 py-4">Order Date</th>
                                 <th scope="col" class="px-6 py-4">Expected Delivery</th>
                                 <th scope="col" class="px-6 py-4">Status</th>
-                                <th scope="col" class="px-6 py-4 text-right">Ordered</th>
-                                <th scope="col" class="px-6 py-4 text-right">Received</th>
-                                <th scope="col" class="px-6 py-4 text-right">Order Value</th>
+                                <th scope="col" class="px-6 py-4 text-left">Ordered</th>
+                                <th scope="col" class="px-6 py-4 text-left">Received</th>
+                                <th scope="col" class="px-6 py-4 text-left">Order Value</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
@@ -824,9 +824,9 @@ new #[Title('Advanced Reports')] class extends Component {
                                 <th scope="col" class="px-6 py-4">Supplier</th>
                                 <th scope="col" class="px-6 py-4">Expected Delivery</th>
                                 <th scope="col" class="px-6 py-4">Status</th>
-                                <th scope="col" class="px-6 py-4 text-right">Ordered</th>
-                                <th scope="col" class="px-6 py-4 text-right">Outstanding</th>
-                                <th scope="col" class="px-6 py-4 text-right">Outstanding Value</th>
+                                <th scope="col" class="px-6 py-4 text-left">Ordered</th>
+                                <th scope="col" class="px-6 py-4 text-left">Outstanding</th>
+                                <th scope="col" class="px-6 py-4 text-left">Outstanding Value</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
@@ -879,11 +879,11 @@ new #[Title('Advanced Reports')] class extends Component {
                             <tr class="border-b border-zinc-200 bg-zinc-50 text-xs font-semibold text-zinc-400 dark:border-zinc-800 dark:bg-zinc-950">
                                 <th scope="col" class="px-6 py-4">Supplier</th>
                                 <th scope="col" class="px-6 py-4">Contact</th>
-                                <th scope="col" class="px-6 py-4 text-right">Orders</th>
-                                <th scope="col" class="px-6 py-4 text-right">Received Orders</th>
-                                <th scope="col" class="px-6 py-4 text-right">Units Ordered</th>
-                                <th scope="col" class="px-6 py-4 text-right">Units Received</th>
-                                <th scope="col" class="px-6 py-4 text-right">Purchase Value</th>
+                                <th scope="col" class="px-6 py-4 text-left">Orders</th>
+                                <th scope="col" class="px-6 py-4 text-left">Received Orders</th>
+                                <th scope="col" class="px-6 py-4 text-left">Units Ordered</th>
+                                <th scope="col" class="px-6 py-4 text-left">Units Received</th>
+                                <th scope="col" class="px-6 py-4 text-left">Purchase Value</th>
                                 <th scope="col" class="px-6 py-4">Last Order</th>
                             </tr>
                         </thead>
@@ -937,10 +937,10 @@ new #[Title('Advanced Reports')] class extends Component {
                                 <th scope="col" class="px-6 py-4">Supplier</th>
                                 <th scope="col" class="px-6 py-4">Contact</th>
                                 <th scope="col" class="px-6 py-4">Status</th>
-                                <th scope="col" class="px-6 py-4 text-right">Products</th>
-                                <th scope="col" class="px-6 py-4 text-right">Total Stock</th>
-                                <th scope="col" class="px-6 py-4 text-right">Low Stock</th>
-                                <th scope="col" class="px-6 py-4 text-right">Inventory Value</th>
+                                <th scope="col" class="px-6 py-4 text-left">Products</th>
+                                <th scope="col" class="px-6 py-4 text-left">Total Stock</th>
+                                <th scope="col" class="px-6 py-4 text-left">Low Stock</th>
+                                <th scope="col" class="px-6 py-4 text-left">Inventory Value</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
