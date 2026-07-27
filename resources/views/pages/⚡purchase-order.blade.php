@@ -4,6 +4,7 @@ use App\Models\PurchaseOrder;
 use App\Services\PurchaseOrderService;
 use Flux\Flux;
 use Illuminate\Support\Facades\Auth;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
@@ -19,8 +20,13 @@ new #[Title('Purchase Order')] class extends Component {
      */
     public array $receiveQuantities = [];
 
+    #[Locked]
     public bool $canManage = false;
+
+    #[Locked]
     public bool $canApprove = false;
+
+    #[Locked]
     public bool $canReceive = false;
 
     public function mount(PurchaseOrder $purchaseOrder): void

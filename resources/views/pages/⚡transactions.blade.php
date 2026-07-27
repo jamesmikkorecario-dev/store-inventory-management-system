@@ -3,6 +3,7 @@
 use App\Models\InventoryTransaction;
 use App\Models\Product;
 use App\Services\InventoryService;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
 use Livewire\Attributes\On;
 use Livewire\Component;
@@ -29,8 +30,13 @@ new #[Title('Inventory Transactions')] class extends Component {
     public bool $showFormModal = false;
 
     // Permissions
+    #[Locked]
     public bool $isSupplier = false;
+
+    #[Locked]
     public ?int $userSupplierId = null;
+
+    #[Locked]
     public bool $canManage = false;
 
     public function mount(): void

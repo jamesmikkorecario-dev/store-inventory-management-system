@@ -3,10 +3,12 @@
 use App\Models\PurchaseOrder;
 use App\Services\SupplierPortalService;
 use Illuminate\Support\Facades\Auth;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
 new #[Title('Purchase Order')] class extends Component {
+    #[Locked]
     public PurchaseOrder $order;
 
     /**

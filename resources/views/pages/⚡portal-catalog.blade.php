@@ -4,6 +4,7 @@ use App\Models\Category;
 use App\Models\Supplier;
 use App\Services\SupplierPortalService;
 use Illuminate\Support\Facades\Auth;
+use Livewire\Attributes\Locked;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 use Livewire\WithPagination;
@@ -15,6 +16,7 @@ new #[Title('My Product Catalog')] class extends Component {
     public string $filterStatus = '';
     public string $filterCategory = '';
 
+    #[Locked]
     public ?Supplier $supplier = null;
 
     public function mount(): void

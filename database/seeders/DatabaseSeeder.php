@@ -105,19 +105,19 @@ class DatabaseSeeder extends Seeder
         ]);
 
         $supKaeri = Supplier::create([
-            'name' => 'Kaeri Logistics',
-            'contact_person' => 'Karylle Anne',
-            'email' => 'karylleanne.quinto09@gmail.com',
-            'phone' => '09430589033',
+            'name' => 'Metro Freight & Logistics',
+            'contact_person' => 'Elena Rostova',
+            'email' => 'logistics@metrofreight.demo',
+            'phone' => '+1-555-0192',
             'address' => 'Manila, Philippines',
             'status' => 'active',
         ]);
 
         $supKkomi = Supplier::create([
-            'name' => 'kkoMi Corp.',
-            'contact_person' => 'James Mikko',
-            'email' => 'recariojamesmikko@gmail.com',
-            'phone' => '09271622341',
+            'name' => 'Pacific Rim Supply Co.',
+            'contact_person' => 'David Chen',
+            'email' => 'supply@pacificrim.demo',
+            'phone' => '+1-555-0144',
             'address' => 'Quezon City, Philippines',
             'status' => 'active',
         ]);
@@ -222,8 +222,8 @@ class DatabaseSeeder extends Seeder
         $admin->assignRole($adminRole);
 
         $karylle = User::create([
-            'name' => 'Karylle Anne',
-            'email' => 'karylleanne.quinto09@gmail.com',
+            'name' => 'Elena Rostova',
+            'email' => 'elena.admin@sims.demo',
             'password' => bcrypt('password'),
             'supplier_id' => $supKaeri->id,
             'status' => 'active',
@@ -231,8 +231,8 @@ class DatabaseSeeder extends Seeder
         $karylle->assignRole($adminRole);
 
         $james = User::create([
-            'name' => 'James Mikko',
-            'email' => 'recariojamesmikko@gmail.com',
+            'name' => 'David Chen',
+            'email' => 'david.admin@sims.demo',
             'password' => bcrypt('password'),
             'supplier_id' => $supKkomi->id,
             'status' => 'active',
