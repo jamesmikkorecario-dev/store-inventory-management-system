@@ -263,8 +263,8 @@ new #[Title('User Management')] class extends Component {
                             <th scope="col" class="px-6 py-4">Email</th>
                             <th scope="col" class="px-6 py-4">Role</th>
                             <th scope="col" class="px-6 py-4">Supplier Firm</th>
-                            <th scope="col" class="px-6 py-4">Status</th>
-                            <th scope="col" class="px-6 py-4 text-left">Actions</th>
+                            <th scope="col" class="px-6 py-4 text-center">Status</th>
+                            <th scope="col" class="px-6 py-4 text-center">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
@@ -287,7 +287,7 @@ new #[Title('User Management')] class extends Component {
                                 <td class="px-6 py-4 text-zinc-500">
                                     {{ $user->supplier->name ?? '-' }}
                                 </td>
-                                <td class="px-6 py-4">
+                                <td class="px-6 py-4 text-center">
                                     @if($user->status === 'active')
                                         <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400">
                                             <span class="size-1.5 rounded-full bg-emerald-600 dark:bg-emerald-400"></span> Active
@@ -298,7 +298,7 @@ new #[Title('User Management')] class extends Component {
                                         </span>
                                     @endif
                                 </td>
-                                <td class="px-6 py-4 text-right">
+                                <td class="px-6 py-4 text-center">
                                     <div class="inline-flex items-center gap-2">
                                         <flux:button wire:click="openEditModal({{ $user->id }})" size="sm" icon="pencil-square" variant="ghost" aria-label="Edit" />
                                         @if($user->id !== auth()->id())

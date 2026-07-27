@@ -101,9 +101,9 @@
                         <th scope="col" class="px-6 py-4 whitespace-nowrap">Product</th>
                         <th scope="col" class="px-6 py-4 whitespace-nowrap text-left">Current Stock</th>
                         <th scope="col" class="px-6 py-4 whitespace-nowrap text-left">Min Stock</th>
-                        <th scope="col" class="px-6 py-4 whitespace-nowrap text-left">Severity</th>
-                        <th scope="col" class="px-6 py-4 whitespace-nowrap text-left">Status</th>
-                        <th scope="col" class="px-6 py-4 whitespace-nowrap text-left">Actions</th>
+                        <th scope="col" class="px-6 py-4 whitespace-nowrap text-center">Severity</th>
+                        <th scope="col" class="px-6 py-4 whitespace-nowrap text-center">Status</th>
+                        <th scope="col" class="px-6 py-4 whitespace-nowrap text-center">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
@@ -117,12 +117,12 @@
                                 {{ $alert->product->name ?? 'Deleted Product' }}
                             </td>
                             
-                            <td class="px-6 py-4 text-center font-semibold text-zinc-900 dark:text-zinc-100">
+                            <td class="px-6 py-4 text-left font-semibold text-zinc-900 dark:text-zinc-100">
                                 <span class="sr-only">Stock is at</span>
                                 {{ $alert->current_stock }}
                             </td>
                             
-                            <td class="px-6 py-4 text-center text-zinc-500">
+                            <td class="px-6 py-4 text-left text-zinc-500">
                                 {{ $alert->threshold }}
                             </td>
                             
@@ -148,8 +148,8 @@
                                 </div>
                             </td>
                             
-                            <td class="px-6 py-4 whitespace-nowrap text-right">
-                                <flux:dropdown position="bottom-end">
+                            <td class="px-6 py-4 whitespace-nowrap text-center">
+                                <flux:dropdown position="bottom-end" class="mx-auto">
                                     <flux:button variant="ghost" size="sm" icon="ellipsis-horizontal" class="h-8 w-8" />
                                     <flux:menu>
                                         @if(is_null($alert->read_at))

@@ -43,6 +43,8 @@ class DatabaseSeeder extends Seeder
             'manage purchase orders',
             'approve purchase orders',
             'receive purchase orders',
+            'view forecasts',
+            'export forecasts',
         ];
 
         foreach ($permissions as $permission) {
@@ -68,6 +70,8 @@ class DatabaseSeeder extends Seeder
             'view purchase orders',
             'manage purchase orders',
             'receive purchase orders',
+            'view forecasts',
+            'export forecasts',
         ]);
 
         $supplierRole = Role::create(['name' => 'Supplier']);

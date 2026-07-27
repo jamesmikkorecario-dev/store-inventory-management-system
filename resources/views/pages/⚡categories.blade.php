@@ -224,7 +224,7 @@ new #[Title('Category Management')] class extends Component {
                             <th scope="col" class="px-6 py-4">Description</th>
                             <th scope="col" class="px-6 py-4">Linked Products</th>
                             @if(!$isReadOnly)
-                                <th scope="col" class="px-6 py-4 text-left">Actions</th>
+                                <th scope="col" class="px-6 py-4 text-center">Actions</th>
                             @endif
                         </tr>
                     </thead>
@@ -241,7 +241,7 @@ new #[Title('Category Management')] class extends Component {
                                     </span>
                                 </td>
                                 @if(!$isReadOnly)
-                                    <td class="px-6 py-4 text-right">
+                                    <td class="px-6 py-4 text-center">
                                         <div class="inline-flex items-center gap-2">
                                             <flux:button wire:click="openEditModal({{ $category->id }})" size="sm" icon="pencil-square" variant="ghost" aria-label="Edit" />
                                             <flux:button wire:click="confirmDelete({{ $category->id }})" size="sm" icon="trash" variant="ghost" aria-label="Delete" class="text-rose-600 hover:text-rose-700" />
