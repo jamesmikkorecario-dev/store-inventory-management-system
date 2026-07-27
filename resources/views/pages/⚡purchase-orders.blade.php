@@ -353,13 +353,21 @@ new #[Title('Purchase Orders')] class extends Component {
     </div>
 
     <!-- Filters -->
-    <div class="grid grid-cols-1 items-end gap-4 rounded-xl border border-zinc-200 bg-white p-4 sm:grid-cols-2 lg:grid-cols-5 dark:border-zinc-700 dark:bg-zinc-900">
-        <div class="relative lg:col-span-2">
+    <div class="grid grid-cols-1 items-end gap-4 rounded-xl border border-zinc-200 bg-white p-4 sm:grid-cols-2 lg:grid-cols-4 dark:border-zinc-700 dark:bg-zinc-900">
+        <div class="relative sm:col-span-2">
             <flux:input wire:model.live.debounce.300ms="search" label="Search" placeholder="PO number or supplier..." icon="magnifying-glass" />
             <div wire:loading wire:target="search" class="absolute right-3 top-9">
                 <flux:icon name="arrow-path" class="size-4 animate-spin text-zinc-400" />
             </div>
         </div>
+
+        <div>
+            <flux:input wire:model.live="filterStartDate" type="date" label="Ordered From" />
+        </div>
+        <div>
+            <flux:input wire:model.live="filterEndDate" type="date" label="Ordered To" />
+        </div>
+
         <div>
             <flux:select wire:model.live="filterStatus" label="Status">
                 <option value="">All Statuses</option>
@@ -376,13 +384,8 @@ new #[Title('Purchase Orders')] class extends Component {
                 @endforeach
             </flux:select>
         </div>
-        <div>
-            <flux:input wire:model.live="filterStartDate" type="date" label="Ordered From" />
-        </div>
-        <div>
-            <flux:input wire:model.live="filterEndDate" type="date" label="Ordered To" />
-        </div>
-        <div class="sm:col-span-2 lg:col-span-5">
+
+        <div class="sm:col-span-2 lg:col-span-4">
             <flux:button wire:click="resetFilters" icon="arrow-uturn-left" size="sm" variant="{{ $hasActiveFilters ? 'filled' : 'ghost' }}" data-test="reset-filters">
                 Reset Filters
             </flux:button>
@@ -520,7 +523,7 @@ new #[Title('Purchase Orders')] class extends Component {
                     </div>
 
                     <!-- Line Items -->
-                    <div class="rounded-xl border border-zinc-200 dark:border-zinc-700">
+                    <div class="overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-700">
                         <div class="flex items-center justify-between border-b border-zinc-200 bg-zinc-50 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-950">
                             <span class="text-sm font-semibold text-zinc-800 dark:text-zinc-200">Line Items</span>
                             <flux:button size="xs" variant="filled" icon="plus" wire:click="addLineItem" type="button" data-test="add-line-item">Add Item</flux:button>

@@ -614,7 +614,7 @@ new #[Title('Dashboard')] class extends Component {
             </div>
 
             <!-- Left: Low Stock Items List -->
-            <div class="flex flex-col rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 lg:col-span-1">
+            <div class="flex min-w-0 flex-col rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-700 dark:bg-zinc-900 lg:col-span-1">
                 <div class="flex items-center justify-between border-b border-zinc-150 pb-4 dark:border-zinc-800">
                     <div class="flex items-center gap-2">
                         <flux:icon name="exclamation-triangle" class="size-5 text-zinc-500 dark:text-zinc-400" />
@@ -625,12 +625,12 @@ new #[Title('Dashboard')] class extends Component {
                 <div class="mt-4 flex flex-1 flex-col space-y-3">
                     @forelse($lowStockItems as $item)
                         <div class="flex flex-col rounded-xl border border-zinc-100 bg-zinc-50/80 p-4 transition-colors hover:border-zinc-200 dark:border-zinc-800/80 dark:bg-zinc-800/20 dark:hover:border-zinc-700">
-                            <div class="flex items-start justify-between">
-                                <div class="flex flex-col">
-                                    <flux:text class="font-semibold text-zinc-900 dark:text-zinc-100 truncate pr-2">{{ $item->name }}</flux:text>
-                                    <flux:text class="mt-0.5 text-xs text-zinc-500 uppercase tracking-wider font-medium">{{ $item->sku }}</flux:text>
+                            <div class="flex items-start justify-between gap-3">
+                                <div class="flex min-w-0 flex-1 flex-col">
+                                    <flux:text class="font-semibold text-zinc-900 dark:text-zinc-100 truncate" title="{{ $item->name }}">{{ $item->name }}</flux:text>
+                                    <flux:text class="mt-0.5 text-xs text-zinc-500 uppercase tracking-wider font-medium truncate" title="{{ $item->sku }}">{{ $item->sku }}</flux:text>
                                 </div>
-                                <div class="flex flex-col items-end whitespace-nowrap">
+                                <div class="flex shrink-0 flex-col items-end whitespace-nowrap">
                                     <span class="rounded bg-rose-100/80 px-2 py-0.5 text-xs font-bold text-rose-700 dark:bg-rose-900/40 dark:text-rose-400">
                                         {{ $item->current_stock }} left
                                     </span>
