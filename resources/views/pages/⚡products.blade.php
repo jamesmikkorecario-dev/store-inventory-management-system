@@ -805,9 +805,9 @@ new #[Title('Product Management')] class extends Component {
                             @endif
                             <th scope="col" class="px-6 py-4 w-[15%]">Prices (Cost / Selling)</th>
                             <th scope="col" class="px-6 py-4 w-[15%]">Stock Level</th>
-                            <th scope="col" class="px-6 py-4 w-[10%]">Status</th>
+                            <th scope="col" class="px-6 py-4 w-[10%] text-center">Status</th>
                             @if(!$isReadOnly)
-                                <th scope="col" class="px-6 py-4 text-left w-[5%]">Actions</th>
+                                <th scope="col" class="px-6 py-4 text-center w-[5%]">Actions</th>
                             @endif
                         </tr>
                     </thead>
@@ -874,7 +874,7 @@ new #[Title('Product Management')] class extends Component {
                                         <span class="text-[10px] text-zinc-400 whitespace-nowrap">Min Stock: {{ $product->minimum_stock }}</span>
                                     </div>
                                 </td>
-                                <td class="px-6 py-4">
+                                <td class="px-6 py-4 text-center">
                                     @if($product->status === 'active')
                                         <span class="rounded bg-emerald-50 px-2 py-0.5 text-xs font-semibold text-emerald-700 dark:bg-emerald-950/30 dark:text-emerald-400">Active</span>
                                     @elseif($product->status === 'inactive')
@@ -884,7 +884,7 @@ new #[Title('Product Management')] class extends Component {
                                     @endif
                                 </td>
                                 @if(!$isReadOnly)
-                                    <td class="px-6 py-4 text-right">
+                                    <td class="px-6 py-4 text-center">
                                         <div class="inline-flex items-center gap-2">
                                             <flux:button wire:click="openEditModal({{ $product->id }})" size="sm" icon="pencil-square" variant="ghost" aria-label="Edit" />
                                             <flux:button wire:click="confirmDelete({{ $product->id }})" size="sm" icon="trash" variant="ghost" aria-label="Delete" class="text-rose-600 hover:text-rose-700" />

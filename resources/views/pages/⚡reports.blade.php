@@ -434,9 +434,9 @@ new #[Title('Advanced Reports')] class extends Component {
                                     @forelse($breakdown['data'] as $group)
                                         <tr class="hover:bg-zinc-50 dark:hover:bg-zinc-800/30">
                                             <td class="px-6 py-3 font-medium text-zinc-800 dark:text-zinc-200">{{ $group['label'] }}</td>
-                                            <td class="px-6 py-3 text-right">{{ number_format($group['product_count']) }}</td>
-                                            <td class="px-6 py-3 text-right">{{ number_format($group['total_units']) }}</td>
-                                            <td class="px-6 py-3 text-right font-semibold">${{ number_format($group['total_value'], 2) }}</td>
+                                            <td class="px-6 py-3 text-left">{{ number_format($group['product_count']) }}</td>
+                                            <td class="px-6 py-3 text-left">{{ number_format($group['total_units']) }}</td>
+                                            <td class="px-6 py-3 text-left font-semibold">${{ number_format($group['total_value'], 2) }}</td>
                                         </tr>
                                     @empty
                                         <tr>
@@ -600,10 +600,10 @@ new #[Title('Advanced Reports')] class extends Component {
                                     </td>
                                     <td class="px-6 py-3.5">{{ $product->category->name ?? 'Uncategorized' }}</td>
                                     <td class="px-6 py-3.5">{{ $product->supplier->name ?? 'Unassigned' }}</td>
-                                    <td class="px-6 py-3.5 text-right whitespace-nowrap">${{ number_format((float) $product->cost_price, 2) }} / ${{ number_format((float) $product->selling_price, 2) }}</td>
-                                    <td class="px-6 py-3.5 text-right font-semibold">{{ number_format($product->current_stock) }}</td>
-                                    <td class="px-6 py-3.5 text-right font-medium text-zinc-900 dark:text-white">${{ number_format((float) $product->current_stock * (float) $product->cost_price, 2) }}</td>
-                                    <td class="px-6 py-3.5 text-right">${{ number_format((float) $product->current_stock * (float) $product->selling_price, 2) }}</td>
+                                    <td class="px-6 py-3.5 text-left whitespace-nowrap">${{ number_format((float) $product->cost_price, 2) }} / ${{ number_format((float) $product->selling_price, 2) }}</td>
+                                    <td class="px-6 py-3.5 text-left font-semibold">{{ number_format($product->current_stock) }}</td>
+                                    <td class="px-6 py-3.5 text-left font-medium text-zinc-900 dark:text-white">${{ number_format((float) $product->current_stock * (float) $product->cost_price, 2) }}</td>
+                                    <td class="px-6 py-3.5 text-left">${{ number_format((float) $product->current_stock * (float) $product->selling_price, 2) }}</td>
                                 </tr>
                             @empty
                                 <tr>
@@ -624,9 +624,9 @@ new #[Title('Advanced Reports')] class extends Component {
                                     <td class="px-6 py-4"></td>
                                     <td class="px-6 py-4"></td>
                                     <td class="px-6 py-4"></td>
-                                    <td class="px-6 py-4 text-right">{{ number_format($summary['total_units']) }}</td>
-                                    <td class="px-6 py-4 text-right">${{ number_format($summary['total_cost_value'], 2) }}</td>
-                                    <td class="px-6 py-4 text-right">${{ number_format($summary['total_retail_value'], 2) }}</td>
+                                    <td class="px-6 py-4 text-left">{{ number_format($summary['total_units']) }}</td>
+                                    <td class="px-6 py-4 text-left">${{ number_format($summary['total_cost_value'], 2) }}</td>
+                                    <td class="px-6 py-4 text-left">${{ number_format($summary['total_retail_value'], 2) }}</td>
                                 </tr>
                             </tfoot>
                         @endif
@@ -652,9 +652,9 @@ new #[Title('Advanced Reports')] class extends Component {
                                     </td>
                                     <td class="px-6 py-3.5">{{ $product->category->name ?? 'Uncategorized' }}</td>
                                     <td class="px-6 py-3.5">{{ $product->supplier->name ?? 'Unassigned' }}</td>
-                                    <td class="px-6 py-3.5 text-right font-bold {{ $severity === 'critical' ? 'text-rose-600 dark:text-rose-400' : 'text-amber-600 dark:text-amber-400' }}">{{ number_format($product->current_stock) }}</td>
-                                    <td class="px-6 py-3.5 text-right">{{ number_format($product->minimum_stock) }}</td>
-                                    <td class="px-6 py-3.5 text-right">{{ number_format(max($product->minimum_stock - $product->current_stock, 0)) }}</td>
+                                    <td class="px-6 py-3.5 text-left font-bold {{ $severity === 'critical' ? 'text-rose-600 dark:text-rose-400' : 'text-amber-600 dark:text-amber-400' }}">{{ number_format($product->current_stock) }}</td>
+                                    <td class="px-6 py-3.5 text-left">{{ number_format($product->minimum_stock) }}</td>
+                                    <td class="px-6 py-3.5 text-left">{{ number_format(max($product->minimum_stock - $product->current_stock, 0)) }}</td>
                                     <td class="px-6 py-3.5">
                                         @if($severity === 'critical')
                                             <span class="rounded bg-rose-50 px-2 py-0.5 text-xs font-semibold text-rose-700 dark:bg-rose-950/30 dark:text-rose-400">CRITICAL</span>
@@ -681,9 +681,9 @@ new #[Title('Advanced Reports')] class extends Component {
                                     <td class="px-6 py-4">TOTALS ({{ number_format($summary['total']) }} products)</td>
                                     <td class="px-6 py-4">Critical: {{ number_format($summary['critical']) }}</td>
                                     <td class="px-6 py-4">Low: {{ number_format($summary['low']) }}</td>
-                                    <td class="px-6 py-4 text-right">Out of stock: {{ number_format($summary['out_of_stock']) }}</td>
+                                    <td class="px-6 py-4 text-left">Out of stock: {{ number_format($summary['out_of_stock']) }}</td>
                                     <td class="px-6 py-4"></td>
-                                    <td class="px-6 py-4 text-right">{{ number_format($summary['units_required']) }}</td>
+                                    <td class="px-6 py-4 text-left">{{ number_format($summary['units_required']) }}</td>
                                     <td class="px-6 py-4"></td>
                                 </tr>
                             </tfoot>
@@ -710,8 +710,8 @@ new #[Title('Advanced Reports')] class extends Component {
                                     </td>
                                     <td class="px-6 py-3.5">{{ $product->category->name ?? 'Uncategorized' }}</td>
                                     <td class="px-6 py-3.5">{{ $product->supplier->name ?? 'Unassigned' }}</td>
-                                    <td class="px-6 py-3.5 text-right font-semibold">{{ number_format($product->current_stock) }}</td>
-                                    <td class="px-6 py-3.5 text-right">${{ number_format((float) $product->current_stock * (float) $product->cost_price, 2) }}</td>
+                                    <td class="px-6 py-3.5 text-left font-semibold">{{ number_format($product->current_stock) }}</td>
+                                    <td class="px-6 py-3.5 text-left">${{ number_format((float) $product->current_stock * (float) $product->cost_price, 2) }}</td>
                                     <td class="px-6 py-3.5 whitespace-nowrap">
                                         @if($product->last_transaction_date)
                                             {{ \Illuminate\Support\Carbon::parse($product->last_transaction_date)->format('Y-m-d H:i') }}
@@ -719,7 +719,7 @@ new #[Title('Advanced Reports')] class extends Component {
                                             <span class="text-zinc-400">Never</span>
                                         @endif
                                     </td>
-                                    <td class="px-6 py-3.5 text-right">
+                                    <td class="px-6 py-3.5 text-left">
                                         @if($days === null)
                                             <span class="rounded bg-zinc-100 px-2 py-0.5 text-xs font-semibold text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">Never moved</span>
                                         @else
@@ -745,8 +745,8 @@ new #[Title('Advanced Reports')] class extends Component {
                                     <td class="px-6 py-4">TOTALS ({{ number_format($summary['total']) }} products)</td>
                                     <td class="px-6 py-4">Never moved: {{ number_format($summary['never_moved']) }}</td>
                                     <td class="px-6 py-4"></td>
-                                    <td class="px-6 py-4 text-right">{{ number_format($summary['total_units']) }}</td>
-                                    <td class="px-6 py-4 text-right">${{ number_format($summary['tied_value'], 2) }}</td>
+                                    <td class="px-6 py-4 text-left">{{ number_format($summary['total_units']) }}</td>
+                                    <td class="px-6 py-4 text-left">${{ number_format($summary['tied_value'], 2) }}</td>
                                     <td class="px-6 py-4"></td>
                                     <td class="px-6 py-4"></td>
                                 </tr>
@@ -787,7 +787,7 @@ new #[Title('Advanced Reports')] class extends Component {
                                             <span class="rounded bg-sky-50 px-2 py-0.5 text-xs font-semibold text-sky-700 dark:bg-sky-950/30 dark:text-sky-400">ADJUSTMENT</span>
                                         @endif
                                     </td>
-                                    <td class="px-6 py-3.5 text-right font-semibold">
+                                    <td class="px-6 py-3.5 text-left font-semibold">
                                         @if($transaction->type === 'stock_in')
                                             +{{ number_format(abs($transaction->quantity)) }}
                                         @elseif($transaction->type === 'stock_out')
@@ -819,7 +819,7 @@ new #[Title('Advanced Reports')] class extends Component {
                                     <td class="px-6 py-4">In: +{{ number_format($summary['stock_in']) }}</td>
                                     <td class="px-6 py-4">Out: -{{ number_format($summary['stock_out']) }}</td>
                                     <td class="px-6 py-4">Adj: {{ $summary['adjustments'] > 0 ? '+' : '' }}{{ number_format($summary['adjustments']) }}</td>
-                                    <td class="px-6 py-4 text-right {{ $summary['net_movement'] >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400' }}">
+                                    <td class="px-6 py-4 text-left {{ $summary['net_movement'] >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400' }}">
                                         {{ $summary['net_movement'] > 0 ? '+' : '' }}{{ number_format($summary['net_movement']) }}
                                     </td>
                                     <td class="px-6 py-4"></td>
@@ -854,9 +854,9 @@ new #[Title('Advanced Reports')] class extends Component {
                                     <td class="px-6 py-3.5">
                                         <flux:badge :color="$order->statusColor()" size="sm" class="whitespace-nowrap">{{ $order->statusLabel() }}</flux:badge>
                                     </td>
-                                    <td class="px-6 py-3.5 text-right">{{ number_format((int) $order->units_ordered) }}</td>
-                                    <td class="px-6 py-3.5 text-right font-semibold">{{ number_format((int) $order->units_received) }}</td>
-                                    <td class="px-6 py-3.5 text-right font-medium text-zinc-900 dark:text-white">${{ number_format((float) $order->total_amount, 2) }}</td>
+                                    <td class="px-6 py-3.5 text-left">{{ number_format((int) $order->units_ordered) }}</td>
+                                    <td class="px-6 py-3.5 text-left font-semibold">{{ number_format((int) $order->units_received) }}</td>
+                                    <td class="px-6 py-3.5 text-left font-medium text-zinc-900 dark:text-white">${{ number_format((float) $order->total_amount, 2) }}</td>
                                 </tr>
                             @empty
                                 <tr>
@@ -878,9 +878,9 @@ new #[Title('Advanced Reports')] class extends Component {
                                     <td class="px-6 py-4">Received: {{ number_format($summary['received_orders']) }}</td>
                                     <td class="px-6 py-4">Cancelled: {{ number_format($summary['cancelled_orders']) }}</td>
                                     <td class="px-6 py-4">Overdue: {{ number_format($summary['overdue_orders']) }}</td>
-                                    <td class="px-6 py-4 text-right">{{ number_format($summary['units_ordered']) }}</td>
-                                    <td class="px-6 py-4 text-right">{{ number_format($summary['units_received']) }}</td>
-                                    <td class="px-6 py-4 text-right">${{ number_format($summary['total_value'], 2) }}</td>
+                                    <td class="px-6 py-4 text-left">{{ number_format($summary['units_ordered']) }}</td>
+                                    <td class="px-6 py-4 text-left">{{ number_format($summary['units_received']) }}</td>
+                                    <td class="px-6 py-4 text-left">${{ number_format($summary['total_value'], 2) }}</td>
                                 </tr>
                             </tfoot>
                         @endif
@@ -912,9 +912,9 @@ new #[Title('Advanced Reports')] class extends Component {
                                     <td class="px-6 py-3.5">
                                         <flux:badge :color="$order->statusColor()" size="sm" class="whitespace-nowrap">{{ $order->statusLabel() }}</flux:badge>
                                     </td>
-                                    <td class="px-6 py-3.5 text-right">{{ number_format((int) $order->units_ordered) }}</td>
-                                    <td class="px-6 py-3.5 text-right font-bold text-amber-600 dark:text-amber-400">{{ number_format(max((int) $order->units_ordered - (int) $order->units_received, 0)) }}</td>
-                                    <td class="px-6 py-3.5 text-right font-medium text-zinc-900 dark:text-white">${{ number_format((float) $order->outstanding_value, 2) }}</td>
+                                    <td class="px-6 py-3.5 text-left">{{ number_format((int) $order->units_ordered) }}</td>
+                                    <td class="px-6 py-3.5 text-left font-bold text-amber-600 dark:text-amber-400">{{ number_format(max((int) $order->units_ordered - (int) $order->units_received, 0)) }}</td>
+                                    <td class="px-6 py-3.5 text-left font-medium text-zinc-900 dark:text-white">${{ number_format((float) $order->outstanding_value, 2) }}</td>
                                 </tr>
                             @empty
                                 <tr>
@@ -936,8 +936,8 @@ new #[Title('Advanced Reports')] class extends Component {
                                     <td class="px-6 py-4">Due in 7 days: {{ number_format($summary['due_within_week']) }}</td>
                                     <td class="px-6 py-4">Overdue: {{ number_format($summary['overdue_orders']) }}</td>
                                     <td class="px-6 py-4"></td>
-                                    <td class="px-6 py-4 text-right">{{ number_format($summary['units_outstanding']) }}</td>
-                                    <td class="px-6 py-4 text-right">${{ number_format($summary['outstanding_value'], 2) }}</td>
+                                    <td class="px-6 py-4 text-left">{{ number_format($summary['units_outstanding']) }}</td>
+                                    <td class="px-6 py-4 text-left">${{ number_format($summary['outstanding_value'], 2) }}</td>
                                 </tr>
                             </tfoot>
                         @endif
@@ -962,11 +962,11 @@ new #[Title('Advanced Reports')] class extends Component {
                                         <flux:text class="block text-[11px] text-zinc-400">{{ $supplier->email ?: 'No email' }}</flux:text>
                                     </td>
                                     <td class="px-6 py-3.5">{{ $supplier->contact_person ?: '-' }}</td>
-                                    <td class="px-6 py-3.5 text-right">{{ number_format((int) $supplier->order_count) }}</td>
-                                    <td class="px-6 py-3.5 text-right">{{ number_format((int) $supplier->received_orders) }}</td>
-                                    <td class="px-6 py-3.5 text-right">{{ number_format((int) $supplier->units_ordered) }}</td>
-                                    <td class="px-6 py-3.5 text-right font-semibold">{{ number_format((int) $supplier->units_received) }}</td>
-                                    <td class="px-6 py-3.5 text-right font-medium text-zinc-900 dark:text-white">${{ number_format((float) $supplier->total_value, 2) }}</td>
+                                    <td class="px-6 py-3.5 text-left">{{ number_format((int) $supplier->order_count) }}</td>
+                                    <td class="px-6 py-3.5 text-left">{{ number_format((int) $supplier->received_orders) }}</td>
+                                    <td class="px-6 py-3.5 text-left">{{ number_format((int) $supplier->units_ordered) }}</td>
+                                    <td class="px-6 py-3.5 text-left font-semibold">{{ number_format((int) $supplier->units_received) }}</td>
+                                    <td class="px-6 py-3.5 text-left font-medium text-zinc-900 dark:text-white">${{ number_format((float) $supplier->total_value, 2) }}</td>
                                     <td class="px-6 py-3.5 whitespace-nowrap">
                                         {{ $supplier->last_order_date ? \Illuminate\Support\Carbon::parse($supplier->last_order_date)->format('Y-m-d') : '-' }}
                                     </td>
@@ -988,11 +988,11 @@ new #[Title('Advanced Reports')] class extends Component {
                                 <tr class="border-t-2 border-zinc-300 bg-zinc-100 font-bold text-zinc-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-white">
                                     <td class="px-6 py-4">TOTALS ({{ number_format($summary['supplier_count']) }} suppliers)</td>
                                     <td class="px-6 py-4"></td>
-                                    <td class="px-6 py-4 text-right">{{ number_format($summary['order_count']) }}</td>
+                                    <td class="px-6 py-4 text-left">{{ number_format($summary['order_count']) }}</td>
                                     <td class="px-6 py-4"></td>
-                                    <td class="px-6 py-4 text-right">{{ number_format($summary['units_ordered']) }}</td>
-                                    <td class="px-6 py-4 text-right">{{ number_format($summary['units_received']) }}</td>
-                                    <td class="px-6 py-4 text-right">${{ number_format($summary['total_value'], 2) }}</td>
+                                    <td class="px-6 py-4 text-left">{{ number_format($summary['units_ordered']) }}</td>
+                                    <td class="px-6 py-4 text-left">{{ number_format($summary['units_received']) }}</td>
+                                    <td class="px-6 py-4 text-left">${{ number_format($summary['total_value'], 2) }}</td>
                                     <td class="px-6 py-4"></td>
                                 </tr>
                             </tfoot>
@@ -1024,14 +1024,14 @@ new #[Title('Advanced Reports')] class extends Component {
                                     <td class="px-4 py-3.5">
                                         <flux:text class="block truncate" title="{{ $product->supplier->name ?? 'Unassigned' }}">{{ $product->supplier->name ?? 'Unassigned' }}</flux:text>
                                     </td>
-                                    <td class="px-4 py-3.5 text-right whitespace-nowrap">
+                                    <td class="px-4 py-3.5 text-left whitespace-nowrap">
                                         <span class="font-semibold text-zinc-900 dark:text-white">{{ number_format($product->current_stock) }}</span>
                                         <span class="text-xs text-zinc-400"> / {{ number_format($product->minimum_stock) }}</span>
                                     </td>
-                                    <td class="px-4 py-3.5 text-right">
+                                    <td class="px-4 py-3.5 text-left">
                                         {{ $forecast['has_data'] ? number_format($forecast['average_daily_usage'], 2) : '—' }}
                                     </td>
-                                    <td class="px-4 py-3.5 text-right">
+                                    <td class="px-4 py-3.5 text-left">
                                         @if($forecast['days_remaining'] === null)
                                             <span class="text-xs text-zinc-400">—</span>
                                         @else
@@ -1048,7 +1048,7 @@ new #[Title('Advanced Reports')] class extends Component {
                                             <flux:badge color="zinc" size="sm">{{ \App\Services\ForecastService::INSUFFICIENT_DATA }}</flux:badge>
                                         @endif
                                     </td>
-                                    <td class="px-4 py-3.5 text-right font-semibold text-zinc-900 dark:text-white">
+                                    <td class="px-4 py-3.5 text-left font-semibold text-zinc-900 dark:text-white">
                                         {{ number_format($forecast['suggested_reorder_quantity']) }}
                                         @if($forecast['suggested_reorder_date'])
                                             <flux:text class="block text-[10px] font-normal text-zinc-400">by {{ $forecast['suggested_reorder_date']->format('M d') }}</flux:text>
@@ -1074,10 +1074,10 @@ new #[Title('Advanced Reports')] class extends Component {
                                     <td class="px-4 py-4">At risk: {{ number_format($summary['at_risk']) }}</td>
                                     <td class="px-4 py-4">Critical: {{ number_format($summary['critical']) }}</td>
                                     <td class="px-4 py-4"></td>
-                                    <td class="px-4 py-4 text-right">{{ number_format($summary['total_daily_usage'], 2) }}</td>
+                                    <td class="px-4 py-4 text-left">{{ number_format($summary['total_daily_usage'], 2) }}</td>
                                     <td class="px-4 py-4"></td>
                                     <td class="px-4 py-4 text-xs">No data: {{ number_format($summary['insufficient_data']) }}</td>
-                                    <td class="px-4 py-4 text-right">{{ number_format($summary['suggested_units']) }}</td>
+                                    <td class="px-4 py-4 text-left">{{ number_format($summary['suggested_units']) }}</td>
                                 </tr>
                             </tfoot>
                         @endif
@@ -1114,10 +1114,10 @@ new #[Title('Advanced Reports')] class extends Component {
                                             <span class="rounded bg-zinc-100 px-2 py-0.5 text-xs font-semibold text-zinc-600 dark:bg-zinc-800 dark:text-zinc-300">{{ ucfirst($supplier->status) }}</span>
                                         @endif
                                     </td>
-                                    <td class="px-6 py-3.5 text-right">{{ number_format((int) $supplier->products_supplied) }}</td>
-                                    <td class="px-6 py-3.5 text-right">{{ number_format((int) $supplier->total_units) }}</td>
-                                    <td class="px-6 py-3.5 text-right {{ (int) $supplier->low_stock_products > 0 ? 'font-semibold text-amber-600 dark:text-amber-400' : '' }}">{{ number_format((int) $supplier->low_stock_products) }}</td>
-                                    <td class="px-6 py-3.5 text-right font-medium text-zinc-900 dark:text-white">${{ number_format((float) $supplier->total_value, 2) }}</td>
+                                    <td class="px-6 py-3.5 text-left">{{ number_format((int) $supplier->products_supplied) }}</td>
+                                    <td class="px-6 py-3.5 text-left">{{ number_format((int) $supplier->total_units) }}</td>
+                                    <td class="px-6 py-3.5 text-left {{ (int) $supplier->low_stock_products > 0 ? 'font-semibold text-amber-600 dark:text-amber-400' : '' }}">{{ number_format((int) $supplier->low_stock_products) }}</td>
+                                    <td class="px-6 py-3.5 text-left font-medium text-zinc-900 dark:text-white">${{ number_format((float) $supplier->total_value, 2) }}</td>
                                 </tr>
                             @empty
                                 <tr>
@@ -1138,10 +1138,10 @@ new #[Title('Advanced Reports')] class extends Component {
                                     <td class="px-6 py-4">TOTALS ({{ number_format($summary['supplier_count']) }} suppliers)</td>
                                     <td class="px-6 py-4"></td>
                                     <td class="px-6 py-4"></td>
-                                    <td class="px-6 py-4 text-right">{{ number_format($summary['product_count']) }}</td>
-                                    <td class="px-6 py-4 text-right">{{ number_format($summary['total_units']) }}</td>
-                                    <td class="px-6 py-4 text-right">{{ number_format($summary['low_stock_products']) }}</td>
-                                    <td class="px-6 py-4 text-right">${{ number_format($summary['total_value'], 2) }}</td>
+                                    <td class="px-6 py-4 text-left">{{ number_format($summary['product_count']) }}</td>
+                                    <td class="px-6 py-4 text-left">{{ number_format($summary['total_units']) }}</td>
+                                    <td class="px-6 py-4 text-left">{{ number_format($summary['low_stock_products']) }}</td>
+                                    <td class="px-6 py-4 text-left">${{ number_format($summary['total_value'], 2) }}</td>
                                 </tr>
                             </tfoot>
                         @endif

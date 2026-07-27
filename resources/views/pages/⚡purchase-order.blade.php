@@ -241,11 +241,11 @@ new #[Title('Purchase Order')] class extends Component {
                                     <flux:text class="font-semibold text-zinc-900 dark:text-white">{{ $item->product->name ?? 'Deleted Product' }}</flux:text>
                                     <flux:text class="block font-mono text-[11px] text-zinc-400">{{ $item->product->sku ?? '' }}</flux:text>
                                 </td>
-                                <td class="px-6 py-3.5 text-right font-medium">{{ number_format($item->quantity_ordered) }}</td>
-                                <td class="px-6 py-3.5 text-right font-medium {{ $item->isFullyReceived() ? 'text-emerald-600 dark:text-emerald-400' : '' }}">{{ number_format($item->quantity_received) }}</td>
-                                <td class="px-6 py-3.5 text-right">{{ number_format($item->outstandingQuantity()) }}</td>
-                                <td class="px-6 py-3.5 text-right whitespace-nowrap">${{ number_format((float) $item->unit_cost, 2) }}</td>
-                                <td class="px-6 py-3.5 text-right font-semibold text-zinc-900 dark:text-white">${{ number_format((float) $item->line_total, 2) }}</td>
+                                <td class="px-6 py-3.5 text-left font-medium">{{ number_format($item->quantity_ordered) }}</td>
+                                <td class="px-6 py-3.5 text-left font-medium {{ $item->isFullyReceived() ? 'text-emerald-600 dark:text-emerald-400' : '' }}">{{ number_format($item->quantity_received) }}</td>
+                                <td class="px-6 py-3.5 text-left">{{ number_format($item->outstandingQuantity()) }}</td>
+                                <td class="px-6 py-3.5 text-left whitespace-nowrap">${{ number_format((float) $item->unit_cost, 2) }}</td>
+                                <td class="px-6 py-3.5 text-left font-semibold text-zinc-900 dark:text-white">${{ number_format((float) $item->line_total, 2) }}</td>
                             </tr>
                         @empty
                             <tr>
@@ -257,11 +257,11 @@ new #[Title('Purchase Order')] class extends Component {
                         <tfoot>
                             <tr class="border-t-2 border-zinc-300 bg-zinc-100 font-bold text-zinc-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-white">
                                 <td class="px-6 py-4">GRAND TOTAL</td>
-                                <td class="px-6 py-4 text-right">{{ number_format($purchaseOrder->totalOrdered()) }}</td>
-                                <td class="px-6 py-4 text-right">{{ number_format($purchaseOrder->totalReceived()) }}</td>
+                                <td class="px-6 py-4 text-left">{{ number_format($purchaseOrder->totalOrdered()) }}</td>
+                                <td class="px-6 py-4 text-left">{{ number_format($purchaseOrder->totalReceived()) }}</td>
                                 <td class="px-6 py-4"></td>
                                 <td class="px-6 py-4"></td>
-                                <td class="px-6 py-4 text-right">${{ number_format((float) $purchaseOrder->total_amount, 2) }}</td>
+                                <td class="px-6 py-4 text-left">${{ number_format((float) $purchaseOrder->total_amount, 2) }}</td>
                             </tr>
                         </tfoot>
                     @endif
@@ -355,8 +355,8 @@ new #[Title('Purchase Order')] class extends Component {
                                             <flux:text class="font-medium text-zinc-900 dark:text-white">{{ $item->product->name ?? 'Deleted Product' }}</flux:text>
                                             <flux:text class="block font-mono text-[11px] text-zinc-400">{{ $item->product->sku ?? '' }}</flux:text>
                                         </td>
-                                        <td class="px-4 py-3 text-right">{{ number_format($item->quantity_ordered) }}</td>
-                                        <td class="px-4 py-3 text-right font-semibold">{{ number_format($item->outstandingQuantity()) }}</td>
+                                        <td class="px-4 py-3 text-left">{{ number_format($item->quantity_ordered) }}</td>
+                                        <td class="px-4 py-3 text-left font-semibold">{{ number_format($item->outstandingQuantity()) }}</td>
                                         <td class="px-4 py-3">
                                             <flux:input
                                                 wire:model.live="receiveQuantities.{{ $item->id }}"
@@ -374,7 +374,7 @@ new #[Title('Purchase Order')] class extends Component {
                             <tfoot>
                                 <tr class="border-t border-zinc-200 bg-zinc-50 font-semibold text-zinc-900 dark:border-zinc-800 dark:bg-zinc-950 dark:text-white">
                                     <td class="px-4 py-3" colspan="3">Total units in this delivery</td>
-                                    <td class="px-4 py-3 text-right" data-test="receive-preview">{{ number_format($receivePreview) }}</td>
+                                    <td class="px-4 py-3 text-left" data-test="receive-preview">{{ number_format($receivePreview) }}</td>
                                 </tr>
                             </tfoot>
                         </table>

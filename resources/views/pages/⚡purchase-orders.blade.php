@@ -515,11 +515,11 @@ new #[Title('Purchase Orders')] class extends Component {
                                     <td class="px-4 py-3">
                                         <flux:text class="block truncate" title="{{ $product->supplier->name ?? 'Unassigned' }}">{{ $product->supplier->name ?? 'Unassigned' }}</flux:text>
                                     </td>
-                                    <td class="px-4 py-3 text-right whitespace-nowrap">
+                                    <td class="px-4 py-3 text-left whitespace-nowrap">
                                         <span class="font-semibold text-zinc-900 dark:text-white">{{ number_format($product->current_stock) }}</span>
                                         <span class="text-xs text-zinc-400"> / {{ number_format($product->minimum_stock) }}</span>
                                     </td>
-                                    <td class="px-4 py-3 text-right">
+                                    <td class="px-4 py-3 text-left">
                                         @if($forecast['days_remaining'] === null)
                                             <span class="text-xs text-zinc-400">—</span>
                                         @else
@@ -528,7 +528,7 @@ new #[Title('Purchase Orders')] class extends Component {
                                             </span>
                                         @endif
                                     </td>
-                                    <td class="px-4 py-3 text-right font-bold text-zinc-900 dark:text-white">{{ number_format($forecast['suggested_reorder_quantity']) }}</td>
+                                    <td class="px-4 py-3 text-left font-bold text-zinc-900 dark:text-white">{{ number_format($forecast['suggested_reorder_quantity']) }}</td>
                                     <td class="px-4 py-3">
                                         <flux:badge :color="$forecastService->severityColor($forecast['severity'])" size="sm" class="whitespace-nowrap">{{ $forecast['severity_label'] }}</flux:badge>
                                     </td>
@@ -638,11 +638,11 @@ new #[Title('Purchase Orders')] class extends Component {
                         <th scope="col" class="px-4 py-4 w-[13%]">PO Number</th>
                         <th scope="col" class="px-4 py-4 w-[14%]">Supplier</th>
                         <th scope="col" class="px-4 py-4 w-[22%]">Dates</th>
-                        <th scope="col" class="px-4 py-4 text-left w-[8%]">Items</th>
+                        <th scope="col" class="px-4 py-4 text-center w-[8%]">Items</th>
                         <th scope="col" class="px-4 py-4 w-[8%]">Received</th>
                         <th scope="col" class="px-4 py-4 text-left w-[12%]">Total</th>
-                        <th scope="col" class="px-4 py-4 w-[15%]">Status</th>
-                        <th scope="col" class="px-4 py-4 text-left w-[8%]">Actions</th>
+                        <th scope="col" class="px-4 py-4 w-[15%] text-center">Status</th>
+                        <th scope="col" class="px-4 py-4 text-center w-[8%]">Actions</th>
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
@@ -672,7 +672,7 @@ new #[Title('Purchase Orders')] class extends Component {
                                     @if($order->isOverdue()) (overdue) @endif
                                 </flux:text>
                             </td>
-                            <td class="px-4 py-4 text-right">{{ number_format($order->items_count) }}</td>
+                            <td class="px-4 py-4 text-center">{{ number_format($order->items_count) }}</td>
                             <td class="px-4 py-4">
                                 <div class="flex items-center gap-2">
                                     <div class="h-1.5 w-20 overflow-hidden rounded-full bg-zinc-200 dark:bg-zinc-700">
@@ -681,11 +681,11 @@ new #[Title('Purchase Orders')] class extends Component {
                                     <span class="text-xs whitespace-nowrap">{{ number_format($received) }}/{{ number_format($ordered) }}</span>
                                 </div>
                             </td>
-                            <td class="px-4 py-4 text-right font-semibold whitespace-nowrap text-zinc-900 dark:text-white">${{ number_format((float) $order->total_amount, 2) }}</td>
-                            <td class="px-4 py-4">
+                            <td class="px-4 py-4 text-left font-semibold whitespace-nowrap text-zinc-900 dark:text-white">${{ number_format((float) $order->total_amount, 2) }}</td>
+                            <td class="px-4 py-4 text-center">
                                 <flux:badge :color="$order->statusColor()" size="sm" class="whitespace-nowrap">{{ $order->statusLabel() }}</flux:badge>
                             </td>
-                            <td class="px-4 py-4">
+                            <td class="px-4 py-4 text-left">
                                 @php
                                     $isSubmitted = $order->status === \App\Models\PurchaseOrder::STATUS_SUBMITTED;
                                     $canEditRow = $canManage && $order->isEditable();
@@ -694,7 +694,7 @@ new #[Title('Purchase Orders')] class extends Component {
                                     $canCancelRow = $canManage && $order->isOpen();
                                     $hasRowActions = $canEditRow || $canApproveRow || $canReceiveRow || $canCancelRow;
                                 @endphp
-                                <div class="flex items-center gap-1">
+                                <div class="flex items-center justify-start gap-1">
                                     <flux:button
                                         size="sm"
                                         variant="ghost"

@@ -389,8 +389,8 @@ new #[Title('Dashboard')] class extends Component {
                                     <td class="py-4 align-middle pr-4">
                                         <flux:badge :color="$order->statusColor()" size="sm">{{ $order->statusLabel() }}</flux:badge>
                                     </td>
-                                    <td class="py-4 align-middle pr-4 text-right font-semibold text-zinc-900 dark:text-white">${{ number_format((float) $order->total_amount, 2) }}</td>
-                                    <td class="py-4 align-middle text-right text-[11px] font-medium uppercase tracking-wider text-zinc-400">
+                                    <td class="py-4 align-middle pr-4 text-left font-semibold text-zinc-900 dark:text-white">${{ number_format((float) $order->total_amount, 2) }}</td>
+                                    <td class="py-4 align-middle text-left text-[11px] font-medium uppercase tracking-wider text-zinc-400">
                                         {{ $order->received_at?->diffForHumans() ?? '—' }}
                                     </td>
                                 </tr>
@@ -459,9 +459,9 @@ new #[Title('Dashboard')] class extends Component {
                                         <flux:text class="block truncate font-semibold text-zinc-900 dark:text-white" title="{{ $product->name }}">{{ $product->name }}</flux:text>
                                         <flux:text class="block truncate font-mono text-[11px] text-zinc-400">{{ $product->sku }}</flux:text>
                                     </td>
-                                    <td class="px-4 py-3.5 text-right font-semibold text-zinc-900 dark:text-white">{{ number_format($product->current_stock) }}</td>
-                                    <td class="px-4 py-3.5 text-right">{{ number_format($forecast['average_daily_usage'], 2) }}</td>
-                                    <td class="px-4 py-3.5 text-right">
+                                    <td class="px-4 py-3.5 text-left font-semibold text-zinc-900 dark:text-white">{{ number_format($product->current_stock) }}</td>
+                                    <td class="px-4 py-3.5 text-left">{{ number_format($forecast['average_daily_usage'], 2) }}</td>
+                                    <td class="px-4 py-3.5 text-left">
                                         @if($forecast['days_remaining'] === null)
                                             <span class="text-xs text-zinc-400">—</span>
                                         @else
@@ -834,7 +834,7 @@ new #[Title('Dashboard')] class extends Component {
                                             <flux:text class="text-sm font-medium text-zinc-500">System</flux:text>
                                         @endif
                                     </td>
-                                    <td class="py-4 align-middle text-right text-[11px] font-medium uppercase tracking-wider text-zinc-400">
+                                    <td class="py-4 align-middle text-left text-[11px] font-medium uppercase tracking-wider text-zinc-400">
                                         {{ $tx->transaction_date->format('M d, Y') }}
                                     </td>
                                 </tr>
