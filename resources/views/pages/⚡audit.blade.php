@@ -56,7 +56,11 @@ new #[Title('Audit Trail')] class extends Component {
                 if (is_bool($oldVal)) $oldVal = $oldVal ? 'true' : 'false';
                 if (is_bool($newVal)) $newVal = $newVal ? 'true' : 'false';
 
-                $output .= "<li><span class='font-mono font-semibold text-zinc-500'>{$key}</span>: <span class='text-rose-600 line-through bg-rose-50 px-1 rounded dark:bg-rose-950/20'>{$oldVal}</span> &rarr; <span class='text-emerald-600 bg-emerald-50 px-1 rounded font-medium dark:bg-emerald-950/20'>{$newVal}</span></li>";
+                $safeKey = e($key);
+                $safeOldVal = e((string) $oldVal);
+                $safeNewVal = e((string) $newVal);
+
+                $output .= "<li><span class='font-mono font-semibold text-zinc-500'>{$safeKey}</span>: <span class='text-rose-600 line-through bg-rose-50 px-1 rounded dark:bg-rose-950/20'>{$safeOldVal}</span> &rarr; <span class='text-emerald-600 bg-emerald-50 px-1 rounded font-medium dark:bg-emerald-950/20'>{$safeNewVal}</span></li>";
             }
             $output .= '</ul>';
         } 
@@ -70,7 +74,10 @@ new #[Title('Audit Trail')] class extends Component {
                 if (is_array($newVal)) $newVal = json_encode($newVal);
                 if (is_bool($newVal)) $newVal = $newVal ? 'true' : 'false';
 
-                $output .= "<li><span class='font-mono font-semibold text-zinc-500'>{$key}</span>: <span class='text-emerald-600 bg-emerald-50 px-1 rounded font-medium dark:bg-emerald-950/20'>{$newVal}</span></li>";
+                $safeKey = e($key);
+                $safeNewVal = e((string) $newVal);
+
+                $output .= "<li><span class='font-mono font-semibold text-zinc-500'>{$safeKey}</span>: <span class='text-emerald-600 bg-emerald-50 px-1 rounded font-medium dark:bg-emerald-950/20'>{$safeNewVal}</span></li>";
             }
             $output .= '</ul>';
         }
