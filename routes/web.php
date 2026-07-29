@@ -22,6 +22,11 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::livewire('notifications', 'pages::notifications')->name('notifications.index');
 
     Route::get('/products/{product}/print-label', function (Product $product, Request $request, ProductIdentificationService $service) {
+        $user = Auth::user();
+        if ($user && $user->hasRole('Supplier') && $user->supplier_id !== $product->supplier_id) {
+            abort(403);
+        }
+
         $type = $request->query('type', 'both');
         $barcodeSvg = $service->generateBarcodeSvg($product->identifier);
         $qrCodeSvg = $service->generateQrCodeSvg($product->identifier);
